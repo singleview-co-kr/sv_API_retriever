@@ -1,0 +1,6 @@
+# define absolute path of bot root directory
+ABSOLUTE_PATH_BOT = '%s'
+# define absolute path of XE root directory
+ABSOLUTE_PATH_XE = ''
+# set "devel" if development, any string otherwise
+RUN_MODE = '%s'

@@ -1,0 +1,9 @@
+[SERVER]
+db_type = mysqli
+db_port = 3306
+db_hostname = 127.0.0.1
+db_userid = %s
+db_password = %s
+db_database = %s
+db_charset = utf8
+db_table_prefix = %s_

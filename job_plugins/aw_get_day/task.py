@@ -106,7 +106,6 @@ class svJobPlugin():
         return oResp
 
     def procTask(self):
-        print(self.__g_sConfigLoc)
         oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self.__g_sConfigLoc)
         oResp = oSvApiConfigParser.getConfig()
         

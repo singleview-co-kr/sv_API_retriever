@@ -76,9 +76,16 @@ class SvApiConfigParser:
             try:
                 with open(self.__g_sApiConfigFile) as f:
                     self.__g_oConfig.read_file(f)
-            except IOError:
-                self.__printDebug( 'api_info.ini not exist')
-                raise IOError('failed to read api_info.ini')
+            except IOError: # run plugin for the first time
+                self.__printDebug('api_info.ini not exist')
+                if __name__ == 'sv_api_config_parser': # for plugin console running
+                    sys.path.append('../../classes')
+                    import sv_install
+                    o_install = sv_install.svInstall()
+                    dict_config_info = {'s_abs_path_bot': basic_config.ABSOLUTE_PATH_BOT, 's_acct_info': self.__g_sConfigLoc}
+                    o_install.start_up_job_plugin(dict_config_info)
+                    del o_install
+                # raise IOError('failed to read api_info.ini')
 
             self.__g_oConfig.read(self.__g_sApiConfigFile)
 
