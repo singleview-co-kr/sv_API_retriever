@@ -1,0 +1,23 @@
+CREATE TABLE `nvad_master_ad_extension` (
+  `ad_extension_srl` bigint(11) NOT NULL AUTO_INCREMENT,
+  `customer_id` bigint(11) NOT NULL,
+  `ad_extension_id` varchar(32) NOT NULL,
+  `type` int(1) DEFAULT NULL,
+  `owner_id` varchar(32) NOT NULL,
+  `biz_channel_id_pc` varchar(32) NOT NULL,
+  `biz_channel_id_mobile` varchar(32) NOT NULL,
+  `time_targeting_monday` bigint(11) NULL,
+  `time_targeting_tuesday` bigint(11) NULL,
+  `time_targeting_wednesday` bigint(11) NULL,
+  `time_targeting_thursday` bigint(11) NULL,
+  `time_targeting_friday` bigint(11) NULL,
+  `time_targeting_saturday` bigint(11) NULL,
+  `time_targeting_sunday` bigint(11) NULL,
+  `on_off` int(1) DEFAULT NULL,
+  `ad_extension_inspect_status` int(2) DEFAULT NULL,
+  `regTm` DATETIME NOT NULL,
+  `delTm` DATETIME DEFAULT NULL,
+  `regdate` DATETIME DEFAULT NOW(),
+  PRIMARY KEY (`ad_extension_srl`),
+  KEY `idx_reg_tm` (`regTm`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

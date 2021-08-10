@@ -1,0 +1,60 @@
+<div class="x_modal-header">
+	<h1>{$lang->title_insert_plugin_param}</h1>
+</div>
+<div class="x_modal-content">
+	<table>
+		<thead>
+			<tr>
+				<th>{$lang->plugin_param_title}</th><th>{$lang->plugin_param_value}</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!---tr>
+				<td>target_server_name (http://, https:// is not allowed)</td>
+				<td><input type="text" name="target_server_name" id="target_server_name" value="{$params->target_server_name}" /></td>
+			</tr>
+			<tr>
+				<td>access_url </td>
+				<td><input type="text" name="access_url" id="access_url" value="{$params->target_server_name}" /></td>
+			</tr---->
+			<tr>
+				<td>data_last_date(yyyymmdd)</td>
+				<td><input type="text" name="data_last_date" id="data_last_date" value="{$params->data_last_date}" /></td>
+			</tr>
+			<tr>
+				<td>data_first_date(yyyymmdd)</td>
+				<td><input type="text" name="data_first_date" id="data_first_date" value="{$params->data_first_date}" /></td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+
+<div class="x_modal-footer">
+	<button type="button" onclick='_validatePluginParam();' class="x_btn x_btn-inverse">{$lang->cmd_submit}</button>
+</div>
+<script type="text/JavaScript">
+function _validatePluginParam()
+{
+	sDataLastDate = jQuery( "#data_last_date" ).val();
+	if( sDataLastDate.length == 0 )
+	{
+		alert('invalid data_last_date');
+		return;
+	}
+	
+	sDataFirstDate = jQuery( "#data_first_date" ).val();
+	if( sDataFirstDate.length == 0 )
+	{
+		alert('invalid data_first_date');
+		return;
+	}
+	
+	var oPluginParam = new Object();
+	oPluginParam.data_last_date = sDataLastDate;
+	oPluginParam.data_first_date = sDataFirstDate;
+	var sJsonData = JSON.stringify(oPluginParam);
+
+	console.log( sJsonData );
+	jQuery( "#plugin_param_json_str" ).val(sJsonData);
+}
+</script>

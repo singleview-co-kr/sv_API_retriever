@@ -1,0 +1,18 @@
+# references for more information
+https://stackoverflow.com/questions/50266800/object-with-id-203618703567212-does-not-exist-cannot-be-loaded-due-to-missing
+https://stackoverflow.com/questions/8231877/facebook-access-token-for-pages
+https://developers.facebook.com/docs/marketing-api/reference/sdks/python/ad-account/v3.1
+https://developers.facebook.com/docs/marketing-api/insights
+https://developers.facebook.com/docs/marketing-api/reference/ad-creative
+https://developers.facebook.com/docs/marketing-api/access/
+https://developers.facebook.com/docs/apps/review/server-to-server-apps/
+https://developers.facebook.com/apps/472350069614767/marketing-api/quickstart/
+
+# how to activate FB app
+1. goto https://developers.facebook.com/apps/
+2. choose app to activate
+3. click 제품+
+4. choose 마케팅 API
+5. choose 도구 -> 토큰 권한 선택 -> ads_read, read_insight -> 토큰 받기
+5. 샌드박스 광고 계정 관리에서 계정 추가
+6. choose 빠른 시작 -> 광고 보고서 만들기 : 코드 템플릿 확인
