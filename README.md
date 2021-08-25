@@ -4,7 +4,7 @@ Singleview API retriever for Python CLI
 [![License](http://img.shields.io/badge/license-GNU%20LGPL-brightgreen.svg)](http://www.gnu.org/licenses/gpl.html)
 [![Latest release](https://img.shields.io/github/v/release/singleview-co-kr/sv_API_retriever.svg)](https://github.com/singleview-co-kr/sv_API_retriever/releases)
 
-Singleview API retriever for Python CLI(gaectk)는 온라인 마케팅 담당자가 좀 더 쉽게 자동화된 Progrmatic Advertising 업무 단계에 접근할 수 있도록 도와줍니다.
+Singleview API retriever on Python Django는 온라인 마케팅 담당자가 좀 더 쉽게 자동화된 Progrmatic Advertising 업무 단계에 접근할 수 있도록 도와줍니다.
 오픈소스 라이선스로 누구나 사용 또는 개작할 수 있으며, 개방형 프로젝트로서 누구나 개발에 참여할 수 있습니다. 
 
 본 프로젝트의 목표는 시중의 주요 온라인 광고 매체 운영 데이터를 API 통해 수집하고 Business Intelligence 친화적으로 재구성하는 것입니다.
@@ -34,6 +34,16 @@ Singleview API retriever for Python CLI(gaectk)는 온라인 마케팅 담당자
 자동화된 Progrmatic Advertising 업무 단계 도입 이전보다 못한 상태로 퇴행하는 가장 주요한 이유는 실무자들이 소중한 예산을 낭비했다는 경영진의 기술 혐오입니다.
 
 그래서 최소한 초기 단계에서 비용이나 저작권과 같은 행정 문제를 고려하지 않고 오직 업무 타당성 검증에만 주목하여 사용해 볼 수 있어야 합니다.
+
+### 편의성
+
+Singleview API retriever for Python CLI proto_v1.3.0은 bash console에서만 작동했지만 Singleview API retriever on Python Django는 브라우저 환경에서 task plugin을 실행할 수 있도록 개선했습니다. 
+
+이를 통하여 API에 대한 지식이 없는 온라인 마케터 담당자도 직접 필요한 plugin을 실행시키고 응답값을 살펴보며 브라우저에서 데이터를 수집할 수 있습니다.
+
+다양한 매체사 API에 접속하여 수집한 대용량의 광고 운영 데이터를 이용하려는 Business Intelligence에 쉽게 업로드할 수 있도록 브라우저에서 다운로드 기능을 제공할 예정입니다. 
+
+향후에는 온라인 마케팅 담당자의 업무에 최적화된 자체 시각화 기능을 도입할 예정입니다.
 
 ### 안정성
 
