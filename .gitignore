@@ -4,6 +4,7 @@
 .DS_Store
 
 ### Project Specific ###
+misc/dbs.pid
 conf/
 files/
 log/

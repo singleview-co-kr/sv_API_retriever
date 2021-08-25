@@ -158,7 +158,7 @@ class svCipherMcrypt:
                 self.__g_oLogger.debug( sMsg )
 
 if __name__ == '__main__': # for console debugging
-    secret = b'TestString From PHP345'
+    secret = 'TestString From PHP345'
     print(secret)
     sv_secret_key = '34yuhangencer4ty'
     sv_iv = 'HyuhangenDdfe5gh'
