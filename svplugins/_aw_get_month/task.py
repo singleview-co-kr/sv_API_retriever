@@ -67,6 +67,7 @@ else: # for platform running
 class svJobPlugin():
     __g_sVersion = '1.0.0'
     __g_sLastModifiedDate = '4th, Jul 2021'
+    __g_sGoogleAdsApiVersion = 'v7'
     __g_oLogger = None
     __g_sConfigLoc = None
     __g_sRetrieveMonth = None
@@ -188,7 +189,7 @@ class svJobPlugin():
         report_downloader = adwords_client.GetReportDownloader(version='v201809')"""
 
         s_google_ads_yaml_path = basic_config.ABSOLUTE_PATH_BOT + '/conf/google-ads.yaml'
-        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version="v6")
+        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
         
         nYr = int(self.__g_sRetrieveMonth[:4])
@@ -222,7 +223,7 @@ class svJobPlugin():
         s_google_ads_cid = sAdwordsCid.replace('-', '')
         
         # set report header rows
-        lst_report_header_1 = ['google_ads_api (v6)']
+        lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device', 'Conversions', 'Total conv. value', 'Day']
 
         while True: # loop for each report date

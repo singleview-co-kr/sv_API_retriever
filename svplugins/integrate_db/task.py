@@ -1425,70 +1425,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dictRst['vat'] = (nFinalCost + nAgencyCost ) * 0.1
         return dictRst
 
-    # def __printProgressBar(self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '='):
-    #     """
-    #     Print iterations progress
-    #     Call in a loop to create terminal progress bar
-    #     @params:
-    #         iteration   - Required  : current iteration (Int)
-    #         total       - Required  : total iterations (Int)
-    #         prefix      - Optional  : prefix string (Str)
-    #         suffix      - Optional  : suffix string (Str)
-    #         decimals    - Optional  : positive number of decimals in percent complete (Int)
-    #         length      - Optional  : character length of bar (Int)
-    #         fill        - Optional  : bar fill character (Str)
-    #     """
-    #     if __name__ == '__main__': # for console debugging
-    #         percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    #         filledLength = int(length * iteration // total)
-    #         bar = fill * filledLength + '-' * (length - filledLength)
-    #         print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
-    #         # Print New Line on Complete
-    #         if iteration == total: 
-    #             print()
-
-    # def __printDebug( self, sMsg ):
-    #     if __name__ == '__main__': # for console debugging
-    #         print( sMsg )
-    #     else: # for platform running
-    #         if( self.__g_oLogger is not None ):
-    #             self.__g_oLogger.debug( sMsg )
-
-    # def __getHttpResponse(self, sTargetUrl ):
-    #     oSvHttp = sv_http.svHttpCom(sTargetUrl)
-    #     oResp = oSvHttp.getUrl()
-    #     oSvHttp.close()
-    #     if( oResp['error'] == -1 ):
-    #         if( oResp['variables'] ): # oResp['variables'] list has items
-    #             try:
-    #                oResp['variables']['todo']
-    #             except KeyError: # if ['variables']['todo'] is not defined
-    #                 self.__printDebug( '__checkHttpResp error occured but todo is not defined -> continue')
-    #             else: # if ['variables']['todo'] is defined
-    #                 sTodo = oResp['variables']['todo']
-    #                 if( sTodo == 'stop' ):
-    #                     self.__printDebug('HTTP response raised exception!!')
-    #                     raise Exception(sTodo)
-    #     return oResp
-
 
 if __name__ == '__main__': # for console debugging
-    dictPluginParams = {'config_loc':None, 'yyyymm':None, 'mode':None} # {'config_loc':'1/test_acct', 'yyyymm':'201811'}
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        for i in range(nCliParams):
-            if i is 0:
-                continue
-
-            sArg = sys.argv[i]
-            for sParamName in dictPluginParams:
-                nIdx = sArg.find( sParamName + '=' )
-                if nIdx > -1:
-                    aModeParam = sArg.split('=')
-                    dictPluginParams[sParamName] = aModeParam[1]
-                
-        #print( dictPluginParams )
-        with svJobPlugin(dictPluginParams) as oJob: # to enforce to call plugin destructor
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.parse_command(sys.argv)
             oJob.do_task()
     else:
-        print( 'warning! [config_loc] params are required for console execution.' )
+        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

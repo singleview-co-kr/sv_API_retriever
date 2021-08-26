@@ -56,13 +56,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return
 
 if __name__ == '__main__': # for console debugging and execution
-    # python task.py analysis_namespace=test config_loc=1/ynox slack_ch_ttl=dbs_bot
+    # python task.py analytical_namespace=test config_loc=1/ynox slack_ch_ttl=dbs_bot
     # slack_clear slack_ch_ttl=dbs_bot
     nCliParams = len(sys.argv)
-    if nCliParams > 1:
+    if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.parse_command(sys.argv)
             oJob.do_task()
             pass
     else:
-        print('warning! [slack_ch_ttl] params are required for console execution.')
+        print('warning! [analytical_namespace] [config_loc] [slack_ch_ttl] params are required for console execution.')

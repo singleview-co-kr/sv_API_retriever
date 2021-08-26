@@ -328,22 +328,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    dictPluginParams = {'config_loc':None, 'yyyymm':None} # {'config_loc':'1/test_acct', 'yyyymm':'201811'}
+    # python task.py analytical_namespace=test config_loc=1/ynox yyyymm=201811
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        for i in range(nCliParams):
-            if i is 0:
-                continue
-
-            sArg = sys.argv[i]
-            for sParamName in dictPluginParams:
-                nIdx = sArg.find(sParamName + '=')
-                if nIdx > -1:
-                    aModeParam = sArg.split('=')
-                    dictPluginParams[sParamName] = aModeParam[1]
-                
-        #print( dictPluginParams )
-        with svJobPlugin(dictPluginParams) as oJob: # to enforce to call plugin destructor
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.parse_command(sys.argv)
             oJob.do_task()
+            pass
     else:
-        print('warning! [config_loc] params are required for console execution.')
+        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

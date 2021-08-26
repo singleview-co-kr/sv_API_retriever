@@ -39,7 +39,7 @@ import sys
 
 from google.ads.googleads.v6.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.errors import GoogleAdsException
+# from google.ads.googleads.errors import GoogleAdsException
 # https://developers.google.com/google-ads/api/fields/v6/segments
 # https://developers.google.com/google-ads/api/docs/query/overview
 # cd /usr/local/lib/python3.7/site-packages/google/ads/googleads/v6/enums
@@ -57,11 +57,12 @@ else:
     from conf import basic_config # singleview config
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+    __g_sGoogleAdsApiVersion = 'v7'
     
     def __init__(self): #, dictParams):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.0'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.1'
+        self._g_sLastModifiedDate = '25th, Aug 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def do_task(self):
@@ -93,7 +94,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             os.makedirs(s_conf_path_abs)
 
         s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
-        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version="v6")
+        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
         try:		
             sLatestFilepath = os.path.join(s_conf_path_abs, 'general.latest')
@@ -123,7 +124,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_google_ads_cid = sAdwordsCid.replace('-', '')
         
         # set report header rows
-        lst_report_header_1 = ['google_ads_api (v6)']
+        lst_report_header_1 = ['google_ads_api ('+ self.__g_sGoogleAdsApiVersion +')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device', 'Conversions', 'Total conv. value', 'Day']
 
         while True: # loop for each report date
@@ -226,22 +227,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging and execution
-    dictPluginParams = {'config_loc':None} # {'config_loc':'1/test_acct'}
+    # python task.py analytical_namespace=test config_loc=1/ynox
     nCliParams = len(sys.argv)
-    if( nCliParams > 1 ):
-        for i in range(nCliParams):
-            if i is 0:
-                continue
-
-            sArg = sys.argv[i]
-            for sParamName in dictPluginParams:
-                nIdx = sArg.find( sParamName + '=' )
-                if( nIdx > -1 ):
-                    aModeParam = sArg.split('=')
-                    dictPluginParams[sParamName] = aModeParam[1]
-                
-        #print( dictPluginParams )
-        with svJobPlugin(dictPluginParams) as oJob: # to enforce to call plugin destructor
+    if nCliParams > 1:
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.parse_command(sys.argv)
             oJob.do_task()
+            pass
     else:
-        print( 'warning! [config_loc] params are required for console execution.' )
+        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

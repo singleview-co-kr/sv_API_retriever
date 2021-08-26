@@ -358,24 +358,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__': # for console debugging
     # CLI example ->  {'config_loc':'1/test_acct', 'target_host_url': 'http://localhost/devel/modules/svestudio/b2c.php'}
     # CLI example ->  python3.6 task.py config_loc=1/test_acct target_host_url=http://localhost/devel/modules/svestudio/b2c.php
-    # CLI example ->  {'config_loc':'1/test_acct', 'target_host_url': 'https://testserver.com/devel/modules/svestudio/b2c.php'}
-    # CLI example ->  python3.6 task.py config_loc=1/test_acct target_host_url=https://testserver.com/devel/modules/svestudio/b2c.php
-    dictPluginParams = {'config_loc':None, 'target_host_url':None, 'mode':None, 'yyyymm':None}
+    # python task.py analytical_namespace=test config_loc=1/ynox yyyymm=201811
     nCliParams = len(sys.argv)
-    if nCliParams >= 3:
-        for i in range(nCliParams):
-            if i is 0:
-                continue
-
-            sArg = sys.argv[i]
-            for sParamName in dictPluginParams:
-                nIdx = sArg.find(sParamName + '=')
-                if nIdx > -1:
-                    aModeParam = sArg.split('=')
-                    dictPluginParams[sParamName] = aModeParam[1]
-                
-        #print( dictPluginParams )
-        with svJobPlugin(dictPluginParams) as oJob: # to enforce to call plugin destructor
+    if nCliParams > 2:
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.parse_command(sys.argv)
             oJob.do_task()
+            pass
     else:
-        print( 'warning! [config_loc] [target_host_url] params are required for console execution.' )
+        print('warning! [analytical_namespace] [config_loc] [target_host_url] params are required for console execution.')
