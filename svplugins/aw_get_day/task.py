@@ -54,7 +54,7 @@ if __name__ == '__main__': # for console debugging
 else:
     from svcommon import sv_object, sv_api_config_parser, sv_plugin
     # singleview config
-    from conf import basic_config # singleview config
+    from conf import basic_config
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
@@ -79,7 +79,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_google_ads = dict_acct_info[s_sv_acct_id]['adw_cid']
         try:
             for s_googleads_cid in lst_google_ads:
-                oResult = self.__getAdwordsRaw(s_sv_acct_id, s_acct_title, s_googleads_cid )
+                oResult = self.__getAdwordsRaw(s_sv_acct_id, s_acct_title, s_googleads_cid)
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
@@ -135,7 +135,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
             sTsvFilename = sDataDateForMysql + '_general.tsv'
-            self._printDebug( '--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
+            self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
             try:
                 # notice! this query does not retrieve OFF campaign
                 s_disp_campaign_query = """
@@ -176,7 +176,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
                                     'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
                             # print(query2)
-                            o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=customer_id, query=s_text_campaign_query)
+                            o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
                             for txt_campaign_batch in o_txt_campaign_resp:
                                 for o_txt_campaign_row in txt_campaign_batch.results:
                                     dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name

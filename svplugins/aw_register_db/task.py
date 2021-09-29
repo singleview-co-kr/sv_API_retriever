@@ -121,6 +121,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstRst = oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
+        # self._printDebug(lstRst[0]['rowcount'])
 
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
@@ -129,7 +130,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 reader = csv.reader(tsvfile, delimiter='\t')
                 nRowCnt = 0
                 for row in reader:
-                    if(nRowCnt > 0):
+                    if nRowCnt > 0:
                         dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
 
                     nRowCnt = nRowCnt + 1
@@ -146,12 +147,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictCampaignNameAlias = self.__getCampaignNameAlias(sParentDataPath)
 
         for sGoogleadsCid in lstGoogleads:
-            sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
             if self.__g_sReplaceMonth == None:
                 self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
+                sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
             else:
                 self._printDebug('-> '+ sGoogleadsCid +' is replacing AW data files')
-                sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'closing')
+                sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data', 'closing')
             
             # traverse directory and categorize data files
             lstDataFiles = os.listdir(sDataPath)

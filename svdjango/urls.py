@@ -24,5 +24,8 @@ urlpatterns = [
     # path('admin/', admin.site.urls),
     url(r'^admin/', admin.site.urls),
     path('', IndexView.as_view(), name='index'),
+    
+    path('accounts/', include('django.contrib.auth.urls')),  # {% url 'login' %} 등 처리
+
     path('extract/', include('svextract.urls')),
 ]

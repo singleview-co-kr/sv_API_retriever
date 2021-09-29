@@ -29,6 +29,7 @@ daphne==3.0.2
 defusedxml==0.7.1
 distlib==0.3.2
 Django==3.1.6
+django-widget-tweaks==1.4.8
 facebook-business==10.0.1
 filelock==3.0.12
 google-ads==11.0.0

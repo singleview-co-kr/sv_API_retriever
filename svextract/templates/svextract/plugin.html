@@ -1,55 +1,372 @@
-<!-- chat/templates/chat/room.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en" >
 <head>
-    <meta charset="utf-8"/>
-    <title>sv plugin console</title>
-    <!--https://codepen.io/prespik/pen/mYzBaE-->
-</head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png" />
+<meta name="apple-mobile-web-app-title" content="CodePen">
+<!--link rel="shortcut icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico" />
+<link rel="mask-icon" type="" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-8f3771b1072e3c38bd662872f6b673a722f4b3ca2421637d5596661b4e2132cc.svg" color="#111" /-->
 
-<body>
-    {{brand_name_json}}<BR>
-    <textarea id="chat-log" cols="100" rows="20"></textarea><br/>
-    <input id="chat-message-input" type="text" size="100" value="viral_noun_retriever mode=analyze_new"/><br/>
-    <input id="chat-message-submit" type="button" value="Send"/>
-</body>
+<title>sv plugin console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+  
+<style>
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: #ececec;
+  background:linear-gradient(135deg, #0f55e4, #0a3a9c);
+  color: #fff;
+  /*padding: 0.5em 1em;*/
+  -webkit-font-smoothing: antialiased;
+}
+
+.console {
+  position: fixed;
+  font-family: monospace,monospace;
+  color: #fff;
+  width: calc(100% - 3em);
+  max-width: 100%;
+  max-height: calc(100% - 3em);
+  overflow-y: auto;
+  margin: 1em 1em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 0.5em;
+  box-shadow: 0 0.75em 3em rgba(50, 50, 50, 0.5);
+  z-index: 100;
+  line-height: 1.5;
+}
+
+.console-input {
+  font-family: monospace,monospace;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-width: calc(100% - 2em);
+  resize: none;
+}
+
+.console-input:before {
+  content: '> ';
+  color: #FC3565;
+  vertical-align: top;
+}
+
+.output-cmd:before {
+  content: '> ';
+  color: #FC3565;
+  vertical-align: top;
+}
+.output-text:before {
+  content: '> ';
+  color: #5F8787;
+  font-weight: 600 !important;
+  vertical-align: top;
+}
+
+.output-text,
+.output-cmd {
+  width: 100%;
+  display: block;
+}
+
+.console-inner {
+  padding: 0.3em 1.1em;
+}
+
+.output-text,
+.output-cmd {
+  display: block;
+  white-space: pre;
+}
+
+#outputs div {
+  opacity: 0.85;
+}
+
+#outputs div div {
+  color: #46f01d;
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+#outputs a {
+  color: #46f01d;
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.console-inner .output-text#ready {
+  color: #3df5b8;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.particles-js-canvas-el {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+</style>
 
 <script>
-    var sBrandName = '{{brand_name_json}}';
+window.console = window.console || function(t) {};
+</script>
+  
+<script>
+if (document.location.search.match(/type=embed/gi)) {
+    window.parent.postMessage("resize", "*");
+}
+</script>
+</head>
 
-    var chatSocket = new WebSocket(
-        'ws://' + window.location.host +
-        '/ws/extract/' + sBrandName + '/');
+<body id="particles-js">
+    <div class='console'>
+        <div class='console-inner'>
+            <div id="outputs"></div>
+            <div class='output-cmd'><textarea autofocus class='console-input' placeholder="Type command..."></textarea></div>
+        </div>
+    </div>
+</body>
 
-    chatSocket.onmessage = function(e) {
-        var data = JSON.parse(e.data);
-        var message = data['message'];
-        document.querySelector('#chat-log').value += (message + '\n');
-    };
+<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-1b93190375e9ccc259df3a57c1abc0e64599724ae30d7ea4c6877eb615f89387.js"></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/markdown-it/8.1.0/markdown-it.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/autosize.js/3.0.18/autosize.min.js'></script>
+<script src='https://unpkg.com/@wmhilton/cli-parser@1.1.0'></script>
+<script src='https://s.codepen.io/assets/libs/modernizr.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js'></script>
 
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
-    };
+<script id="rendered-js" >
+// Output Welcome message
+output('Original console design by Nikolay Debroh https://codepen.io/prespik/pen/mYzBaE');
+output('Welcome to {{brand_name_json}} plugin console.');
 
-    document.querySelector('#chat-message-input').focus();
-    document.querySelector('#chat-message-input').onkeyup = function(e) {
-        if (e.keyCode === 13) {  // enter, return
-            document.querySelector('#chat-message-submit').click();
-        }
-    };
+// User Commands
+// function echo(...a) 
+// {
+//   return a.join(' ');
+// }
+// echo.usage = "echo arg [arg ...]";
+// echo.doc = "Echos to output whatever arguments are input";
 
-    document.querySelector('#chat-message-submit').onclick = function(e) {
-        var commandInputDom = document.querySelector('#chat-message-input');
-        var command = commandInputDom.value;
-        if(command === null || command === undefined || command.length == 0)
-            return
+var cmds = {
+  //echo,
+  help,
+  clear,
+  {% for s_plugin_cmd in lst_plugin %}
+    {{s_plugin_cmd}},
+  {% endfor %}
+ };
 
-        chatSocket.send(JSON.stringify({
-            'command': command
-        }));
+/*
+ * * * * * * * * USER INTERFACE * * * * * * *
+ */
+function clear() 
+{
+  $("#outputs").html("");
+}
+clear.usage = "clear";
+clear.doc = "Clears the terminal screen";
 
-        commandInputDom.value = '';
-    };
+{% for s_plugin in lst_plugin %}
+function {{s_plugin}}(...a) 
+{
+  // aw_get_day 11=22 33=44
+  console.log(a);
+  sArgs = a.join('');
+  executePlugin('pluging_{{s_plugin}}', sArgs);
+}
+{{s_plugin}}.usage = "{{s_plugin}}";
+{{s_plugin}}.doc = "{{s_plugin}} the terminal screen";
+{% endfor %}
+
+function help(cmd) 
+{
+  if (cmd) 
+  {
+    let result = "";
+    let usage = cmds[cmd].usage;
+    let doc = cmds[cmd].doc;
+    result += typeof usage === 'function' ? usage() : usage;
+    result += "\n";
+    result += typeof doc === 'function' ? doc() : doc;
+    return result;
+  }
+  else 
+  {
+    let result = "**Commands:**\n\n";
+    print = Object.keys(cmds);
+    for (let p of print) 
+    {
+      result += "- " + p + "\n";
+    }
+    return result;
+  }
+}
+help.usage = () => "help [command]";
+help.doc = () => "Without an argument, lists available commands. If used with an argument displays the usage &amp; docs for the command.";
+
+// Set Focus to Input
+$('.console').click(function () {
+  $('.console-input').focus();
+});
+
+// Display input to Console
+function input() 
+{
+  var cmd = $('.console-input').val();
+  $("#outputs").append("<div class='output-cmd'>" + cmd + "</div>");
+  $('.console-input').val("");
+  autosize.update($('textarea'));
+  $("html, body").animate({
+    scrollTop: $(document).height() },
+  300);
+  return cmd;
+}
+
+// Output to Console
+function output(print)
+{
+  if (!window.md) 
+  {
+    window.md = window.markdownit({
+      linkify: true,
+      breaks: true });
+
+  }
+  $("#outputs").append(window.md.render(print));
+  $(".console").scrollTop($('.console-inner').height());
+}
+
+// Break Value
+var newLine = "<br/> &amp;nbsp;";
+
+autosize($('textarea'));
+
+var cmdHistory = [];
+var cursor = -1;
+
+// Get User Command
+$('.console-input').on('keydown', function (event) {
+  if (event.which === 38) {
+    // Up Arrow
+    cursor = Math.min(++cursor, cmdHistory.length - 1);
+    $('.console-input').val(cmdHistory[cursor]);
+  } else if (event.which === 40) {
+    // Down Arrow
+    cursor = Math.max(--cursor, -1);
+    if (cursor === -1) {
+      $('.console-input').val('');
+    } else {
+      $('.console-input').val(cmdHistory[cursor]);
+    }
+  } else if (event.which === 13) {
+    event.preventDefault();
+    cursor = -1;
+    let text = input();
+    let args = getTokens(text)[0];
+    let cmd = args.shift().value;
+    //args = args.filter(x => x.type !== 'whitespace').map(x => x.value);
+    args = args.filter(x => x.type).map(x => x.value);
+    cmdHistory.unshift(text);
+    if (typeof cmds[cmd] === 'function') {
+      let result = cmds[cmd](...args);
+      if (result === void 0) {
+        // output nothing
+      } else if (result instanceof Promise) {
+        result.then(output);
+      } else {
+        console.log(result);
+        output(result);
+      }
+    } else if (cmd.trim() === '') {
+      output('');
+    } else {
+      output("Command not found: `" + cmd + "`");
+      output("Use 'help' for list of commands.");
+    }
+  }
+});
+
+//ParticlesBG
+particlesJS('particles-js', { 'particles': { 'number': { 'value': 20 }, 'color': { 'value': '#ffffff' }, 'shape': { 'type': 'circle', 'polygon': { 'nb_sides': 5 } }, 'opacity': { 'value': 0.06, 'random': false }, 'size': { 'value': 11, 'random': true }, 'line_linked': { 'enable': true, 'distance': 150, 'color': '#ffffff', 'opacity': 0.4, 'width': 1 }, 'move': { 'enable': true, 'speed': 4, 'direction': 'none', 'random': false, 'straight': false, 'out_mode': 'out', 'bounce': false } }, 'interactivity': { 'detect_on': 'canvas', 'events': { 'onhover': { 'enable': false }, 'onclick': { 'enable': true, 'mode': 'push' }, 'resize': true }, 'modes': { 'push': { 'particles_nb': 4 } } }, 'retina_detect': true }, function () {});
+//# sourceURL=pen.js
 </script>
 
+<!---body>
+    {{brand_name_json}}<BR>
+    <textarea id="chat-log" cols="100" rows="20"></textarea><br/>
+    <input id="chat-message-input" type="text" size="100" value=""/><br/>
+    <input id="chat-message-submit" type="button" value="Send"/>
+</body--->
+
+<script>
+function executePlugin(sPluginName, sArgs)
+{
+  // aw_get_day 11=22 33=44
+  sPluginName = sPluginName.replace('pluging_', '');
+  console.log(sPluginName + sArgs);
+  var command = sPluginName + sArgs;
+  if(command === null || command === undefined || command.length == 0)
+      return
+
+  chatSocket.send(JSON.stringify({
+      'command': command
+  }));
+}
+  var sBrandName = '{{brand_name_json}}';
+  console.log('ws://' + window.location.host + '/ws/extract/' + sBrandName + '/');
+
+  var chatSocket = new WebSocket(
+      'ws://' + window.location.host + '/ws/extract/' + sBrandName + '/');
+
+  chatSocket.onmessage = function(e) {
+      var data = JSON.parse(e.data);
+      var message = data['message'];
+      output(message);
+      //document.querySelector('#chat-log').value += (message + '\n');
+  };
+
+  chatSocket.onclose = function(e) {
+    output('Warning!!! socket closed unexpectedly!!!');
+    console.error('Warning!!! socket closed unexpectedly!!!');
+  };
+
+  // document.querySelector('#chat-message-input').focus();
+  // document.querySelector('#chat-message-input').onkeyup = function(e) {
+  //     if (e.keyCode === 13) {  // enter, return
+  //         document.querySelector('#chat-message-submit').click();
+  //     }
+  // };
+
+  // document.querySelector('#chat-message-submit').onclick = function(e) {
+  //     var commandInputDom = document.querySelector('#chat-message-input');
+  //     var command = commandInputDom.value;
+  //     if(command === null || command === undefined || command.length == 0)
+  //         return
+
+  //     chatSocket.send(JSON.stringify({
+  //         'command': command
+  //     }));
+
+  //     commandInputDom.value = '';
+  // };
+</script>
 </html>

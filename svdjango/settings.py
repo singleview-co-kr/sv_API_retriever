@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'widget_tweaks',  # for login template
     'svextract.apps.SvextractConfig',
     'svauth',  # for user model customization
 ]

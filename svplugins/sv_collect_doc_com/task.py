@@ -25,6 +25,7 @@
 # standard library
 import logging
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import os
 import configparser # https://docs.python.org/3/library/configparser.html
 import sys
@@ -65,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_sLastModifiedDate = '30th, Jun 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self.__g_oConfig = configparser.ConfigParser()
-        self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
+        self._g_dictParam.update({'target_host_url':None, 'mode':None})
         
     def __postHttpResponse(self, sTargetUrl, dictParams):
         dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
@@ -149,18 +150,42 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self.__translateMsgCode(n_msg_key ) == 'LMKL':
             # lstDateRange = None
             dict_date_range = oResp['variables']['d']
-            print(dict_date_range['wc_start_date'])
+            self._printDebug(dict_date_range['wc_start_date'])
 
             if dict_date_range['wc_start_date'] == 'na':
-                print('extract whole wc')
+                self._printDebug('extract whole wc')
             if dict_date_range['dictionary_start_date'] == 'na':
-                print('extract whole dictionary')
+                self._printDebug('extract whole dictionary')
             with sv_mysql.SvMySql('svplugins.sv_collect_doc_com') as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.initialize()
-                lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCount')
-                lst_dictionary = o_sv_mysql.executeQuery('getAllDictionary')
-        
+                #lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCount')
+                #lst_dictionary = o_sv_mysql.executeQuery('getAllDictionary')
+                ##########################
+                s_end_start_date = dict_date_range['wc_end_date']
+                s_wc_end_date = (datetime.strptime(s_end_start_date, '%Y%m%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+
+                try:
+                    s_wc_start_date = dict_date_range['wc_start_date']
+                    s_wc_start_date = datetime.strptime(s_wc_start_date, '%Y%m%d').strftime('%Y-%m-%d')
+                    self._printDebug('wc get from ' + s_wc_start_date + ' to ' + s_wc_end_date)
+                    lst_word_cnt = o_sv_mysql.executeQuery('getWordCountFromTo', s_wc_start_date, s_wc_end_date)
+                except ValueError: # if sStartDate == 'na'
+                    self._printDebug('get whole wc')
+                    lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCountTo', s_wc_end_date)
+
+                # retrieve dictionary
+                s_dictionary_end_date = dict_date_range['dictionary_end_date']
+                s_dictionary_end_date = datetime.strptime(s_dictionary_end_date, '%Y%m%d').strftime('%Y-%m-%d')
+                try:
+                    s_dictionary_start_date = dict_date_range['dictionary_start_date']
+                    s_dictionary_start_date = datetime.strptime(s_dictionary_start_date, '%Y%m%d').strftime('%Y-%m-%d')
+                    self._printDebug('dictionary get from ' + s_wc_start_date)
+                    lst_dictionary = o_sv_mysql.executeQuery('getDictionaryFromTo', s_dictionary_start_date, s_dictionary_end_date)
+                except ValueError: # if sStartDate == 'na'
+                    self._printDebug('get whole dictionary')
+                    lst_dictionary = o_sv_mysql.executeQuery('getAllDictionary')
+                ###########################
         for dict_row in lst_word_cnt:
             dict_row['logdate'] = dict_row['logdate'].strftime("%Y%m%d%H%M%S")
         
@@ -169,8 +194,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_rst = {'lst_word_cnt': lst_word_cnt, 'lst_dictionary': lst_dictionary}
         del lst_word_cnt, lst_dictionary
-        print(len(dict_rst['lst_word_cnt']))
-        print(len(dict_rst['lst_dictionary']))
+        self._printDebug(len(dict_rst['lst_word_cnt']))
+        self._printDebug(len(dict_rst['lst_dictionary']))
         dictParams = {'c': [self.__g_dictMsg['HYA']], 'd':  dict_rst}  # here you are
         oResp = self.__postHttpResponse( self.__g_sTargetUrl, dictParams )
 
@@ -187,13 +212,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dt_last_sync_date = lst_latest_doc_date[0]['maxdate']
         del lst_latest_doc_date
         if dt_last_sync_date is None:
-            s_date_to_sync = self.__g_sFirstDateOfTheUniv
+            s_begin_date_to_sync = self.__g_sFirstDateOfTheUniv
         else:
             dt_date_to_sync = dt_last_sync_date + timedelta(1)
-            s_date_to_sync = dt_date_to_sync.strftime("%Y%m%d")
+            s_begin_date_to_sync = dt_date_to_sync.strftime("%Y%m%d")
             del dt_date_to_sync
         # s_date_to_sync = '20210707'
-        dictParams = {'c': [self.__g_dictMsg['LMKL']], 'd':  s_date_to_sync}  # the day after last sync date
+        dt_yesterday = datetime.today() - relativedelta(days=1)
+        s_end_date_to_sync = dt_yesterday.strftime("%Y%m%d")
+        if int(s_begin_date_to_sync) > int(s_end_date_to_sync):
+            self._printDebug('begin_date is later than end_date')
+            #raise Exception('stop')
+            return
+
+        dict_date_param = {'s_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
+        dictParams = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
         oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
         
         self._printDebug('rsp of LMKL')
@@ -216,7 +249,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
                 self._printDebug('begin - doc sync')
                 dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                oResp = self.__postHttpResponse( self.__g_sTargetUrl, dictParams )
+                oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
             
             #if type(dictRetrieveStuff['aComSrls']) == list and len(dictRetrieveStuff['aComSrls']):
             #    self._printDebug('begin - comment sync')
@@ -247,8 +280,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_content = dict_single_doc['content'].replace(u'\xa0', u'')
                 dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
                 # dt_last_update = datetime.strptime(dict_single_doc['last_update'], '%Y%m%d%H%M%S')
-                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, n_sv_doc_srl, s_title, s_content, dt_regdate )
-        
+                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, n_sv_doc_srl, s_title, s_content, dt_regdate)
         return
 
 

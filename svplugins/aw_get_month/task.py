@@ -30,17 +30,14 @@
 # to monitor API traffic refer to https://console.developers.google.com/apis/api/analytics.googleapis.com/quotas?project=svgastudio
 
 # standard library
+import sys
 import logging
 from datetime import datetime, timedelta
 import time
 import os
 import csv
-
 import calendar
-import re # https://docs.python.org/3/library/re.html
 
-# from googleads import adwords
-# from googleads import oauth2
 from google.ads.googleads.v6.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
@@ -50,82 +47,37 @@ from google.ads.googleads.errors import GoogleAdsException
 
 # singleview library
 if __name__ == '__main__': # for console debugging
-    import sys
-    sys.path.append('../../classes')
-    import sv_http
-    import sv_api_config_parser
-    sys.path.append('../../conf') # singleview config
+    sys.path.append('../../svcommon')
+    import sv_object, sv_api_config_parser, sv_plugin
+    sys.path.append('../../conf')
     import basic_config
-    # import googleads_config
-else: # for platform running
-    from classes import sv_http
-    from classes import sv_api_config_parser
-    # singleview config
-    from conf import basic_config # singleview config
-    # from conf import googleads_config
 
-class svJobPlugin():
-    __g_sVersion = '1.0.0'
-    __g_sLastModifiedDate = '4th, Jul 2021'
+else: # for platform running
+    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    # singleview config
+    from conf import basic_config
+
+class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
-    __g_oLogger = None
-    __g_sConfigLoc = None
     __g_sRetrieveMonth = None
 
-    def __init__( self, dictParams ):
+    def __init__(self):  #, dictParams ):
         """ validate dictParams and allocate params to private global attribute """
-        self.__g_oLogger = logging.getLogger(__name__ + ' v'+self.__g_sVersion)
-        self.__g_sConfigLoc = dictParams['config_loc']
-        self.__g_sRetrieveMonth = dictParams['yyyymm']
+        self._g_sVersion = '1.0.0'
+        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_dictParam.update({'yyyymm':None})
 
-    def __enter__(self):
-        """ grammtical method to use with "with" statement """
-        return self
+    def do_task(self):
+        self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        """ unconditionally calling desctructor """
-        pass
-
-    def __printDebug( self, sMsg ):
-        if __name__ == '__main__': # for console debugging
-            print( sMsg )
-        else: # for platform running
-            if( self.__g_oLogger is not None ):
-                self.__g_oLogger.debug( sMsg )
-
-    def __getHttpResponse(self, sTargetUrl ):
-        oSvHttp = sv_http.svHttpCom(sTargetUrl)
-        oResp = oSvHttp.getUrl()
-        oSvHttp.close()
-        if( oResp['error'] == -1 ):
-            if( oResp['variables'] ): # oResp['variables'] list has items
-                try:
-                   oResp['variables']['todo']
-                except KeyError: # if ['variables']['todo'] is not defined
-                    self.__printDebug( '__checkHttpResp error occured but todo is not defined -> continue')
-                else: # if ['variables']['todo'] is defined
-                    sTodo = oResp['variables']['todo']
-                    if( sTodo == 'stop' ):
-                        self.__printDebug('HTTP response raised exception!!')
-                        raise Exception(sTodo)
-        return oResp
-
-    def procTask(self):
-        # oRegEx = re.compile(r"https?:\/\/[\w\-.]+\/\w+\/\w+\w/?$") # host_url pattern ex) /aaa/bbb or /aaa/bbb/
-        # m = oRegEx.search(self.__g_sConfigLoc) # match() vs search()
-        # if( m ): # if arg matches desinated host_url
-        #    sTargetUrl = self.__g_sConfigLoc + '?mode=check_status'
-        #    oResp = self.__getHttpResponse( sTargetUrl )
-        # else:
-        #    oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self.__g_sConfigLoc)
-        #    oResp = oSvApiConfigParser.getConfig()
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self.__g_sConfigLoc)
+        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
         oResp = oSvApiConfigParser.getConfig()
-        
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
-            self.__printDebug('invalid config_loc')
-            raise Exception('stop')
+            self._printDebug('stop -> invalid config_loc')
+            #aise Exception('stop')
+            return
         
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
@@ -136,35 +88,11 @@ class svJobPlugin():
                 oResult = self.__getAdwordsRaw(s_sv_acct_id, s_acct_title, s_googleads_cid )
         except TypeError as error:
             # Handle errors in constructing a query.
-            self.__printDebug(('There was an error in constructing your query : %s' % error))
-
-        """
-        try:
-            aAcctInfo = oResp['variables']['acct_info']
-            if aAcctInfo is not None:
-                for sSvAcctId in aAcctInfo:
-                    try: 
-                        sAcctTitle = aAcctInfo[sSvAcctId]['account_title']
-                    except KeyError:
-                        sAcctTitle = 'untitled_account'
-
-                    try:
-                        #sAdwordsCid = aAcctInfo[sSvAcctId]['adw_cid']
-                        lstGoogleads = aAcctInfo[sSvAcctId]['adw_cid']
-                    except:
-                        raise Exception('remove' )
-                
-                    #oResult = self.__getAdwordsRaw(sSvAcctId, sAcctTitle, sAdwordsCid )
-                    for sGoogleadsCid in lstGoogleads:
-                        oResult = self.__getAdwordsRaw(sSvAcctId, sAcctTitle, sGoogleadsCid )
-        except TypeError as error:
-            # Handle errors in constructing a query.
-            self.__printDebug(('There was an error in constructing your query : %s' % error))
-        """
+            self._printDebug(('There was an error in constructing your query : %s' % error))
 
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId + '/' + sAcctTitle + '/adwords/' + sAdwordsCid + '/closing'
-        if( os.path.isdir(sDownloadPath) is False ):
+        sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
+        if os.path.isdir(sDownloadPath) is False:
             os.makedirs(sDownloadPath)
         
         # https://developers.google.com/adwords/api/docs/guides/accounts-overview?hl=ko#test_accounts
@@ -174,48 +102,32 @@ class svJobPlugin():
         # https://github.com/googleads/googleads-python-lib
         # https://github.com/googleads/googleads-python-lib/releases
         # https://www.youtube.com/watch?v=80KOeuCNc0c
-
-        """sClientId = googleads_config.CLIENT_ID
-        sClientSecret = googleads_config.CLIENT_SECRET
-        sRefreshToken = googleads_config.REFRESH_TOKEN
-        sDeveloperToken = googleads_config.DEVELOPER_TOKEN
-        sUserAgent = googleads_config.USER_AGENT
-        sClientCustomerId = sAdwordsCid
-
-        oauth2_client = oauth2.GoogleRefreshTokenClient(sClientId, sClientSecret, sRefreshToken)
-        adwords_client = adwords.AdWordsClient(sDeveloperToken, oauth2_client, sUserAgent,client_customer_id=sClientCustomerId)
-        customer_service = adwords_client.GetService('CustomerService',version='v201809')
-        customers = customer_service.getCustomers()
-        report_downloader = adwords_client.GetReportDownloader(version='v201809')"""
-
-        s_google_ads_yaml_path = basic_config.ABSOLUTE_PATH_BOT + '/conf/google-ads.yaml'
+        s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
         o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
-        o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
+        o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
         
         nYr = int(self.__g_sRetrieveMonth[:4])
         nMo = int(self.__g_sRetrieveMonth[4:None])
         try:
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
-            self.__printDebug( 'invalid yyyymm' )
+            self._printDebug('invalid yyyymm')
             raise Exception('remove' )
-            return
         
         sStartDateRetrieval = self.__g_sRetrieveMonth + '01'
         sEndDateRetrieval = self.__g_sRetrieveMonth + str(lstMonthRange[1])
-
         dtStartRetrieval = datetime.strptime(sStartDateRetrieval, '%Y%m%d')
         dtDateEndRetrieval = datetime.strptime(sEndDateRetrieval, '%Y%m%d')
         dtDateDiff = dtDateEndRetrieval - dtStartRetrieval
         
-        nNumDays = int(dtDateDiff.days ) + 1
+        nNumDays = int(dtDateDiff.days) + 1
         dictDateQueue = dict()
         for x in range (0, nNumDays):
             dtElement = dtStartRetrieval + timedelta(days = x)
             sDate = dtElement
             dictDateQueue.update({sDate:0})
 
-        if( len(dictDateQueue ) == 0 ):
+        if len(dictDateQueue) == 0:
             return
         
         # set device dictionary
@@ -229,9 +141,9 @@ class svJobPlugin():
         while True: # loop for each report date
             try:
                 dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
-                sDataDate = dtRetrieval.strftime('%Y-%m-%d')
+                # sDataDate = dtRetrieval.strftime('%Y-%m-%d')
                 sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
-                self.__printDebug( '--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
+                self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
                 try:
                     sTsvFilename = sDataDateForMysql + '_general.tsv'
                     """sDuringStatement = sDataDateForMysql+','+sDataDateForMysql # example .During('20180628,20180628') or 'YESTERDAY' or 'LAST_7_DAYS'
@@ -279,7 +191,6 @@ class svJobPlugin():
                             lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
                             # print(list_campaign_code)
                             if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
-                                
                                 s_text_campaign_query = """
                                     SELECT
                                         campaign.name,
@@ -293,7 +204,7 @@ class svJobPlugin():
                                     WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
                                         'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
                                 # print(query2)
-                                o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=customer_id, query=s_text_campaign_query)
+                                o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
                                 for txt_campaign_batch in o_txt_campaign_resp:
                                     for o_txt_campaign_row in txt_campaign_batch.results:
                                         dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
@@ -322,7 +233,7 @@ class svJobPlugin():
                                 lst_logs.append(dict_disp_campaign)
                     
                     # write data stream to file.
-                    with open(sDownloadPath+'/'+sTsvFilename, 'w', encoding='utf-8' ) as out:
+                    with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
                         wr = csv.writer(out, delimiter='\t')
                         wr.writerow(lst_report_header_1)
                         wr.writerow(lst_report_header_2)
@@ -332,29 +243,18 @@ class svJobPlugin():
                     dictDateQueue[dtRetrieval] = 1
                     time.sleep(3)
                 except:
-                    self.__printDebug('exception occured')
-                    #pass
+                    self._printDebug('exception occured')
                 
             except ValueError:
                 break
 	
 if __name__ == '__main__': # for console debugging and execution
-    dictPluginParams = {'config_loc':None,'yyyymm':None} # {'config_loc':'1/test_acct','yyyymm':'201811'}
+    # python task.py analytical_namespace=test config_loc=1/ynox yyyymm=202109
     nCliParams = len(sys.argv)
-    if( nCliParams == 3 ):
-        for i in range(nCliParams):
-            if i is 0:
-                continue
-
-            sArg = sys.argv[i]
-            for sParamName in dictPluginParams:
-                nIdx = sArg.find( sParamName + '=' )
-                if( nIdx > -1 ):
-                    aModeParam = sArg.split('=')
-                    dictPluginParams[sParamName] = aModeParam[1]
-                
-        #print( dictPluginParams )
-        with svJobPlugin(dictPluginParams) as oJob: # to enforce to call plugin destructor
-            oJob.procTask()
+    if nCliParams > 2:
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.parse_command(sys.argv)
+            oJob.do_task()
+            pass
     else:
-        print( 'warning! [config_loc] [yyyymm] params are required for console execution.' )
+        print('warning! [analytical_namespace] [config_loc] [yyyymm] params are required for console execution.')

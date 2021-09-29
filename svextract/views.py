@@ -31,9 +31,11 @@
 
 # standard library
 import os
+#from os import listdir
 from django.views.generic import TemplateView
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # singleview library
 
@@ -46,41 +48,37 @@ from conf import basic_config
 #     })
 
 # Create your views here.
-class SvPluginWebConsole(TemplateView):
+class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
 
     def __init__(self):
         return
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         s_brand_name = kwargs['brand_name'].strip()
 
-        #print(request.user.pk)
-        if not request.user.is_authenticated:
-            # dict_rst['b_error'] = True
-            # dict_rst['s_msg'] = 'user not logged id'
-            # return dict_rst
-            print('denied')
-        # print(request.user.analytical_namespace)
-
-        if not self.__validate_storage(request.user.pk, s_brand_name):
-            return render(request, 'svextract/invalid_dir.html', {
+        if not self.request.user.is_authenticated:
+            return render(self.request, 'svextract/invalid_user.html', {
                 'brand_name_json': mark_safe(s_brand_name)
             })
 
-        #if not self.__validate_plugin(s_plugin_name):
-        #    s_plugin_name = 'invalid plugin'
+        if not self.__validate_storage(self.request.user.pk, s_brand_name):
+            return render(self.request, 'svextract/invalid_dir.html', {
+                'brand_name_json': mark_safe(s_brand_name)
+            })
 
-        return render(request, 'svextract/plugin.html', {
-            'brand_name_json': mark_safe(s_brand_name)
+        lst_plugin = self.__get_plugin_lst()
+        # s_plugins = ', '.join(lst_plugin)
+
+        return render(self.request, 'svextract/plugin.html', {
+            'brand_name_json': mark_safe(s_brand_name),
+            'lst_plugin': lst_plugin
         })
 
     def post(self, request, *args, **kwargs):
         s_brand_name = kwargs['brand_name'].strip()
 
-        print(self.request.user)
-        print(s_brand_name)
-
+        # create a data storage directory
         s_brand_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', str(self.request.user.pk), s_brand_name)
         if os.path.isdir(s_brand_path_abs) == False:
             os.makedirs(s_brand_path_abs)
@@ -90,7 +88,6 @@ class SvPluginWebConsole(TemplateView):
         })
 
         # pre-process
-        
         
         # dict_param = dict_rst['dict_param']
         # # begin - uploading file registration
@@ -120,11 +117,7 @@ class SvPluginWebConsole(TemplateView):
         else:
             return False
 
-    # def __validate_plugin(self, s_plugin_name):
-    #     """ find the module in /svplugins directory """
-    #     s_plugin_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', s_plugin_name, 'task.py')
-
-    #     if os.path.isfile(s_plugin_path_abs):
-    #         return True
-    #     else:
-    #         return False
+    def __get_plugin_lst(self):
+        """ get modules in /svplugins directory """
+        s_plugin_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins')
+        return [f for f in os.listdir(s_plugin_path_abs) if not f.startswith('_')]
