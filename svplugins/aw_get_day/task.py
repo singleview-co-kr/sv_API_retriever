@@ -37,7 +37,7 @@ import os
 import csv
 import sys
 
-from google.ads.googleads.v6.enums.types.device import DeviceEnum
+from google.ads.googleads.v7.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
 # from google.ads.googleads.errors import GoogleAdsException
 # https://developers.google.com/google-ads/api/fields/v6/segments
@@ -62,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self): #, dictParams):
         """ validate dictParams and allocate params to private global attribute """
         self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '25th, Aug 2021'
+        self._g_sLastModifiedDate = '8th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def do_task(self):

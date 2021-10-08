@@ -333,7 +333,8 @@ function executePlugin(sPluginName, sArgs)
 }
 var sBrandName = '{{brand_name_json}}';
 var sWsScheme = window.location.protocol == 'https:' ? 'wss' : 'ws';
-var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/'; //  + ':8001/'
+var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/';
+//var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/'; //  + ':8001/'
 console.log(sWsPath);
 
 var chatSocket = new WebSocket(sWsPath);

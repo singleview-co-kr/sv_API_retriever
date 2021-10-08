@@ -15,6 +15,9 @@ from pathlib import Path
 import os.path  # do not import os
 import configparser  # https://docs.python.org/3/library/configparser.html
 
+import pymysql  # added for nginx
+pymysql.install_as_MySQLdb()  # added for nginx
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
