@@ -34,7 +34,7 @@ import random
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
     from powernad.API.MasterReport import *
@@ -42,7 +42,7 @@ if __name__ == '__main__': # for console debugging
     from powernad.API.StatReport import *
     from powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 else:
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
     sys.path.append(os.path.join(os.getcwd(),'svplugins', 'nvad_get_day'))
@@ -60,18 +60,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNvrAdManagerLoginId = None
     __g_sRetrieveInfoPath = None
     __g_sDownloadPathNew = None
+    __g_nRetryBackoffCnt = 0
     __g_nRptWaitingSec = 60
 
-    def __init__(self):  # , dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.11'
-        self._g_sLastModifiedDate = '11th, Apr 2019'
+        self._g_sVersion = '1.0.12'
+        self._g_sLastModifiedDate = '12th, Oct 2019'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self.__g_dtCurDatetime = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
@@ -120,25 +120,29 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, self.__g_sCustomerId)
         self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, self.__g_sCustomerId, dict_nvr_ad_acct[self.__g_sCustomerId]['nvr_stat_report']) #statdate arg should be defined
         del o_stat_report
-        return        
+
+        self._task_post_proc(o_callback)
     
     def __retrieveNvStatReport(self, o_stat_report, sSvAcctId, sNvrAdCustomerID, lstReport):
         """ retrieve NV Ad stat report """
         dictMasterReportQueue = {}
         for report in lstReport:
-            # dictMasterReportQueue.update({report:0})
             dictMasterReportQueue[report] = 0
         
         nQueueLen = len(dictMasterReportQueue)
         if nQueueLen == 0:
+            self._printDebug('No master rpts activated - stop collecting stat rpt!')
             return
 
         # 네이버 stat report 보관일수
         dict_stat_rpt_expired_days = {'AD_DETAIL': 31, 'AD_CONVERSION_DETAIL': 45, 'AD': 366, 'AD_CONVERSION': 366, 'ADEXTENSION': 366, 'ADEXTENSION_CONVERSION': 366, 'EXPKEYWORD': 366, 'NAVERPAY_CONVERSION': 366}
-        while True: # loop for each report type
+        while self._continue_iteration(): # loop for each report type
+            self.__g_nRetryBackoffCnt = 0
             try:
                 sTobeHandledTaskName = list(dictMasterReportQueue.keys())[list(dictMasterReportQueue.values()).index(0)] # find unhandled report task
             except ValueError:
+                self._printDebug(sTobeHandledTaskName)
+                self._printDebug('stop collecting stat rpt!')
                 break
 
             try:
@@ -177,10 +181,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dictMasterReportQueue[sTobeHandledTaskName] = 1
                 continue
             
-            while True: # loop for each report date
+            while self._continue_iteration(): # loop for each report date
                 try:
                     dtDateRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
-                    self._printDebug('--> singleview account id: ' + sSvAcctId + ' nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + dtDateRetrieval.strftime('%Y%m%d'))
+                    self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + dtDateRetrieval.strftime('%Y%m%d'))
                     dt_today = datetime.today().date()
                     dt_delta = dt_today - dtDateRetrieval
                     if dt_delta.days <= 0:
@@ -211,7 +215,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 elif s_todo == 'pass':
                                     self._printDebug('pass and go')
                                     dictDateQueue[dtDateRetrieval] = 1
-                                    continue
+                                    return
                                 elif s_todo == 'stop':
                                     self._printDebug('stop')
                                     dictDateQueue[dtDateRetrieval] = 1
@@ -266,14 +270,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del o_rst    
             return dict_rst
 
-        nRetryBackoffCnt = 0
-        while True:
+        while self._continue_iteration():
             if s_rpt_status == 'REGIST' or s_rpt_status == 'RUNNING' or s_rpt_status == 'WAITING':
-                if nRetryBackoffCnt < 5:
-                    self._printDebug('start retrying with exponential back-off')
-                    self._printDebug('waiting for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
-                    time.sleep((2 ** nRetryBackoffCnt ) + random.random())
-                    nRetryBackoffCnt = nRetryBackoffCnt + 1
+                if self.__g_nRetryBackoffCnt < 5:
+                    if self.__g_nRetryBackoffCnt > 0:
+                        self._printDebug('Retry with exponential back-off')
+                        self._printDebug('Wait for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                    
+                    time.sleep((2 ** self.__g_nRetryBackoffCnt ) + random.random())
+                    self.__g_nRetryBackoffCnt = self.__g_nRetryBackoffCnt + 1
                     o_rst = o_stat_report.get_stat_report(s_rpt_report_job_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
@@ -328,7 +333,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
 
         lst_master_rpt_daily = ['BusinessChannel', 'Campaign', 'CampaignBudget', 'Adgroup', 'AdgroupBudget', 'Keyword', 'Ad','AdExtension']
-        while True:
+        while self._continue_iteration():
+            self.__g_nRetryBackoffCnt = 0
             try:
                 sTobeHandledTaskName = list(dictMasterRereportQueue.keys())[list(dictMasterRereportQueue.values()).index(0)] # find unhandled report task
             except ValueError:
@@ -337,7 +343,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     break
                 else:
                     self._printDebug('-> '+ sNvrAdCustomerID + ' failed: retrieve ' + sTobeHandledTaskName + ' master reports!')
-                    return # raise Exception('stop')
+                    return
 
             # if sTobeHandledTaskName: # if there exists unhandled report task
             dtFromRetrieval = None
@@ -361,7 +367,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # 2021-08-17T10:33:24+09:00
             # print(datetime.now(timezone('Asia/Seoul')).isoformat(timespec='seconds'))
             # print(dtFromRetrieval.replace(tzinfo=timezone('Asia/Seoul')).isoformat(timespec='seconds'))
-            self._printDebug( '--> singleview account id: ' + sSvAcctId + ' nvr ad id: ' + sNvrAdCustomerID +' retrieve master reports - ' + sTobeHandledTaskName )
+            self._printDebug( '--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve master reports - ' + sTobeHandledTaskName )
             if dtFromRetrieval is not None:
                 dt_today = datetime.today().date()
                 dt_from_retrieval = dtFromRetrieval.date()
@@ -383,7 +389,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if dict_rst['b_error'] == True:
                 if dictMasterRereportExceptionCnt[sTobeHandledTaskName] < 3: # allow exception occurrence count to 3 by each report
                     dictMasterRereportExceptionCnt[sTobeHandledTaskName] += 1
-                    nW1aitSec = 60
                     if dict_rst['s_todo']:  # if todo is defined
                         s_todo = dict_rst['s_todo']
                         if s_todo == 'wait':
@@ -393,7 +398,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         elif s_todo == 'pass':
                             self._printDebug('pass and go')
                             dictMasterRereportQueue[sTobeHandledTaskName] = 1
-                            continue
+                            return
                         elif s_todo == 'stop':
                             self._printDebug('stop')
                             dictMasterRereportQueue[sTobeHandledTaskName] = 1
@@ -429,14 +434,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return dict_rst
         del o_rst
         
-        nRetryBackoffCnt = 0
-        while True:
+        while self._continue_iteration():
             if s_rpt_status == 'REGIST' or s_rpt_status == 'RUNNING':
-                if nRetryBackoffCnt < 5:
-                    self._printDebug('start retrying with exponential back-off')
-                    self._printDebug('waiting for a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
-                    time.sleep((2 ** nRetryBackoffCnt ) + random.random())
-                    nRetryBackoffCnt = nRetryBackoffCnt + 1
+                if self.__g_nRetryBackoffCnt < 5:
+                    if self.__g_nRetryBackoffCnt > 0:
+                        self._printDebug('Retry with exponential back-off')
+                        self._printDebug('Wait for a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
+                    
+                    time.sleep((2 ** self.__g_nRetryBackoffCnt ) + random.random())
+                    self.__g_nRetryBackoffCnt = self.__g_nRetryBackoffCnt + 1
                     o_rst = o_master_report.get_master_report_by_id(s_rpt_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
@@ -450,7 +456,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 break
         del o_rst
-
         if s_rpt_status == 'BUILT':
             s_rpt_type = 'delta' if dt_from_retrieval is not None else 'full'
             s_rpt_filename = str(self.__g_dtCurDatetime) + '_' + s_req_rpt_name + '_' + s_rpt_type + '.tsv'
@@ -505,7 +510,8 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

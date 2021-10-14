@@ -29,7 +29,7 @@ import time
 import os
 import sys
 
-sys.path.append('/usr/lib/python3.7/site-packages/facebook_business') # Replace this with the place you installed facebookads using pip
+# sys.path.append('/usr/lib/python3.7/site-packages/facebook_business') # Replace this with the place you installed facebookads using pip
 #sys.path.append('/opt/homebrew/lib/python2.7/site-packages/facebook_business-3.0.0-py2.7.egg-info') # same as above
 import facebook_business
 from facebook_business.api import FacebookAdsApi
@@ -40,12 +40,12 @@ from facebook_business.adobjects.adcreative import AdCreative
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
     import fb_biz_config
 else: # for platform running
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
     from conf import fb_biz_config
@@ -53,19 +53,17 @@ else: # for platform running
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
-    def __init__(self):  #, dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.0'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.1'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            # raise Exception('stop')
             return
         
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -74,7 +72,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if s_fb_biz_aid == '':
             self._printDebug('stop -> no business account id')
-            # raise Exception('remove' )
             return
 
         self._printDebug('fb_get_day plugin launched')
@@ -86,6 +83,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
         self._printDebug('fb_get_day plugin finished')
+
+        self._task_post_proc(o_callback)
 
     def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle, sFbBizAid):
         sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
@@ -105,9 +104,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except FileNotFoundError:
             dtStartRetrieval = datetime.now() - timedelta(days=1)
 
-        ###########
         #dtStartRetrieval = datetime(2018, 7, 31)
-        ###########
         self._printDebug('start date :'+dtStartRetrieval.strftime('%Y-%m-%d'))
 
         # requested report date should not be later than today
@@ -128,6 +125,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         FacebookAdsApi.init(access_token=sAccessToken, api_version='v10.0')
         lstAd = []
         oAccount = AdAccount(sAdAccountId) #'your-adaccount-id'
+        self._printDebug('error occured')
         try:
             ads = oAccount.get_ads(fields=[
                 Ad.Field.name,
@@ -135,15 +133,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 Ad.Field.configured_status,
                 Ad.Field.creative,])
         except facebook_business.exceptions.FacebookRequestError as err:
-            self._printDebug(err)
-            #self._printDebug('exception occured: access token session has been expired')
-            #self._printDebug('plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/')
-            #self._printDebug('token right select: ads_management, ads_read, read_insights -> get token')
-            #self._printDebug('paste new token into /conf/fb_biz_config.py')
-            raise Exception('remove')
+            if err.http_status() == 400 and err.get_message() == 'Call was not successful' and err.api_error_code() == 190:
+                self._printDebug(err.api_error_message() + '\n' + \
+                                'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
+                                'token right select: ads_management, ads_read, read_insights -> get token\n' + \
+                                'paste new token into /conf/fb_biz_config.py')
+            return
         
         for oAds in ads:
-            #self._printDebug(oAds)
             dictTempAd = {'id':oAds['id'], 'configured_status':oAds['configured_status'], 'creative_id':oAds['creative']['id'], 'name':oAds['name'] }
             #print('configured_status ' + oAds['configured_status'])
             #print('creative->creative_id ' + oAds['creative']['creative_id'])
@@ -162,7 +159,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             #AdCreative.Field.object_story_id,
         ])
         for dictCreatives in oCreatives:
-            #self._printDebug(dictCreatives)
             sCreativeId = dictCreatives['id']
             for dictAd in lstAd:
                 if dictAd['creative_id'] == sCreativeId:
@@ -221,7 +217,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             #'outbound_clicks:outbound_click',
         ]
 
-        while True: # loop for each report date
+        while self._continue_iteration(): # loop for each report date
             try:
                 dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
             except ValueError:
@@ -250,7 +246,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             nConversionValue = 0  
                             nConversionCount = 0
                             try:
-                                #self._printDebug( dictInsight['action_values'])
                                 for dictActionVals in dictInsight['action_values']:
                                     if dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_purchase' or dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_view_content':
                                         nConversionValue = dictActionVals['value']
@@ -259,7 +254,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     if dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_purchase' or dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_view_content':
                                         nConversionCount = dictActionVals['value']
                             except KeyError:
-                                pass #self._printDebug('no conversion')
+                                pass
 
                             sAdIdFromInsight = dictInsight['ad_id']
                             for dictAd in lstAd:
@@ -315,8 +310,9 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('fb_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
             pass
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

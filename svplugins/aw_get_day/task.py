@@ -47,31 +47,28 @@ from google.ads.googleads.client import GoogleAdsClient
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_api_config_parser, sv_plugin
-    sys.path.append('../../conf') # singleview config
+    import sv_object, sv_plugin
+    sys.path.append('../../conf') # singleview config should be move to svcommon/sv_plugin.py
     import basic_config
-    #import googleads_config
 else:
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
-    # singleview config
+    from svcommon import sv_object, sv_plugin
+    # singleview config should be move to svcommon/sv_plugin.py
     from conf import basic_config
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
     
-    def __init__(self): #, dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '8th, Oct 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            #raise Exception('stop')
             return
         
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -83,6 +80,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
+
+        self._task_post_proc(o_callback)
 
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
         sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
@@ -127,7 +126,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_report_header_1 = ['google_ads_api ('+ self.__g_sGoogleAdsApiVersion +')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device', 'Conversions', 'Total conv. value', 'Day']
 
-        while True: # loop for each report date
+        while self._continue_iteration():  # loop for each report date
             try:
                 dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
             except ValueError:
@@ -136,6 +135,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
             sTsvFilename = sDataDateForMysql + '_general.tsv'
             self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
+
             try:
                 # notice! this query does not retrieve OFF campaign
                 s_disp_campaign_query = """
@@ -161,7 +161,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
                         # print(f"Campaign with ID {o_disp_campaign_row.campaign.id}, {o_disp_campaign_row.campaign.name}, {o_disp_campaign_row.metrics.cost_micros} was found.")
                         lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
-                        # print(list_campaign_code)
                         if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
                             s_text_campaign_query = """
                                 SELECT
@@ -175,7 +174,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 FROM search_term_view
                                 WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
                                     'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
-                            # print(query2)
                             o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
                             for txt_campaign_batch in o_txt_campaign_resp:
                                 for o_txt_campaign_row in txt_campaign_batch.results:
@@ -203,7 +201,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
                             dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
                             lst_logs.append(dict_disp_campaign)
-                
                 # write data stream to file.
                 with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8' ) as out:
                     wr = csv.writer(out, delimiter='\t')
@@ -231,8 +228,8 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
-            pass
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

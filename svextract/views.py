@@ -66,10 +66,7 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
             return render(self.request, 'svextract/invalid_dir.html', {
                 'brand_name_json': mark_safe(s_brand_name)
             })
-
         lst_plugin = self.__get_plugin_lst()
-        # s_plugins = ', '.join(lst_plugin)
-
         return render(self.request, 'svextract/plugin.html', {
             'brand_name_json': mark_safe(s_brand_name),
             'lst_plugin': lst_plugin
@@ -87,28 +84,6 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
             'brand_name_json': mark_safe(s_brand_name)
         })
 
-        # pre-process
-        
-        # dict_param = dict_rst['dict_param']
-        # # begin - uploading file registration
-        # n_edi_yr_from_upload_filename = dict_param['n_edi_yr_from_upload_filename']
-        # # https://wayhome25.github.io/django/2017/04/01/django-ep9-crud/
-        # for s_unzipped_file in dict_param['lst_unzipped_files']:
-        #     o_edi_file = EdiFile(hyper_mart=HyperMartType.ESTIMATION, edi_data_year=n_edi_yr_from_upload_filename,
-        #                             owner=self.request.user, edi_file_name=s_unzipped_file,
-        #                             uploaded_file=o_new_uploaded_file)
-        #     o_edi_file.save()
-        # # end - uploading file registration
-        # from .tasks import lookup_edi_file
-        # dict_param['s_tbl_prefix'] = self.request.user.analytical_namespace
-        # if len(dict_param['lst_unzipped_files']) > 2:
-        #     lookup_edi_file.apply_async([dict_param], queue='celery', priority=10)  # , countdown=10)
-        #     # lookup_edi_file(dict_param)
-        # else:
-        #     lookup_edi_file(dict_param)
-
-        # return redirect('svtransform:index')
-
     def __validate_storage(self, n_user_pk, s_brand_name_json):
         """ find the brand designated directory """
         s_brand_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', str(n_user_pk), s_brand_name_json)
@@ -120,4 +95,6 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
     def __get_plugin_lst(self):
         """ get modules in /svplugins directory """
         s_plugin_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins')
-        return [f for f in os.listdir(s_plugin_path_abs) if not f.startswith('_')]
+        lst_plugin = [f for f in os.listdir(s_plugin_path_abs) if not f.startswith('_')]
+        lst_plugin.append('stop')
+        return lst_plugin

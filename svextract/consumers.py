@@ -2,6 +2,7 @@
 import os
 import importlib
 import json
+import threading
 from svauth.models import User
 from channels.generic.websocket import WebsocketConsumer
 
@@ -14,6 +15,7 @@ from conf import basic_config
 
 class PluginConsole(WebsocketConsumer):
     __g_sPluginPathAbs = None
+    __g_dictPluginThread = {}  # should improve to a multiuser threading use case
 
     # websocket 연결 시 실행
     def connect(self):
@@ -25,7 +27,7 @@ class PluginConsole(WebsocketConsumer):
     # websocket 연결 종료 시 실행
     def disconnect(self, close_code):
         # print('ws disconnect')
-        pass
+        self.__halt_all_thread()
     
     def print_msg_socket(self, s_msg):
         # Send message to WebSocket
@@ -52,7 +54,16 @@ class PluginConsole(WebsocketConsumer):
 
         lst_command = s_command.split(' ')
         s_plugin_name = lst_command[0].strip()
-        # print(s_plugin_name)
+        if s_plugin_name == 'stop':
+            s_interrupt_plugin_name = lst_command[1].strip()
+            self.print_msg_socket(s_interrupt_plugin_name + ' is trying to be interrupted!')
+            try:
+                self.__g_dictPluginThread[s_interrupt_plugin_name].b_run = False
+                self.print_msg_socket(s_interrupt_plugin_name + ' has been interrupted!')
+            except KeyError:
+                self.print_msg_socket(s_interrupt_plugin_name + ' is unable to be interrupted - not running')
+            return
+
         # integrate_db mode=ad
         self.__g_sPluginPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', s_plugin_name)
 
@@ -70,32 +81,41 @@ class PluginConsole(WebsocketConsumer):
         s_brand_name = self.scope["url_route"]["kwargs"]["brand_name"]
         lst_command.append('config_loc='+str(self.user.pk) + '/' + s_brand_name)
 
-        oJobPlugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
-        with oJobPlugin.svJobPlugin() as oJob: # to enforce each plugin follow strict guideline or remove from scheduler
-            self.print_msg_socket(s_plugin_name + ' has been initiated')  # oJob.__class__.__name__ + '
-            oJob.set_websocket_output(self.print_msg_socket)
-            oJob.parse_command(lst_command)
-            oJob.do_task()
-            self.print_msg_socket(s_plugin_name + ' has been finished')
-            
-        # try:
-        #     oJobPlugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
-        #     with oJobPlugin.svJobPlugin() as oJob: # to enforce each plugin follow strict guideline or remove from scheduler
-        #         self.print_msg_socket(s_plugin_name + ' has been initiated')  # oJob.__class__.__name__ + '
-        #         oJob.set_websocket_output(self.print_msg_socket)
-        #         oJob.parse_command(lst_command)
-        #         oJob.do_task()
-        #         self.print_msg_socket(s_plugin_name + ' has been finished')
-        # except AttributeError: # if task module does not have svJobPlugin
-        #     self.print_msg_socket('invalid plugin')
-        # except ModuleNotFoundError as err:
-        #     self.print_msg_socket(self.__get_plugin_instruction('module'))
+        if s_plugin_name in list(self.__g_dictPluginThread.keys()):  # means duplicated request
+            self.print_msg_socket(s_plugin_name + ' is already in progress!')
+            return
+
+        try:
+            oJobPlugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
+            with oJobPlugin.svJobPlugin() as oJob: # to enforce each plugin follow strict guideline or remove from scheduler
+                self.print_msg_socket(s_plugin_name + ' has been initiated')  # oJob.__class__.__name__ + '
+                oJob.set_websocket_output(self.print_msg_socket)
+                oJob.set_my_name(s_plugin_name)
+                oJob.parse_command(lst_command)
+                self.__g_dictPluginThread[s_plugin_name] = threading.Thread(target=oJob.do_task, args=(self.__cb_thread_done,))
+                self.__g_dictPluginThread[s_plugin_name].b_run = True
+                self.__g_dictPluginThread[s_plugin_name].start()
+                # self.__g_dictPluginThread[s_plugin_name].join()  # join() means to order to wait for thread completion, not stopping thread
+        except Exception as err: # prevent websocket disconnection
+            self.print_msg_socket(str(err))
         # except ImportError as err:
         #     self.print_msg_socket(self.__get_plugin_instruction('module'))
-        # except Exception as err:
-        #     print(err)
-        # finally:
-        #     pass
+    
+    def __cb_thread_done(self, s_plugin_name):
+        try:
+            del self.__g_dictPluginThread[s_plugin_name]
+            self.print_msg_socket(s_plugin_name + ' has been finished')
+            print(s_plugin_name + ' has been finished')
+        except KeyError:  # plugin name not specified
+            self.__halt_all_thread()
+    
+    def __halt_all_thread(self):
+        self.print_msg_socket('An weird error occured\nTrying to halt all taks')
+        print('An weird error occured\nTrying to halt all taks')
+        for s_plugin_name, o_plugin_thread in self.__g_dictPluginThread.items():
+            o_plugin_thread.b_run = False
+            self.print_msg_socket(s_plugin_name + ' has been finished')
+            print(s_plugin_name + ' has been finished')
 
     def __validate_plugin(self):
         """ find the module in /svplugins directory """

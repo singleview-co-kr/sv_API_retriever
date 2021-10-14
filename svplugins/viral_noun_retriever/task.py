@@ -30,7 +30,6 @@ from datetime import datetime
 from collections import Counter
 
 # 3rd-party library
-# from konlpy.tag import Okt
 from ckonlpy.tag import Twitter
 from wordcloud import WordCloud
 
@@ -39,12 +38,12 @@ from wordcloud import WordCloud
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
 else: # for platform running
     from svcommon import sv_mysql
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
@@ -62,32 +61,29 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     __g_oTwitter = None
 
-    def __init__(self):  #, dictParams ):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.1'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '0.0.2'
+        self._g_sLastModifiedDate = '13th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         self.__g_oTwitter = Twitter()
 
-    def do_task(self):
+    def do_task(self, o_callback):
         self.__g_sMode = self._g_dictParam['mode']
         self.__g_sCommaSeparatedWords = self._g_dictParam['words']
         self.__g_sStartYyyymmdd = self._g_dictParam['start_yyyymmdd']
         self.__g_sEndYyyymmdd = self._g_dictParam['end_yyyymmdd']
 
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('invalid config_loc')
-            #raise Exception('stop')
             return
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        
         lst_noun = []
         if self.__g_sMode == 'tag_ignore_word':
             self._printDebug('tag_ignore_word')
@@ -122,22 +118,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self._printDebug('weird')
 
-        if len(lst_noun):
-            s_font_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', 'viral_noun_retriever', 'fonts', 'godoMaum.ttf')
-            # wc = WordCloud(font_path='C:\\Windows\\Fonts\\08SeoulNamsanB_0.ttf', \
-            # wc = WordCloud(
-            wc = WordCloud(font_path=s_font_file_path_abs, \
-                background_color="white", \
-                width=1000, \
-                height=1000, \
-                max_words=100, \
-                max_font_size=300)
-                
-            # wc.generate(news)
-            wc.generate_from_frequencies(dict(lst_noun))
-            s_wc_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'keyword.png')
-            wc.to_file(s_wc_file_path_abs)
-        return
+        try:
+            n_noun_cnt = len(lst_noun)
+            if n_noun_cnt:
+                s_font_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', 'viral_noun_retriever', 'fonts', 'godoMaum.ttf')
+                # wc = WordCloud(font_path='C:\\Windows\\Fonts\\08SeoulNamsanB_0.ttf', \
+                wc = WordCloud(font_path=s_font_file_path_abs, \
+                    background_color="white", \
+                    width=1000, \
+                    height=1000, \
+                    max_words=100, \
+                    max_font_size=300)
+                    
+                # wc.generate(news)
+                wc.generate_from_frequencies(dict(lst_noun))
+                s_wc_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'keyword.png')
+                wc.to_file(s_wc_file_path_abs)
+        except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
+            self._printDebug('Processing has been interrupted abnormally')
+        
+        self._task_post_proc(o_callback)
     
     def __tag_ignore_word(self):
         lst_ignore_word = self.__g_sCommaSeparatedWords.split(',')
@@ -161,7 +161,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for s_custom_noun in lst_custom_noun:
                 o_sv_mysql.executeQuery('insertCustomNoun', s_custom_noun)
         
-            # o_sv_mysql.truncateTable('wc_collected_dictionary')
             o_sv_mysql.truncateTable('wc_word_cnt')  # reset word_cnt
             o_sv_mysql.executeQuery('updateAllDocNonProced')  # reset all document processed status
 
@@ -185,22 +184,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             lst_rst = o_sv_mysql.executeQuery('getRegisteredWords')
-            
             for dict_row in lst_rst:
                 self.__g_dictRegisteredNouns[dict_row['word']] = {'word_srl': dict_row['word_srl'], 'b_ignore': dict_row['b_ignore']}
             del lst_rst
 
+            n_iter_cnt = 0
             lst_new_doc_detail = o_sv_mysql.executeQuery('getNonProcedDocs')
-            # print(lst_new_doc_detail)
-
             for dict_row in lst_new_doc_detail:
                 lst_counting_word = self.__get_noun(dict_row['content'])
-                # self._printDebug(dict_row['content'][:40])
-                # print(str(dict_row['document_srl']) + ':' + str(dict_row['logdate']))
                 counter_noun_count = Counter(lst_counting_word)
-                # print(counter_noun_count )
-                
                 for s_word, n_cnt in counter_noun_count.items():
+                    if not self._continue_iteration():
+                        return
+                    else:
+                        if n_iter_cnt % 5000 == 0:
+                            self._printDebug(self._g_sPluginName + ' is registering ' + str(n_iter_cnt) + 'th word')
+                    
+                    n_iter_cnt = n_iter_cnt + 1
                     try:
                         n_word_srl = self.__g_dictRegisteredNouns[s_word]['word_srl']
                     except KeyError:
@@ -208,7 +208,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         n_word_srl = lst_rst[0]['id']
                         self.__g_dictRegisteredNouns[s_word] = {'word_srl': n_word_srl, 'b_ignore': 0}
 
-                    # print(s_word + ' -> ' + str(n_word_srl) + ' -> ' + str(n_cnt))
                     o_sv_mysql.executeQuery('insertWordCnt', dict_row['referral'], dict_row['document_srl'], n_word_srl, n_cnt, dict_row['logdate'])
                 del counter_noun_count
                 # set document processed to avoid duplicated analyze
@@ -235,6 +234,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             b_mode = 'partial_period'
 
+        n_iter_cnt = 1
         with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
@@ -256,6 +256,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if n_word_srl in lst_counting_words_srls:
                     s_translate_word = self.__g_dictCountingNouns[n_word_srl]
                     for n_dummy in range(0, dict_row['cnt']):
+                        if not self._continue_iteration():
+                            return
+                        else:
+                            if n_iter_cnt % 5000 == 0:
+                                self._printDebug(self._g_sPluginName + ' is retrieving ' + str(n_iter_cnt) + 'th word')
+                        n_iter_cnt = n_iter_cnt + 1
+                        
                         self.__g_lstCountingNounsSrl.append(s_translate_word)
                
         counter_noun_count = Counter(self.__g_lstCountingNounsSrl)  # sum freq by noun and sort
@@ -270,9 +277,9 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams >= 3:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
-            pass
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namesapce] [config_loc] [mode] params are required for console execution.')
 

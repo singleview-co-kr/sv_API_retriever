@@ -45,13 +45,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
@@ -75,22 +75,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.15'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.16'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
 
-    def do_task(self):
+    def do_task(self, o_callback):
         self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
         self.__g_sMode = self._g_dictParam['mode']
 
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+        oResp = self._task_pre_proc(o_callback)
         self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            #raise Exception('stop')
             return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -99,7 +97,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         
         del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
-        s_cid = dict_nvr_ad_acct['customer_id']  # list(dict_nvr_ad_acct.keys())[0]
+        s_cid = dict_nvr_ad_acct['customer_id']
 
         self.__g_sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title)
         self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
@@ -108,8 +106,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
-        
-        # aNvrAdAcct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
         
         if self.__g_sRetrieveMonth != None:
             dictDateRange = self.__deleteCertainMonth()
@@ -130,10 +126,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(date_generated)
         for date in date_generated:
+            if not self._continue_iteration():
+                break
+            
             sDate = date.strftime('%Y-%m-%d')
             self.__compileDailyRecord(sDate)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data:', suffix = 'Complete', length = 50)
             nIdx += 1
+
+        self._task_post_proc(o_callback)
 
     def __deleteCertainMonth(self):
         dictRst = {'start_date': None, 'end_date': None}
@@ -314,7 +315,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sTerm = lstGaLogSingle['term'].replace(' ', '').upper() # facebook never provides term via their insight API
         # but sometimes set utm_term on their campaign, then GA report term-level specified FB campaign
         # that's why GA term needs to be capitalized before integrate with FB log
-
         sRowId = lstGaLogSingle['ua']+'|@|'+lstGaLogSingle['source']+'|@|'+lstGaLogSingle['rst_type']+'|@|'+lstGaLogSingle['media']+'|@|'+str(lstGaLogSingle['brd'])+'|@|'+ \
             lstGaLogSingle['campaign_1st']+'|@|'+lstGaLogSingle['campaign_2nd']+'|@|'+ lstGaLogSingle['campaign_3rd'] +'|@|'+sTerm
         
@@ -448,7 +448,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sTerm = lstGaLogSingle['term'].replace(' ', '').upper() # adwords sometimes provides log like "campaign code = (not set) term = (not set)"
         # upper() needs to be done as ADW capitalizes term always but GA term is case sensitive.
         # that's why GA term needs to be capitalized before integrate with ADW log
-        
         if lstGaLogSingle['media'] == 'cpc' and lstGaLogSingle['campaign_1st'].find('GDN' ) > -1: # merge and create new performance row for GDN
             sTerm = lstGaLogSingle['campaign_1st'].lower()
             lstGaLogSingle['brd'] = 0  # GA starts to allocate term on session via GDN; some of terms are branded; this corrupts GDN aggregation logic
@@ -469,7 +468,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
         try: # if designated log already created
             self.__g_dictAdwMergedDailyLog[sRowId]
             self.__g_dictAdwMergedDailyLog[sRowId]['session'] += nSession
@@ -811,7 +809,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
             sDailyLogId = dictSingleLog['ua']+'|@|'+'kakao'+'|@|'+dictSingleLog['rst_type']+'|@|'+dictSingleLog['media']+'|@|'+str(dictSingleLog['brd'])+'|@|'+\
                 dictSingleLog['campaign_1st']+'|@|'+dictSingleLog['campaign_2nd']+'|@|'+dictSingleLog['campaign_3rd']+'|@|'+dictSingleLog['term']
-
             dictKkoLogDailyLogSrl[sDailyLogId] = {
                 'customer_id':dictSingleLog['customer_id'],'cost_inc_vat':dictSingleLog['cost_inc_vat'],'imp':dictSingleLog['imp'],'click':dictSingleLog['click'],
                 'conv_cnt_direct':dictSingleLog['conv_cnt_direct'],'conv_amnt_direct':dictSingleLog['conv_amnt_direct']
@@ -917,7 +914,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
-            
             if sMedia == 'display' and sCamp1st == 'BRS':
                 lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogSpecificDisplay', sTouchingDate, sMedia, sTerm, sCamp1st, sCamp2nd, sUa)
             elif sMedia == 'cpc' and sCamp1st == 'NVSHOP' or sCamp1st == 'NVSHOPPING': # merge and create new performance row
@@ -1128,33 +1124,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             nMediaCostVat = 0
 
             if sSource == 'naver' and sRstType == 'PNS':
-                #self._printDebug( '' )
-                #self._printDebug( sTerm + ' on ' + sTouchingDate )
-                if len( dictNvPnsInfo ) > 0:
+                if len(dictNvPnsInfo) > 0:
                     bPnsDetected = False
                     if nTouchingDate <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
                         for nIdx in dictNvPnsInfo:
-                            #self._printDebug( 'try to find nick: ' + dictNvPnsInfo[nIdx]['nick'] )
                             nNickIdx = sTerm.find(dictNvPnsInfo[nIdx]['nick'])
                             if nNickIdx > -1 and dictNvPnsInfo[nIdx]['ua'] == sUa:
                                 bPnsDetected = True
                                 break
-                            #self._printDebug( nIdx )
                         if bPnsDetected == False:
                             for nIdx in dictNvPnsInfo:
-                                #self._printDebug( 'try to find term: ' + dictNvPnsInfo[nIdx]['term'] )
                                 nTermIdx = sTerm.find(dictNvPnsInfo[nIdx]['term'])
                                 if nTermIdx > -1 and dictNvPnsInfo[nIdx]['ua'] == sUa:
                                     bPnsDetected = True
                                     break
-                                
-                                #self._printDebug( nIdx )
                         if bPnsDetected:
                             nMediaRawCost = dictNvPnsInfo[nIdx]['media_raw_cost']
                             nMediaAgencyCost = dictNvPnsInfo[nIdx]['media_agency_cost']
                             nMediaCostVat = dictNvPnsInfo[nIdx]['vat']
                             dictNvPnsInfo.pop(nIdx)
-                            #self._printDebug( '' )
                     else: # for the latest & systematic situation
                         sTermForPns = sTerm+'_'+sUa
                         try:
@@ -1165,14 +1153,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dictNvPnsInfo.pop(sTermForPns)
                         except KeyError:
                             pass
-                            #self._printDebug( 'no PNS info: ' + sTermForPns )
-                            #for sIdx in dictNvPnsInfo:
-                            #	self._printDebug( sIdx )
-                            #	self._printDebug( dictNvPnsInfo[sIdx] )
-                            #self._printDebug( '\n\n' )
             if (sSource == 'facebook' and sRstType == 'PNS') or (sSource == 'instagram' and sRstType == 'PNS'):
-                #self._printDebug( '' )
-                #self._printDebug( sTerm + ' on ' + sTouchingDate )
                 if len(dictNvPnsInfo) > 0:
                     # for the latest & systematic situation only
                     sTermForPns = sTerm+'_'+sUa
@@ -1194,7 +1175,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         # register pns cost info if remaining pns info exists
         if len(dictNvPnsInfo) > 0:
-            # self._printDebug( 'proc remaining dictNvPnsInfo on:' + str(nTouchingDate))
             for sIdx in dictNvPnsInfo:
                 if nTouchingDate <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
                     sTerm = dictNvPnsInfo[sIdx]['term'] + '_' + dictNvPnsInfo[sIdx]['service_type'] + '_' + dictNvPnsInfo[sIdx]['nick'] + '_' + dictNvPnsInfo[sIdx]['regdate']
@@ -1225,7 +1205,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate )
 
         if len(dictFbPnsInfo) > 0:
-            #self._printDebug( 'proc remaining dictFbPnsInfo on:' + str(nTouchingDate))
             for sIdx in dictFbPnsInfo: # for the latest & systematic situation only
                 sTerm = sIdx.replace('_P', '').replace('_M', '')
                 aIdx = sIdx.split('_')
@@ -1328,17 +1307,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return dictPnsInfo
 
     def __redefineCost(self, sMedia, sCustomerId, nCost):
-        # dictSourceToRetrieve = {'naver_ad':'naver_ad', 'adwords':'adwords', 'fb_biz':'fb_biz', 'kakao':'kakao'}
         dictRst = {'cost':0, 'agency_fee':0, 'vat':0}
         if nCost > 0:
             sBeginDate = '20010101' # define default ancient begin date
             sEndDate = datetime.datetime.today().strftime('%Y%m%d')
             fRate = 0.0
-            # try:
-            #     sAgencyInfoFilePath = self.__g_sDataPath + '/' + dictSourceToRetrieve[sMedia] +'/' + str( sCustomerId ) + '/agency_info.tsv'
-            # except KeyError:
-            #     self._printDebug('invalid media classifier' + sMedia)
-            #     raise Exception('stop')
             sAgencyInfoFilePath = os.path.join(self.__g_sDataPath, sMedia, str(sCustomerId), 'conf', 'agency_info.tsv')
             try:
                 with open(sAgencyInfoFilePath, 'r') as tsvfile:
@@ -1430,7 +1403,8 @@ if __name__ == '__main__': # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

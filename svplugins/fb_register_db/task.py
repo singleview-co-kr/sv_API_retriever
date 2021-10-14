@@ -36,15 +36,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_api_config_parser
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_api_config_parser
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
@@ -52,14 +50,14 @@ else: # for platform running
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = None
     __g_sTblPrefix = None
-    __g_dictFbRaw = {}
+    __g_dictFbRaw = None  # prevent duplication on a web console
     __g_dictFxCodeByBizAcct = {}
     __g_dictFxTrendInfo = {}
 
-    def __init__(self):  # , dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.0'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.1'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def __enter__(self):
@@ -70,13 +68,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """ unconditionally calling desctructor """
         pass
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        self.__g_dictFbRaw = {}  # prevent duplication on a web console
+
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            # raise Exception('stop')
             return
 
         self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()        
@@ -90,6 +88,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         self.__arrangeFbRawDataFile(s_sv_acct_id, s_acct_title)
         self.__registerDb()
+
+        self._task_post_proc(o_callback)
 
     def __getFxRate(self, sCheckFxCode, sCheckDate):
         # https://developers.facebook.com/docs/marketing-api/currencies/
@@ -136,7 +136,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nRowCnt = 0
                 for row in reader:
                     if nRowCnt > 0: 
-                        # self.__g_dictFxTrendInfo.update({sFxCode + '_' + row[0]: int(row[1].replace(',',''))})
                         self.__g_dictFxTrendInfo[sFxCode + '_' + row[0]] = int(row[1].replace(',',''))
                     nRowCnt = nRowCnt + 1
         except FileNotFoundError:
@@ -157,7 +156,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __arrangeFbRawDataFile(self, sSvAcctId, sAcctTitle):
         sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
-        
         # traverse directory and categorize data files
         lstTotalDataset = []
         lstFbBizAid = os.listdir(sDataPath)
@@ -181,11 +179,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstDataFiles = os.listdir(sDownloadDataPath)
             for sFilename in lstDataFiles:
                 aFileExt = os.path.splitext(sFilename)
-                # if aFileExt[0] == 'ad_creative' or aFileExt[0] == 'agency_info' or aFileExt[0] == 'info_fx' or aFileExt[0] == 'contract_pns_info':
-                #    continue
-                if aFileExt[1] == '':  # pass if directory   # or aFileExt[1] == '.latest' or aFileExt[1] == '.earliest': # pass if extension is .earliest or .latest or directory
+                if aFileExt[1] == '':
                     continue
-                
                 sDatafileTobeHandled = sFilename + '|@|' + sFbBizAid
                 lstTotalDataset.append(sDatafileTobeHandled)
         
@@ -205,7 +200,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for row in reader:
                         # row[0]: 'ad_id'
-                        # row[1]: 'configured_status']
+                        # row[1]: 'configured_status'
                         # row[2]: 'creative_id'
                         # row[3]: 'ad_name'
                         # row[4]: 'link'
@@ -292,6 +287,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.fb_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId in self.__g_dictFbRaw:
+                if not self._continue_iteration():
+                    break
+
                 aReportType = sReportId.split('|@|')
                 sDataDate = datetime.strptime( aReportType[0], "%Y%m%d" )
                 sFbBizAcctId = aReportType[1]
@@ -348,8 +346,9 @@ if __name__ == '__main__': # for console debugging ex ) python3.6 task.py http:/
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('fb_register_db')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
             pass
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

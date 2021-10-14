@@ -58,30 +58,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNvadConfPathAbs = None
     __g_lstDatadateToCompile = [] # create date list to compile NVAD DB
 
-    def __init__(self):  # , dictParams ):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.35'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.0'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'mode':None})
        
-    def do_task(self):
+    def do_task(self, o_callback):
         self.__g_sMode = self._g_dictParam['mode']
 
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            #raise Exception('stop')
             return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        # del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
-        s_cid = dict_nvr_ad_acct['customer_id']  # list(dict_nvr_ad_acct.keys())[0]
+        s_cid = dict_nvr_ad_acct['customer_id']
 
         self.__g_sNvadDataPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'data')
         self.__g_sNvadConfPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'conf')
@@ -135,18 +132,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(self.__g_lstDatadateToCompile)
         for nDate in self.__g_lstDatadateToCompile:
-            self.__compileDailyRecord(s_sv_acct_id, s_acct_title, s_cid, str(nDate))
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'assemble stat data & register:', suffix = 'Complete', length = 50)
-            nIdx += 1
+            if not self._continue_iteration():
+                break
 
-        return
+            b_rst = self.__compileDailyRecord(s_sv_acct_id, s_acct_title, s_cid, str(nDate))
+            if not b_rst:
+                self._printDebug('warning! denying assemble stat data & register!')
+                break
+            else:
+                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'assemble stat data & register:', suffix = 'Complete', length = 50)
+                nIdx += 1
+
+        self._task_post_proc(o_callback)
 
     def __compileDailyRecord(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
         try: # validate requsted date
             sCompileDate = datetime.strptime(sCompileDate, '%Y%m%d').strftime('%Y-%m-%d')
         except ValueError:
             self._printDebug(sCompileDate + ' is invalid date string')
-            return
+            return False
 
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
         oSvCampaignParser = sv_campaign_parser.svCampaignParser()
@@ -222,10 +226,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'cost':int(lstMediLog['cost']),'imp':int(lstMediLog['impression']),'click':int(lstMediLog['click']),
                         'conv_cnt':0, 'conv_amnt':0,
                         'ua':lstMediLog['pc_mobile_type']
-                    }
-            
-            # get BRS page cost on this date 
-            # dictBrspageDailyCostRst = self.__defineNvBrspageCost(sCompileDate)
+                    }            
             # retrieve daily nvad conversion log
             lstDailyConvLogs = oSvMysql.executeQuery('getDailyConversionLogs', sCompileDate, cid)
             for lstSingleConvlog in lstDailyConvLogs:
@@ -277,60 +278,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'conv_cnt':int(lstSingleConvlog['conversion_count']), 'conv_amnt':int(lstSingleConvlog['sales_by_conversion']),
                         'ua':lstSingleConvlog['pc_mobile_type']
                     }
-            
-            # for sCampaignId in dictCompliedDailyLog:
-            #     dictCampaignInfo = self.__parseCampaignCode(oSvMysql, dictCompliedDailyLog[sCampaignId], sCompileDate)
-            #     dictCompliedDailyLog[sCampaignId]['source'] = dictCampaignInfo['source']
-            #     dictCompliedDailyLog[sCampaignId]['rst_type'] = dictCampaignInfo['rst_type']
-            #     dictCompliedDailyLog[sCampaignId]['media'] = dictCampaignInfo['media']
-            #     dictCompliedDailyLog[sCampaignId]['brd'] = dictCampaignInfo['brd']
-            #     dictCompliedDailyLog[sCampaignId]['campaign_1st'] = dictCampaignInfo['campaign_1st']
-            #     dictCompliedDailyLog[sCampaignId]['campaign_2nd'] = dictCampaignInfo['campaign_2nd']
-            #     dictCompliedDailyLog[sCampaignId]['campaign_3rd'] = dictCampaignInfo['campaign_3rd']
-                
-            #     if dictCampaignInfo['campaign_1st'] == 'BRS': # if BRS exists, sum BRS impression total
-            #         dictNvBrsPageImpByUa[ dictCompliedDailyLog[sCampaignId]['ua']] = dictNvBrsPageImpByUa[dictCompliedDailyLog[sCampaignId]['ua']] + dictCompliedDailyLog[sCampaignId]['imp']
-            #         dictBrspageDailyCostRst = self.__defineNvBrspageCost(sCompileDate)
-            #         if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-            #             self._printDebug('stop -> no matched contract_brs_info.tsv')
-            #             # raise Exception('stop')
-            #             return
 
-            #     if dictCompliedDailyLog[sCampaignId]['media'] == 'CPC' and dictCompliedDailyLog[sCampaignId]['campaign_1st'].find('NVSHOP') > -1:
-            #         dictCompliedDailyLog[sCampaignId]['campaign_1st'] = 'NVSHOP'
-            #         dictCompliedDailyLog[sCampaignId]['term'] = 'nvshop'
-            # sLogDate = datetime.strptime(sCompileDate, "%Y-%m-%d")
-            # bBrsInfoFromApiExist = False # API brs info is primary always!
-            # # insert into DB
-            # for sCampaignId in dictCompliedDailyLog:
-            #     if dictCompliedDailyLog[sCampaignId]['campaign_1st'] == 'BRS': # if BRS exists, allocate cost based on impression
-            #         bBrsInfoFromApiExist = True
-            #         if dictBrspageDailyCostRst[dictCompliedDailyLog[sCampaignId]['ua']] == 0: # raise exception if BRS impression exists without contract info
-            #             if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-            #                 self._printDebug('check brs info: BRS impression exists without contract info on ' + sCompileDate)
-            #                 # nCost = 0
-            #                 return
-            #         else:
-            #             try:
-            #                 nCost = int(dictCompliedDailyLog[sCampaignId]['imp']/dictNvBrsPageImpByUa[dictCompliedDailyLog[sCampaignId]['ua']] * dictBrspageDailyCostRst[dictCompliedDailyLog[sCampaignId]['ua']])
-            #             except ZeroDivisionError: # brs info with cost exists mistakenly
-            #                 nCost = 0
-            #                 self._printDebug('plz check brs info: errornous situation has been detected:')
-            #                 self._printDebug('brs impression:' + str(dictCompliedDailyLog[sCampaignId]['imp']))
-            #                 self._printDebug('brs impression by UA:' + str(dictNvBrsPageImpByUa[dictCompliedDailyLog[sCampaignId]['ua']]))
-            #                 self._printDebug('brs daily cost:' + str(dictBrspageDailyCostRst[dictCompliedDailyLog[sCampaignId]['ua']]))
-            #     else:
-            #         nCost = dictCompliedDailyLog[sCampaignId]['cost']
-
-            #     oSvMysql.executeQuery('insertAssembledNvadLog', 
-            #         cid, dictCompliedDailyLog[sCampaignId]['campaign_id'], dictCompliedDailyLog[sCampaignId]['campaign_name'], dictCompliedDailyLog[sCampaignId]['group_id'],
-            #         dictCompliedDailyLog[sCampaignId]['ua'], dictCompliedDailyLog[sCampaignId]['kw_id'], dictCompliedDailyLog[sCampaignId]['term'],
-            #         dictCompliedDailyLog[sCampaignId]['rst_type'], #self.__g_dictMediaTranslator[dictCompliedDailyLog[sCampaignId]['media']],
-            #         oSvCampaignParser.getSvMediumTag(dictCompliedDailyLog[sCampaignId]['media']),
-            #         dictCompliedDailyLog[sCampaignId]['brd'], dictCompliedDailyLog[sCampaignId]['campaign_1st'], dictCompliedDailyLog[sCampaignId]['campaign_2nd'],
-            #         dictCompliedDailyLog[sCampaignId]['campaign_3rd'], nCost,
-            #         dictCompliedDailyLog[sCampaignId]['imp'], dictCompliedDailyLog[sCampaignId]['click'], dictCompliedDailyLog[sCampaignId]['conv_cnt'],
-            #         dictCompliedDailyLog[sCampaignId]['conv_amnt'], sLogDate )
             # translate compiled log
             for s_campaign_id, dict_daily_log in dictCompliedDailyLog.items():
                 dict_campaign_info = self.__parseCampaignCode(oSvMysql, dict_daily_log, sCompileDate)
@@ -345,8 +293,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dictNvBrsPageImpByUa[dict_daily_log['ua']] = dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
                     dictBrspageDailyCostRst = self.__defineNvBrspageCost(sCompileDate)
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-                        self._printDebug('stop -> no matched contract_brs_info.tsv')
-                        return
+                        self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
+                        return False
 
                 if dict_daily_log['media'] == 'CPC' and dict_daily_log['campaign_1st'].find('NVSHOP') > -1:
                     dict_daily_log['campaign_1st'] = 'NVSHOP'
@@ -361,8 +309,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if dictBrspageDailyCostRst[dict_daily_log['ua']] == 0: # raise exception if BRS impression exists without contract info
                         if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
                             self._printDebug('check brs info: BRS impression exists without contract info on ' + sCompileDate)
-                            # nCost = 0
-                            return
+                            return False
                     else:
                         try:
                             nCost = int(dict_daily_log['imp']/dictNvBrsPageImpByUa[dict_daily_log['ua']] * dictBrspageDailyCostRst[dict_daily_log['ua']])
@@ -384,10 +331,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
             # register manual BRS info if allowed
             if bBrsInfoFromApiExist == False: # API brs info is primary always!
-                #self._printDebug(' manual brs info on ' + sCompileDate)
                 lstNvBrsManualInfoByDate = self.__retrieveNvBrspageManualInfoByDate(sSvAcctId, sAcctTitle, cid, sCompileDate)
                 for dictNvBrsManualInfo in lstNvBrsManualInfoByDate:
-                    #self._printDebug(dictNvBrsManualInfo)
                     sCampaignId = sCampaignName = sGrpId = sKwId = 'svmanual'
                     sRstType = 'PS'
                     sMedia = 'display'
@@ -404,11 +349,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsManualInfo['ua'], sKwId, dictNvBrsManualInfo['term'],
                         sRstType, sMedia, sBrd, sCamp1st, sCamp2nd, sCamp3rd, nCost,
                         dictNvBrsManualInfo['imp'], dictNvBrsManualInfo['click'], dictNvBrsManualInfo['conv_cnt'], dictNvBrsManualInfo['conv_amnt'], sLogDate )
+        return True
 
     def __defineNvBrspageCost(self, sCompileDate):
         dictRst = {'M':0, 'P':0, 'detected':False}
         dtTouchingDate = datetime.strptime(sCompileDate, '%Y-%m-%d').date()
-        # sBrspageInfoFilePath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'naver_ad', cid, 'contract_brs_info.tsv')
         sBrspageInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'contract_brs_info.tsv')
         try:
             with codecs.open(sBrspageInfoFilePath, 'r',encoding='utf8') as tsvfile:
@@ -498,9 +443,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __parseNvadDataFile(self, sSvAcctId, sAcctTitle, cid):
         self._printDebug('-> '+ cid +' is registering NVAD data files')
-        # sDataPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/naver_ad/' + cid
-        #sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'naver_ad', cid)
-
         # dictionary for master data file
         dictBizCh = {}
         dictCamp = {}
@@ -525,10 +467,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # traverse directory and categorize data files
         lstDataFiles = os.listdir(self.__g_sNvadDataPathAbs)
         for sFilename in lstDataFiles:
+            if not self._continue_iteration():
+                break
+            
             aFileExt = os.path.splitext(sFilename)
-            # if aFileExt[0] == 'agency_info' or aFileExt[0] == 'contract_brs_info' or aFileExt[0] == 'contract_pns_info' or aFileExt[0] == 'alias_adgrp_info' or aFileExt[0] == 'performance_brs_info':
-            #     continue
-            if aFileExt[1] == '':  # pass if archive directory   # or aFileExt[1] == '.latest' or aFileExt[1] == '.earliest': # pass if extension is .earliest or .latest or directory
+            if aFileExt[1] == '':
                 continue
             
             aFile = sFilename.split('_')
@@ -547,63 +490,46 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sReportType += '_'
 
             if sReportType == 'AD.tsv':
-                # dictStatAd.update({nDatadate:sFilename})
                 dictStatAd[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'AD_DETAIL.tsv':
-                # dictAdDetail.update({nDatadate:sFilename})
                 dictAdDetail[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'AD_CONVERSION.tsv':
-                # dictAdConversion.update({nDatadate:sFilename})
                 dictAdConversion[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'AD_CONVERSION_DETAIL.tsv':
-                # dictAdConversionDetail.update({nDatadate:sFilename})
                 dictAdConversionDetail[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'ADEXTENSION.tsv':
-                # dictAdExtension.update({nDatadate:sFilename})
                 dictAdExtension[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'ADEXTENSION_CONVERSION.tsv':
-                # dictAdExtensionConversion.update({nDatadate:sFilename})
                 dictAdExtensionConversion[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'NAVERPAY_CONVERSION.tsv':
-                # dictNpayConversion.update({nDatadate:sFilename})
                 dictNpayConversion[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'EXPKEYWORD.tsv':
-                # dictExpkeyword.update({nDatadate:sFilename})
                 dictExpkeyword[nDatadate] = sFilename
                 self.__g_lstDatadateToCompile.append(nDatadate)
             elif sReportType == 'BusinessChannel_full.tsv' or sReportType == 'BusinessChannel_delta.tsv':
-                # dictBizCh.update({nDatadate:sFilename})
                 dictBizCh[nDatadate] = sFilename
             elif sReportType == 'Campaign_full.tsv' or sReportType == 'Campaign_delta.tsv':
-                # dictCamp.update({nDatadate:sFilename})
                 dictCamp[nDatadate] = sFilename
             elif sReportType == 'CampaignBudget_full.tsv' or sReportType == 'CampaignBudget_delta.tsv':
-                # dictCampBudget.update({nDatadate:sFilename})
                 dictCampBudget[nDatadate] = sFilename
             elif sReportType == 'Adgroup_full.tsv' or sReportType == 'Adgroup_delta.tsv':
-                # dictAdgrp.update({nDatadate:sFilename})
                 dictAdgrp[nDatadate] = sFilename
             elif sReportType == 'AdgroupBudget_full.tsv' or sReportType == 'AdgroupBudget_delta.tsv':
-                # dictAdgrpBudget.update({nDatadate:sFilename})
                 dictAdgrpBudget[nDatadate] = sFilename
             elif sReportType == 'Keyword_full.tsv' or sReportType == 'Keyword_delta.tsv':
-                # dictKw.update({nDatadate:sFilename})
                 dictKw[nDatadate] = sFilename
             elif sReportType == 'Ad_full.tsv' or sReportType == 'Ad_delta.tsv':
-                # dictMasterAd.update({nDatadate:sFilename})
                 dictMasterAd[nDatadate] = sFilename
             elif sReportType == 'AdExtension_full.tsv' or sReportType == 'AdExtension_delta.tsv':
-                # dictMasterAdExt.update({nDatadate:sFilename})
                 dictMasterAdExt[nDatadate] = sFilename
             elif sReportType == 'Qi_full.tsv' or sReportType == 'Qi_delta.tsv':
-                # dictQi.update({nDatadate:sFilename})
                 dictQi[nDatadate] = sFilename
             else:
                 self._printDebug('weird Report Type! - ' + sReportType)
@@ -644,7 +570,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             nLatestBrspageLogDate = int(lstLatestBrsLogDate[0]['maxdate'].strftime('%Y%m%d'))
         
         lstLogPeriod = []
-        # sBrspagePerformanceInfoFilePath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/naver_ad/' + cid + '/performance_brs_info.tsv'
         sBrspagePerformanceInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'performance_brs_info.tsv')
         try:
             with codecs.open(sBrspagePerformanceInfoFilePath, 'r',encoding='utf8') as tsvfile:
@@ -677,7 +602,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             pass
         else:
             nBrsDatadate = int(sCompileDate.replace('-',''))
-            # sBrspagePerformanceInfoFilePath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/naver_ad/' + cid + '/performance_brs_info.tsv'
             sBrspagePerformanceInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'performance_brs_info.tsv')
             try:
                 with codecs.open(sBrspagePerformanceInfoFilePath, 'r',encoding='utf8') as tsvfile:
@@ -688,7 +612,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             try:
                                 dtLogDate = datetime.strptime(row[0], '%Y%m%d').date()
                             except ValueError:
-                                # raise Exception('stop')
                                 return
 
                             if int(row[0]) == nBrsDatadate:
@@ -740,7 +663,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -786,7 +708,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -818,8 +739,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
-
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -851,7 +770,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -951,6 +869,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
+                if not self._continue_iteration():
+                    break
+
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 #self._printDebug( sDataFileFullpathname )
@@ -992,6 +913,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
+                if not self._continue_iteration():
+                    break
+
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 #self._printDebug( sDataFileFullpathname )
@@ -1023,6 +947,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1050,6 +977,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1077,6 +1007,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1104,6 +1037,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1131,6 +1067,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1158,6 +1097,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1185,6 +1127,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
@@ -1216,13 +1161,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
+                if not self._continue_iteration():
+                    break
+                
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 try:
                     for line in fileinput.input([sDataFileFullpathname], inplace=True): # remove any " to prevent csv.reader malfunction
                         print(line.replace('"', ''), end='')
                 
-                    #self._printDebug( sDataFileFullpathname)
                     with open(sDataFileFullpathname, 'r', encoding='utf-8') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
@@ -1248,12 +1195,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nIdx += 1
 
     def __archiveNvadDataFile(self, sDataPath, sCurrentFileName):
-        #self._printDebug( '-> archives registered data files: ' + sCurrentFileName )
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
             self._printDebug('error: naver_ad source directory does not exist!')
             return
-        # sArchiveDataPath = sDataPath +'/archive'
         sArchiveDataPath = os.path.join(sDataPath, 'archive')
         if not os.path.exists(sArchiveDataPath):
             os.makedirs(sArchiveDataPath)
@@ -1267,7 +1212,8 @@ if __name__ == '__main__': # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_register_db')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

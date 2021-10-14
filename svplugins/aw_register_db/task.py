@@ -44,15 +44,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_api_config_parser
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
 else:
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_api_config_parser
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
@@ -66,24 +64,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'google', # for new google ads API report; ignore report title row: google_ads_api (v6)
                         'Campaign', # ignore column title row
                         'Total'] # for old adwords API report; ignore gross sum row
-    __g_dictAdwRaw = {}                        
+    __g_dictAdwRaw = None  # prevent duplication on a web console
 
-    def __init__(self):  #, dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '6th, Aug 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None})
 
-    def do_task(self):
+    def do_task(self, o_callback):
         self.__g_sReplaceMonth = self._g_dictParam['yyyymm']
+        self.__g_dictAdwRaw = {}  # prevent duplication on a web console
 
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            # raise Exception('stop')
             return
         
         self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
@@ -107,6 +104,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__arrangeAwRawDataFile(s_sv_acct_id, s_acct_title, lst_google_ads)
         self.__registerDb()
 
+        self._task_post_proc(o_callback)
+
     def __deleteCertainMonth(self):
         nYr = int(self.__g_sReplaceMonth[:4])
         nMo = int(self.__g_sReplaceMonth[4:None])
@@ -121,7 +120,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstRst = oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
-        # self._printDebug(lstRst[0]['rowcount'])
 
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
@@ -158,11 +156,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstDataFiles = os.listdir(sDataPath)
             for nIdx, sDatafileName in enumerate(lstDataFiles):
                 aFileExt = os.path.splitext(sDatafileName)
-                #if aFileExt[0] == 'agency_info':
-                #    continue
-                if aFileExt[1] == '':  # pass if directory #  or aFileExt[1] == '.latest' or aFileExt[1] == '.earliest': # pass if extension is .earliest or .latest or directory
+                if aFileExt[1] == '':
                     continue
-                
                 if self.__g_sReplaceMonth == None:
                     sMode = 'r' # means regular daily
                 else:
@@ -173,6 +168,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(lstMergedDataFiles)
         for sDataFileInfo in lstMergedDataFiles:
+            if not self._continue_iteration():
+                break
+
             aDataFileInfo = sDataFileInfo.split('|@|')
             sFilename = aDataFileInfo[0]
             sCid = aDataFileInfo[1]
@@ -190,18 +188,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     for row in reader:
                         bBrd = 0
                         lstCampaignCode = row[0].split('_')
-                        # ignore TSV file header and tail
-
-                        if lstCampaignCode[0] in self.__g_lstIgnoreText:
+                        if lstCampaignCode[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
                             continue
-                        # if lstCampaignCode[0] == 'CRITERIA': # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
-                        #     continue
-                        # elif lstCampaignCode[0] == 'google': # for new google ads API report; ignore report title row: google_ads_api (v6)
-                        #     continue
-                        # elif lstCampaignCode[0] == 'Campaign': # ignore column title row
-                        #     continue
-                        # elif lstCampaignCode[0] == 'Total': # for old adwords API report; ignore gross sum row
-                        #     continue
                         
                         # process body
                         if len(lstCampaignCode) > 3: # adwords campaign name follows singleview campaign code
@@ -243,7 +231,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         if self.__g_oSvCampaignParser.decideAwPlacementTagByTerm(sTerm) == True:
                             sPlacement = sTerm
                             sTerm = None
-
                         # finally determine branded by term
                         if self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm) == True:
                             bBrd = 1
@@ -286,6 +273,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId in self.__g_dictAdwRaw:
+                if not self._continue_iteration():
+                    break
+
                 aReportType = sReportId.split('|@|')
                 sAdwordsCid = aReportType[0]
                 sDataDate = datetime.strptime(aReportType[1], "%Y-%m-%d")
@@ -333,8 +323,8 @@ if __name__ == '__main__': # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_register_db')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
-            pass
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')

@@ -50,21 +50,21 @@ from oauth2client.client import AccessTokenRefreshError
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
     #import googleads_config
 else:
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    def __init__(self):  # , dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.0'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.1'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         
     def getConsoleAuth(self, argv):
@@ -83,17 +83,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             argv, 'analytics', 'v3', __doc__, __file__,
             scope='https://www.googleapis.com/auth/analytics.readonly')
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            #raise Exception('stop')
             return
 
         """ Authenticate and construct service. """
-        # sClientSecretsJson = basic_config.ABSOLUTE_PATH_BOT + '/conf/google_client_secrets.json'
         sClientSecretsJson = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google_client_secrets.json')
 
         # Define the auth scopes to request.
@@ -120,6 +117,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # Handle Auth errors.
             self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
 
+        self._task_post_proc(o_callback)
+
     def __getInsiteRaw(self, service, sSvAcctId, sAcctTitle, sGaViewId):
         """Executes and returns data from the Core Reporting API.
         This queries the API for the top 25 organic search terms by visits.
@@ -129,11 +128,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         Returns:
         The response returned from the Core Reporting API.
         """
-        # sDataPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId + '/' + sAcctTitle + '/google_analytics/' + sGaViewId + '/data'
         sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
         if os.path.isdir(sDataPath) is False :
             os.makedirs(sDataPath)
-        # sConfPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId + '/' + sAcctTitle + '/google_analytics/' + sGaViewId + '/conf'
         sConfPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
         if os.path.isdir(sConfPath) is False :
             os.makedirs(sConfPath)
@@ -163,7 +160,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sFileName = sMet
                 
                 try:
-                    # sLatestFilepath = sConfPath+'/'+sUa+'_'+sFileName+'.latest'
                     sLatestFilepath = os.path.join(sConfPath, sUa+'_'+sFileName+'.latest')
                     f = open(sLatestFilepath, 'r')
                     sMaxReportDate = f.readline()
@@ -180,14 +176,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dictDateQueue = dict()
                 for x in range (0, nNumDays):
                     dtElement = dtStartRetrieval + timedelta(days = x)
-                    sDate = dtElement
-                    #dictDateQueue.update({sDate:0})
                     dictDateQueue[dtElement] = 0
 
                 if len(dictDateQueue) == 0:
                     continue
 
-                while True: # loop for each report date
+                while self._continue_iteration(): # loop for each report date
                     try:
                         dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
                         sDataDate = dtRetrieval.strftime('%Y-%m-%d')
@@ -209,18 +203,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 # If you want more than 10000, you need to paginate with multiple queries and join the results.
                                 ).execute()
                             sTsvFilename = sDataDateForMysql + '_' + sUa + '_' + sFileName + '.tsv'
-                            # f = open(sLatestFilepath, 'w')
-                            # f.write(sDataDateForMysql)
-                            # f.close()
 
                             # write data table to file.
-                            # with open(sDataPath+'/'+sTsvFilename, 'w', encoding='utf-8' ) as out:
                             with open( os.path.join(sDataPath, sTsvFilename), 'w', encoding='utf-8' ) as out:
                                 if oRst.get('rows', []):
                                     for row in oRst.get('rows'):
                                         for cell in row:
                                             out.write(cell.replace('"', '').replace("'", '') + '\t')
-                                            # out.write(cell + '\t')
                                         out.write( '\n')
                             
                             try:
@@ -291,8 +280,9 @@ if __name__ == '__main__': # for console debugging and execution
             	oJob.getConsoleAuth( sys.argv )
         else:
             with svJobPlugin() as oJob: # to enforce to call plugin destructor
+                oJob.set_my_name('aw_get_day')
                 oJob.parse_command(sys.argv)
-                oJob.do_task()
+                oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params or --noauth_local_webserver is required for console execution.')
 

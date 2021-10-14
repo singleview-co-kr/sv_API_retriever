@@ -52,6 +52,7 @@ class svSlack(sv_object.ISvObject):
     __g_oConfig = None
     __g_sCallingBot = None
     __g_bAvailable = False
+    __g_oSlackCleaner = None
 
     def __init__(self, sCallingBot):
         self.__g_oConfig = configparser.ConfigParser()
@@ -98,31 +99,53 @@ class svSlack(sv_object.ISvObject):
         else:
             self._printDebug(__file__ + ' has requested to send blank message!')
 
+    def get_slack_cleaner(self, s_channel_name):
+        if not self.__g_bAvailable:
+            self._printDebug('execution denied')
+            return
+
+        self.__g_oSlackCleaner = SlackCleaner(self.__g_oConfig['COMMON']['slack_user_oauth_token'])
+        lst_channels = [str(o_slack_ch) for o_slack_ch in self.__g_oSlackCleaner.conversations]
+        if s_channel_name not in lst_channels:
+            self._printDebug('SlackCleaner is not initialized')
+            self.__g_oSlackCleaner = None
+            return False
+        else:
+            return self.__g_oSlackCleaner
+
+    def validate_user(self, s_user_name):
+        if not self.__g_bAvailable or not self.__g_oSlackCleaner:
+            self._printDebug('execution denied')
+            return
+        # list of users
+        # self._printDebug(s.users)
+
     def delete_all(self, s_channel_name):
         if not self.__g_bAvailable:
             self._printDebug('execution denied')
             return
-            
-        s = SlackCleaner(self.__g_oConfig['COMMON']['slack_user_oauth_token'])
-        # list of users
-        self._printDebug(s.users)
+        
+        self.get_slack_cleaner(s_channel_name)
+        #s = SlackCleaner(self.__g_oConfig['COMMON']['slack_user_oauth_token'])
         # list of all kind of channels
         # print(s.conversations)
 
         # s.conversations returns <class 'slack_cleaner2.model.SlackChannel'>
-        lst_channels = [str(o_slack_ch) for o_slack_ch in s.conversations]
-        if s_channel_name not in lst_channels:
-            self._printDebug('invalid channel title')
-            return
+        # lst_channels = [str(o_slack_ch) for o_slack_ch in s.conversations]
+        # if s_channel_name not in lst_channels:
+        #     self._printDebug('invalid channel title')
+        #     return
 
         # delete all messages in general channels
-        for msg in s.msgs(filter(match(s_channel_name), s.conversations)):
+        for o_msg in self.__g_oSlackCleaner.msgs(filter(match(s_channel_name), self.__g_oSlackCleaner.conversations)):
         	# delete messages, its files, and all its replies (thread)
-        	msg.delete(replies=True, files=True)
+        	print('delete 1')
+            #o_msg.delete(replies=True, files=True)
 
         # delete all general messages and also iterate over all replies
-        for msg in s.c.general.msgs(with_replies=True):
-        	msg.delete()
+        for o_msg in self.__g_oSlackCleaner.c.general.msgs(with_replies=True):
+            print('delete 2')
+        	#o_msg.delete()
 
 
 #if __name__ == '__main__': # for console debugging

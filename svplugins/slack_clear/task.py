@@ -25,6 +25,7 @@
 # standard library
 import logging
 import sys
+from slack_cleaner2.predicates import match
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -35,34 +36,49 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sSlackChTitle = None # slack channel to bulk delete
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.1'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '0.0.2'
+        self._g_sLastModifiedDate = '13th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'slack_ch_ttl':None})
 
-    def do_task(self):
+    def do_task(self, o_callback):
+        o_rsp = self._task_pre_proc(o_callback)
+        del o_rsp
         if self._g_dictParam['slack_ch_ttl'] is None:
             self._printDebug('execution denied! -> you need to define slack_ch_ttl')
             return
 
-        self.__g_sSlackChTitle = self._g_dictParam['slack_ch_ttl']
-        oSvSlack = sv_slack.svSlack(sCallingBot='dbs')
-        # oSvSlack.sendMsg('ddd')
-        oSvSlack.delete_all(self.__g_sSlackChTitle)
+        s_slack_ch_title = self._g_dictParam['slack_ch_ttl']
+        o_sv_slack = sv_slack.svSlack(sCallingBot='dbs')
+        
+        self._printDebug('Prepare to clear slack channel - ' + s_slack_ch_title)
+        o_slack_cleaner = o_sv_slack.get_slack_cleaner(s_slack_ch_title)
+        # delete all messages in general channels
+        n_cnt = 1
+        for o_msg in o_slack_cleaner.msgs(filter(match(s_slack_ch_title), o_slack_cleaner.conversations)):
+            if not self._continue_iteration():
+                break
+            # delete messages, its files, and all its replies (thread)
+            o_msg.delete(replies=True, files=True)
+            if o_callback:  # regarding an execution on a web console 
+                self._printDebug('single slack msg has been deleted - ' + str(n_cnt))
+                n_cnt = n_cnt + 1
+        self._printDebug(str(n_cnt) + ' slack msgs have been deleted')
+
+        self._task_post_proc(o_callback)
         return
 
 if __name__ == '__main__': # for console debugging and execution
     # python task.py analytical_namespace=test config_loc=1/ynox slack_ch_ttl=dbs_bot
-    # slack_clear slack_ch_ttl=dbs_bot
+    # slack_clear slack_ch_ttl=yuhen_web
     nCliParams = len(sys.argv)
     if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
-            pass
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] [slack_ch_ttl] params are required for console execution.')

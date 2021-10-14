@@ -44,13 +44,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_object, sv_api_config_parser, sv_plugin
+    import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
     import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_object, sv_api_config_parser, sv_plugin
+    from svcommon import sv_object, sv_plugin
     # singleview config
     from conf import basic_config # singleview config
 
@@ -60,24 +60,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = None
     __g_sTblPrefix = None
     __g_lstErrornousMedia = []
-    __g_dictGaRaw = {}
+    __g_dictGaRaw = None  # prevent duplication on a web console
     __g_dictSourceMediaNameAliasInfo = {}
     __g_dictGoogleAdsCampaignNameAlias = {}
     __g_dictNaverPowerlinkCampaignNameAlias = {}
 
-    def __init__(self):  # , dictParams):
+    def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.0'
-        self._g_sLastModifiedDate = '4th, Jul 2021'
+        self._g_sVersion = '1.0.1'
+        self._g_sLastModifiedDate = '12th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
-    def do_task(self):
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
-        oResp = oSvApiConfigParser.getConfig()
+    def do_task(self, o_callback):
+        self.__g_dictGaRaw = {}  # prevent duplication on a web console
+
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            #raise Exception('stop')
             return
         
         self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
@@ -86,7 +86,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_ga_view_id = dict_acct_info[s_sv_acct_id]['ga_view_id']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
 
-        # self.__g_sBrandedTruncPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + s_sv_acct_id +'/' + s_acct_title + '/branded_term.conf'
         self.__g_sBrandedTruncPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
         with sv_mysql.SvMySql('svplugins.ga_register_db') as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -95,22 +94,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('-> register ga raw data')
         self.__parseGaDataFile(s_sv_acct_id, s_acct_title, s_ga_view_id)
 
+        self._task_post_proc(o_callback)
+
     def __parseGaDataFile(self, sSvAcctId, sAcctTitle, sGaViewId):
         self._printDebug('-> '+ sGaViewId +' is registering GA data files')
-        # sDataPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/google_analytics/' + sGaViewId + '/data'
-        # sConfPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/google_analytics/' + sGaViewId + '/conf'
         sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
         sConfPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
-
         self.__getSourceMediaNameAlias(sConfPath)
         
         # retrieve google ads campaign name alias info
-        # sGoogeAdsDataPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/adwords/'
         sGoogeAdsDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords')
         self.__g_dictGoogleAdsCampaignNameAlias = self.__getCampaignNameAlias(sGoogeAdsDataPath)
 
         # retrieve naver powerlink campaign name alias info
-        # sNaverPowerlinkDataPath = basic_config.ABSOLUTE_PATH_BOT + '/files/' + sSvAcctId +'/' + sAcctTitle + '/naver_ad/'
         sNaverPowerlinkDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'naver_ad')
         self.__g_dictNaverPowerlinkCampaignNameAlias = self.__getCampaignNameAlias(sNaverPowerlinkDataPath)
         
@@ -130,7 +126,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with codecs.open(os.path.join(sParentDataPath, 'alias_info_source_media.tsv'), 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 nRowCnt = 0
-                nPnsInfoIdx = 0
                 for row in reader:
                     if nRowCnt > 0:
                         self.__g_dictSourceMediaNameAliasInfo[row[0]] = {'alias':row[1]}
@@ -228,7 +223,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if dictValidMedium['medium'] != 'weird':
             sMedium = dictValidMedium['medium']
             if dictValidMedium['found_pos'] > -1:
-                #nPos = nPos + len(sKnownMediaCode)
                 nPos = dictValidMedium['found_pos'] + len( dictValidMedium['medium'])
                 sRightPart = sMedium[nPos:]
                 aRightPart = sRightPart.split('=')
@@ -317,6 +311,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     with open(sDataFileFullname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
                         for row in reader:
+                            if not self._continue_iteration():
+                                break
                             dictRst = self.__parseGaRow(row,sDataFileFullname)
                             sTerm = row[2]
                             sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
@@ -340,7 +336,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             except KeyError:
                 self._printDebug(sSpecifier +' is not relevant')
                 continue
-
+                
+        self._printDebug('UA data file has been arranged')
+        
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
         try:
@@ -362,6 +360,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId in self.__g_dictGaRaw:
+                if not self._continue_iteration():
+                    break
+                
                 aReportType = sReportId.split('|@|')
                 sDataDate = datetime.strptime( aReportType[0], "%Y%m%d" )
                 sUaType = aReportType[1]
@@ -385,18 +386,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nIdx += 1
 
     def __archiveGaDataFile(self, sDataPath, sCurrentFileName):
-        #self._printDebug( '-> archives registered data files' )
         sSourcePath = sDataPath
-
         if not os.path.exists(sSourcePath):
             self._printDebug( 'error: google analytics source directory does not exist!' )
             return
-        
-        # sArchiveDataPath = sDataPath +'/archive'
         sArchiveDataPath = os.path.join(sDataPath, 'archive')
         if not os.path.exists(sArchiveDataPath):
             os.makedirs(sArchiveDataPath)
-
         sSourceFilePath = os.path.join(sDataPath, sCurrentFileName)
         sArchiveDataFilePath = os.path.join(sArchiveDataPath, sCurrentFileName)
         shutil.move(sSourceFilePath, sArchiveDataFilePath)
@@ -406,7 +402,8 @@ if __name__ == '__main__': # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('aw_get_day')
             oJob.parse_command(sys.argv)
-            oJob.do_task()
+            oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
