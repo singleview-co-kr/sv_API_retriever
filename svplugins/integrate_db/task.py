@@ -40,20 +40,18 @@ import calendar
 import codecs
 import math
 
+# 3rd party library
+
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -75,8 +73,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.16'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.17'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
 
@@ -98,15 +96,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
         s_cid = dict_nvr_ad_acct['customer_id']
-
-        self.__g_sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title)
+        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title)
         self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
         self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info[s_sv_acct_id]['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
 
         with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
-        
+
         if self.__g_sRetrieveMonth != None:
             dictDateRange = self.__deleteCertainMonth()
         else:
@@ -144,12 +141,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
             self._printDebug( 'invalid yyyymm' )
-            # raise Exception('remove' )
             return dictRst
         
         try:
             lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'fb_biz'))
-            # lstFbbizLastDate = []
             for sCid in lstDirectory:
                 if sCid == 'alias_info_campaign.tsv':
                     continue
@@ -326,7 +321,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -373,13 +367,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
-            
             lstFbLogDaily = oSvMysql.executeQuery('getFbIgLogSpecific', sTouchingDate, sMedia, sSource, sCamp1st, sCamp2nd, sCamp3rd, sUa)
             nRecCnt = len(lstFbLogDaily)
             if nRecCnt == 0:
                 lstFbLogDaily = oSvMysql.executeQuery('getFbIgLogSpecific', sTouchingDate, 'cpc', sSource, sCamp1st, sCamp2nd, sCamp3rd, sUa)
                 nRecCnt = len(lstFbLogDaily)
-                
                 if nRecCnt == 1:
                     dictFbLogDailyLogSrl.pop(lstFbLogDaily[0]['log_srl'])
                     dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
@@ -463,7 +455,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -490,7 +481,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # this is very different with YOUTUBE campaign from google ads
         dictAdwLogDailyLogSrl = {}
         lstAdwLogDaily = oSvMysql.executeQuery('getAdwLogDaily', sTouchingDate, 'GG')
-
         for dictSingleLog in lstAdwLogDaily:
             dictAdwLogDailyLogSrl[dictSingleLog['log_srl']] = {
                 'customer_id':dictSingleLog['customer_id'],'ua':dictSingleLog['ua'],'term':dictSingleLog['term'],'rst_type':dictSingleLog['rst_type'],
@@ -606,7 +596,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -653,7 +642,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = '(not set)' # assume that term from youtube is always '(not set)'
-            
             lstYtLogDailyTemp = oSvMysql.executeQuery('getAdwLogSpecificRmk', sTouchingDate, 'YT', sMedia, sCamp1st, sCamp2nd, sCamp3rd, sUa)
             nRecCnt = len(lstYtLogDailyTemp)
             if nRecCnt == 0:
@@ -749,7 +737,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = '(not set)' # assume that term from youtube is always '(not set)'
-
             fCost = 0.0
             fAgencyFee = 0.0
             fVat = 0.0
@@ -778,7 +765,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -825,7 +811,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
-
             nRecCnt = len(lstKkoLogDaily)
             if nRecCnt == 0: # GA log exists without KKO PS data
                 oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
@@ -980,7 +965,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self._printDebug(sTouchingDate)
                     self._printDebug(lstMergedLog)
                     self._printDebug(lstNvadLogDaily)
-                    
                     nCost = 0
                     nImp = 0
                     nClick = 0
@@ -1046,7 +1030,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -1081,7 +1064,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTrs = int(lstGaLogSingle['transactions'])
         nRev = int(lstGaLogSingle['revenue'])
         nReg = int(lstGaLogSingle['registrations'])
-
         fTotNew = nSession * fNewPer
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
@@ -1122,7 +1104,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             nMediaRawCost = 0
             nMediaAgencyCost = 0
             nMediaCostVat = 0
-
             if sSource == 'naver' and sRstType == 'PNS':
                 if len(dictNvPnsInfo) > 0:
                     bPnsDetected = False
@@ -1215,7 +1196,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCamp2nd = aIdx[nRegdatePos]
                 sCamp3rd = '00'
                 sPnsUa = aIdx[nUaPos]
-
                 fMediaRawCost = dictFbPnsInfo[sIdx]['media_raw_cost']
                 fMediaAgencyCost = dictFbPnsInfo[sIdx]['media_agency_cost']
                 fMediaCostVat = dictFbPnsInfo[sIdx]['vat']
@@ -1227,7 +1207,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictPnsInfo = {}
         dtTouchingDate = datetime.datetime.strptime(sTouchingDate, '%Y-%m-%d').date()
         nTouchingDate = int(sTouchingDate.replace('-', '' ))
-        
         if sSource == 'naver':
             sPnsInfoFilePath = self.__g_sNvrPnsInfoFilePath
         elif  sSource == 'facebook':
@@ -1277,13 +1256,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 sTerm = row[1]
                                 sNickName = row[2]
                                 sRegdate = row[6].replace('.','')
-
                                 for sUa in self.__g_dictNvPnsUaCostPortion:
                                     fPortion = self.__g_dictNvPnsUaCostPortion[sUa]
                                     fDailyMediaRawCost = fMediaRawCost / (dtDeltaDays.days + 1) * fPortion
                                     fDailyAgencyCost = fAgencyCost / (dtDeltaDays.days + 1) * fPortion
                                     fVat = (fDailyMediaRawCost + fDailyAgencyCost) * 0.1
-                                    
                                     if nTouchingDate <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
                                         dictPnsInfo[nPnsInfoIdx] = {
                                             'service_type':sServiceType, 'term':sTerm,'nick':sNickName,'ua':sUa, 
@@ -1323,7 +1300,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return dictRst  # raise Exception('stop')
                 
             aPeriod = row[0].split('-')
-            
             if len(aPeriod[0]) > 0:
                 try: # validate requsted date
                     sBeginDate = datetime.datetime.strptime(aPeriod[0], '%Y%m%d').strftime('%Y%m%d')

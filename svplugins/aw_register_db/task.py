@@ -39,20 +39,18 @@ import csv
 import calendar
 import codecs
 
+# 3rd party library
+
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else:
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -68,8 +66,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None})
 
@@ -93,8 +91,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
 
-        self.__g_sBrandedTruncPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
-        
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
         if self.__g_sReplaceMonth != None:
             self._printDebug('-> replace aw raw data')
             self.__deleteCertainMonth()
@@ -139,8 +136,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __arrangeAwRawDataFile(self, sSvAcctId, sAcctTitle, lstGoogleads):
         lstMergedDataFiles = []
-        sParentDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords')
-        
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords')
         # retrieve campaign name alias info
         dictCampaignNameAlias = self.__getCampaignNameAlias(sParentDataPath)
 
@@ -241,7 +237,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         nConvCnt = int(float(row[7]))
                         nConvAmnt = int(float(row[8]))
                         sDatadate = row[9]
-
                         sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+str(bBrd)+'|@|'+\
                             sCampaign1st+'|@|'+\
                             sCampaign2nd+'|@|'+\

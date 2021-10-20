@@ -38,9 +38,9 @@ import os
 import csv
 import calendar
 
+# 3rd party library
 from google.ads.googleads.v7.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
-# from google.ads.googleads.errors import GoogleAdsException
 # https://developers.google.com/google-ads/api/fields/v6/segments
 # https://developers.google.com/google-ads/api/docs/query/overview
 # cd /usr/local/lib/python3.7/site-packages/google/ads/googleads/v6/enums
@@ -49,12 +49,8 @@ from google.ads.googleads.client import GoogleAdsClient
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_object, sv_plugin
-    sys.path.append('../../conf')
-    import basic_config
 else: # for platform running
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
@@ -62,8 +58,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None})
 
@@ -91,7 +87,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return
 
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
         if os.path.isdir(sDownloadPath) is False:
             os.makedirs(sDownloadPath)
         
@@ -102,7 +98,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://github.com/googleads/googleads-python-lib
         # https://github.com/googleads/googleads-python-lib/releases
         # https://www.youtube.com/watch?v=80KOeuCNc0c
-        s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
+        # s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
+        s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
         o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
         
@@ -112,14 +109,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
             self._printDebug('invalid yyyymm')
-            raise Exception('remove' )
+            return
         
         sStartDateRetrieval = self.__g_sRetrieveMonth + '01'
         sEndDateRetrieval = self.__g_sRetrieveMonth + str(lstMonthRange[1])
         dtStartRetrieval = datetime.strptime(sStartDateRetrieval, '%Y%m%d')
         dtDateEndRetrieval = datetime.strptime(sEndDateRetrieval, '%Y%m%d')
         dtDateDiff = dtDateEndRetrieval - dtStartRetrieval
-        
         nNumDays = int(dtDateDiff.days) + 1
         dictDateQueue = dict()
         for x in range (0, nNumDays):

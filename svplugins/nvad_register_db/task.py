@@ -41,14 +41,10 @@ if __name__ == '__main__': # for console debugging
     import sv_mysql
     import sv_campaign_parser
     import sv_object, sv_api_config_parser, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object, sv_api_config_parser, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -79,9 +75,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         s_cid = dict_nvr_ad_acct['customer_id']
-
-        self.__g_sNvadDataPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'data')
-        self.__g_sNvadConfPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'conf')
+        self.__g_sNvadDataPathAbs = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'data')
+        self.__g_sNvadConfPathAbs = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'naver_ad', s_cid, 'conf')
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
@@ -793,7 +788,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __registerMasterAdGroupFile(self, sAcctTitle, dictMasterData):
         # read adgrp alias info
-        # sAdgrpAliasInfoFilePath = sDataPath + '/alias_adgrp_info.tsv'
         sAdgrpAliasInfoFilePath = os.path.join(self.__g_sNvadDataPathAbs, 'alias_adgrp_info.tsv')
         dictAdgrpAlias = {}
         try:
@@ -816,7 +810,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -874,7 +867,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -897,7 +889,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[9] = '0000-00-00 00:00:00'
                                                             
                             oSvMysql.executeQuery('insertMasterCampaign', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
-                            #self._printDebug( row )
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 except FileNotFoundError:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -918,7 +909,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                #self._printDebug( sDataFileFullpathname )
                 try:
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')

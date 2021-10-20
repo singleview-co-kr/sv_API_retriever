@@ -35,16 +35,12 @@ import random
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
     from powernad.API.MasterReport import *
     from powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
     from powernad.API.StatReport import *
     from powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 else:
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
     sys.path.append(os.path.join(os.getcwd(),'svplugins', 'nvad_get_day'))
     from powernad.API.MasterReport import *
     from powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
@@ -65,8 +61,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.12'
-        self._g_sLastModifiedDate = '12th, Oct 2019'
+        self._g_sVersion = '1.0.13'
+        self._g_sLastModifiedDate = '19th, Oct 2019'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self.__g_dtCurDatetime = datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -75,7 +71,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
-            # raise Exception('stop')
             return
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -100,10 +95,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #     print(o_single_rpt.status)
         #     print(o_single_rpt.downloadUrl)
             
-        self.__g_sRetrieveInfoPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'conf')
+        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
             os.makedirs(self.__g_sRetrieveInfoPath)
-        self.__g_sDownloadPathNew = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'data')
+        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'data')
         if os.path.isdir(self.__g_sDownloadPathNew) == False:
             os.makedirs(self.__g_sDownloadPathNew)
 
@@ -197,11 +192,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if dt_delta.days <= -n_expired_days: 
                         self._printDebug('NVR Ad API msg - stat report ' + sTobeHandledTaskName + ' has been disallowed. reason is ' + n_expired_days + ' days ago from today!')
                         continue
-                        
-                    ###################################
+
                     sDateRetrieval = dtDateRetrieval.strftime('%Y%m%d')
                     dict_rst = self.__retrieveNvStatReportAct(o_stat_report, sTobeHandledTaskName, sDateRetrieval) # '20190202') #
-                    ###################################
                     if dict_rst['b_error'] is True:
                         if dictDateExceptionCnt[dtDateRetrieval] < 3: # allow exception occurrence count to 3 by each report
                             dictDateExceptionCnt[dtDateRetrieval] += 1
@@ -239,7 +232,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __retrieveNvStatReportAct(self, o_stat_report, s_req_rpt_name, s_date_retrieval):
         dict_rst = {'b_error': False, 's_todo': None} #, 's_msg': None}
-
         o_report_conf = CreateStatReportObject(s_req_rpt_name, s_date_retrieval)
         o_rst = o_stat_report.create_stat_report(o_report_conf)
         s_rpt_report_job_id = str(o_rst.reportJobId)
@@ -247,7 +239,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_download_url = o_rst.downloadUrl
         # print(o_rst.reportTp)  # eg 'AD'
         # o_rst.statDt, o_rst.regTm, o_rst.updateTm
-
         if self.__g_sNvrAdManagerLoginId != o_rst.loginId:
             self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on bog, NVR API returned ' + o_rst.loginId)
             dict_rst['b_error'] = True
@@ -383,9 +374,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictMasterRereportQueue[sTobeHandledTaskName] = 1
                         continue
                     pass
-            #############################
             dict_rst = self.__reirieveNvMasterReportAct(o_master_report, sTobeHandledTaskName, dtFromRetrieval)
-            ###########################################
             if dict_rst['b_error'] == True:
                 if dictMasterRereportExceptionCnt[sTobeHandledTaskName] < 3: # allow exception occurrence count to 3 by each report
                     dictMasterRereportExceptionCnt[sTobeHandledTaskName] += 1

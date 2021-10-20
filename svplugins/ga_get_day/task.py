@@ -51,20 +51,15 @@ from oauth2client.client import AccessTokenRefreshError
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
-    #import googleads_config
 else:
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         
     def getConsoleAuth(self, argv):
@@ -91,7 +86,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
 
         """ Authenticate and construct service. """
-        sClientSecretsJson = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google_client_secrets.json')
+        sClientSecretsJson = os.path.join(self._g_sAbsRootPath, 'conf', 'google_client_secrets.json')
 
         # Define the auth scopes to request.
         scope = ['https://www.googleapis.com/auth/analytics.readonly']
@@ -128,10 +123,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         Returns:
         The response returned from the Core Reporting API.
         """
-        sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
+        sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
         if os.path.isdir(sDataPath) is False :
             os.makedirs(sDataPath)
-        sConfPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
+        sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
         if os.path.isdir(sConfPath) is False :
             os.makedirs(sConfPath)
         
@@ -260,8 +255,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # If the credentials don't exist or are invalid run through the native client
         # flow. The Storage object will ensure that if successful the good
         # credentials will get written back to a file.
-        # storage = file.Storage(basic_config.ABSOLUTE_PATH_BOT + '/conf/google_' + api_name + '.dat')
-        storage = file.Storage(os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google_' + api_name + '.dat'))
+        storage = file.Storage(os.path.join(self._g_sAbsRootPath, 'conf', 'google_' + api_name + '.dat'))
         credentials = storage.get()
         if credentials is None or credentials.invalid:
             credentials = tools.run_flow(flow, storage, flags)

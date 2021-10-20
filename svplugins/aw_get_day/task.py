@@ -37,9 +37,9 @@ import os
 import csv
 import sys
 
+# 3rd party library
 from google.ads.googleads.v7.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
-# from google.ads.googleads.errors import GoogleAdsException
 # https://developers.google.com/google-ads/api/fields/v6/segments
 # https://developers.google.com/google-ads/api/docs/query/overview
 # cd /usr/local/lib/python3.7/site-packages/google/ads/googleads/v6/enums
@@ -48,20 +48,16 @@ from google.ads.googleads.client import GoogleAdsClient
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config should be move to svcommon/sv_plugin.py
-    import basic_config
 else:
     from svcommon import sv_object, sv_plugin
-    # singleview config should be move to svcommon/sv_plugin.py
-    from conf import basic_config
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def do_task(self, o_callback):
@@ -84,15 +80,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(o_callback)
 
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
+        
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
         
-        s_conf_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'conf')
+        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 
-        s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
+        s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
         o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
         try:		
@@ -135,7 +132,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
             sTsvFilename = sDataDateForMysql + '_general.tsv'
             self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
-
             try:
                 # notice! this query does not retrieve OFF campaign
                 s_disp_campaign_query = """
@@ -159,7 +155,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     for o_disp_campaign_row in disp_campaign_batch.results:
                         dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
                                                 'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
-                        # print(f"Campaign with ID {o_disp_campaign_row.campaign.id}, {o_disp_campaign_row.campaign.name}, {o_disp_campaign_row.metrics.cost_micros} was found.")
                         lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
                         if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
                             s_text_campaign_query = """

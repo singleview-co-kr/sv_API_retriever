@@ -31,23 +31,26 @@ import re # https://docs.python.org/3/library/re.html
 
 # 3rd party library
 import pymysql  # http://pythonstudy.xyz/python/article/202-MySQL-%EC%BF%BC%EB%A6%AC
+from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview config
 if __name__ == 'svcommon.sv_mysql': # for platform running
-    from conf import basic_config
+    #from conf import basic_config
     from svcommon import sv_object
 elif __name__ == 'sv_mysql': # for plugin console debugging
-    sys.path.append('../../conf')
-    import basic_config
+    #sys.path.append('../../conf')
+    #import basic_config
     import sv_object
 elif __name__ == '__main__': # for class console debugging
-    sys.path.append('../conf')
-    import basic_config
+    #sys.path.append('../conf')
+    #import basic_config
+    pass
 
 class SvMySql(sv_object.ISvObject):
     """ mysql operation class based on pymysql library """
     __g_sAppName = None
-    __g_oConfig = None
+    # __g_oConfig = None  ##########
+    __g_dictConfig = {}
     __g_oConn = None
     __g_oCursor = None
     __g_sAbsolutePath = None
@@ -57,10 +60,10 @@ class SvMySql(sv_object.ISvObject):
     __g_dictCompiledSqlStmt = {}
 
     def __init__(self, sCallingFrom=None):
-        self.__g_oConfig = configparser.ConfigParser()
+        # self.__g_oConfig = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
         
-        self.__g_sAbsolutePath = basic_config.ABSOLUTE_PATH_BOT
+        self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')  #basic_config.ABSOLUTE_PATH_BOT
         if sCallingFrom is not None:
             if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
                 self.__g_sAppName = sCallingFrom + '.queries.'
@@ -72,15 +75,22 @@ class SvMySql(sv_object.ISvObject):
                 sSubPath += '/' + sPath
             self.__g_sAbsolutePath += sSubPath
         
-        sMysqlConfigFile = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'mysql_config.ini')
-        try:
-            with open(sMysqlConfigFile) as f:
-                self.__g_oConfig.read_file(f)
-        except IOError:
-            self._printDebug('config.ini not exist')
-            raise IOError('failed to initialize SvMySql')
+        # sMysqlConfigFile = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'mysql_config.ini')
+        # try:
+        #     with open(sMysqlConfigFile) as f:
+        #         self.__g_oConfig.read_file(f)
+        # except IOError:
+        #     self._printDebug('config.ini not exist')
+        #     raise IOError('failed to initialize SvMySql')
+        # self.__g_oConfig.read(sMysqlConfigFile)
+        self.__g_dictConfig['db_hostname'] = config('db_hostname')
+        self.__g_dictConfig['db_port'] = int(config('db_port'))
+        self.__g_dictConfig['db_userid'] = config('db_userid')
+        self.__g_dictConfig['db_password'] = config('db_password')
+        self.__g_dictConfig['db_database'] = config('db_database')
+        self.__g_dictConfig['db_charset'] = config('db_charset')
+        self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
 
-        self.__g_oConfig.read(sMysqlConfigFile)
         self.__connect()
 
     def __enter__(self):
@@ -118,34 +128,33 @@ class SvMySql(sv_object.ISvObject):
                     self.__createTable(sTableName)
         #self.__disconnect()
 
-    def setTablePrefix(self, sTablePrefix):
-        if( sTablePrefix is not None ):
-            self.__g_oConfig['SERVER']['db_table_prefix'] = sTablePrefix+'_'
-            # self.__g_oConfig['SERVER']['db_table_prefix'] = sTablePrefix
-            # if sTablePrefix.find('_') == -1:
-	        #    self.__g_oConfig['SERVER']['db_table_prefix'] = self.__g_oConfig['SERVER']['db_table_prefix'] + '_'
-    
+    def setTablePrefix(self, s_table_prefix):
+        if s_table_prefix is not None:
+            # self.__g_oConfig['SERVER']['db_table_prefix'] = s_table_prefix+'_'
+            self.__g_dictConfig['db_table_prefix'] = s_table_prefix+'_'
+                
     def set_reserved_tag_value(self, dict_tag):
         if not dict_tag:
             raise Exception('invalid tag dictionary')
         for tag, value in dict_tag.items():
             self.__g_dictReservedTag[tag] = value
 
-    def truncateTable(self, sTableName):
-        sRealTableName = self.__g_oConfig['SERVER']['db_table_prefix'] + sTableName
-        sSqlStatement = 'truncate `' + sRealTableName + '`;'
-        self.__g_oCursor.execute(sSqlStatement)
+    def truncateTable(self, s_table_name):
+        # sRealTableName = self.__g_oConfig['SERVER']['db_table_prefix'] + sTableName
+        s_real_tbl_name = self.__g_dictConfig['db_table_prefix'] + s_table_name
+        s_sql_statement = 'truncate `' + s_real_tbl_name + '`;'
+        self.__g_oCursor.execute(s_sql_statement)
     
     def createTableOnDemand(self, s_prefix, s_schema_filename):
         if s_schema_filename.startswith('_'):  # _로 시작하는 스키마 파일은 필요할 때만 생성
             # tbl prefix를 임시 변경
-            # s_tbl_prefix_origin = self.__g_oConfig['SERVER']['db_table_prefix']
-            # self.__g_oConfig['SERVER']['db_table_prefix'] = s_prefix  # create 문의 table 이름이 _로 시작함.
+            # s_tbl_prefix_origin = self.__g_dictConfig['db_table_prefix']
+            # self.__g_dictConfig['db_table_prefix'] = s_prefix  # create 문의 table 이름이 _로 시작함.
             # o_reg_ex = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
             # self.__createTable(s_schema_filename, o_reg_ex)
             self.__createTable(s_schema_filename)
             # tbl prefix를 복원
-            # self.__g_oConfig['SERVER']['db_table_prefix'] = s_tbl_prefix_origin
+            # self.__g_dictConfig['db_table_prefix'] = s_tbl_prefix_origin
 
     def executeDynamicQuery(self, s_pysql_id, dict_param):
         # execute hard-coded sql statement without params
@@ -203,7 +212,6 @@ class SvMySql(sv_object.ISvObject):
     def __compileDynamicSql(self, s_pysql_filename, dict_param):  # add new
         # s_pysql_path_full = self.__g_sAppName + '.queries.' + s_pysql_filename
         try:
-            # o_sql = self.__import_pysql(s_pysql_path_full, s_pysql_filename)
             o_sql = self.__import_pysql(s_pysql_filename)
         except ModuleNotFoundError as e:
             return []
@@ -211,7 +219,6 @@ class SvMySql(sv_object.ISvObject):
         s_sql_built = str(o_sql)
         del o_sql
         return self.__compileSql(s_pysql_filename, s_sql_built)
-        # return [s_query_type, s_sql_compiled]
 
     def __compileStaticSql(self, s_sql_filename):
         # https://wikidocs.net/26
@@ -222,7 +229,6 @@ class SvMySql(sv_object.ISvObject):
             f.close()
         except Exception as e:  # eg., sql file not found
             raise e  # different with Exception(e)
-        # print('__compileStaticSql() called for ->' + s_sql_filename)
         return self.__compileSql(s_sql_filename, s_sql_statement)
 
     def __compileSql(self, s_sql_filename, s_sql_statement):  # add new
@@ -236,15 +242,6 @@ class SvMySql(sv_object.ISvObject):
         if s_query_type_by_filename != s_query_type:
             return ['unknown', s_sql_compiled]
 
-        # add prefix to tbl name
-        # if s_query_type == 'select' or s_query_type == 'delete':  # 쿼리 종류 확인 SELECT FROM / DELETE FROM
-        #    o_reg_ex = re.compile(r"(?<=[fF][rR][oO][mM]\s)\w+")
-        # elif s_query_type == 'update':  # 쿼리 종류 확인 UPDATE
-        #    o_reg_ex = re.compile(r"(?<=[uU][pP][dD][aA][tT][eE]\s)\w+")
-        # elif s_query_type == 'insert':  # 쿼리 종류 확인 INSERT INTO
-        #    o_reg_ex = re.compile(r"(?<=[iI][nN][tT][oO]\s)\w+")
-        # result = o_reg_ex.finditer(s_sql_compiled)
-
         if s_query_type == 'select' or s_query_type == 'delete':  # 쿼리 종류 확인 SELECT FROM / DELETE FROM
             result = self.__g_dictRegEx['hint_select_or_delete'].finditer(s_sql_compiled)
         elif s_query_type == 'update':  # 쿼리 종류 확인 UPDATE
@@ -257,20 +254,14 @@ class SvMySql(sv_object.ISvObject):
             for r in result:
                 # add table prefix on table name
                 s_table_name = r.group(0)
-                s_sql_compiled = re.sub(s_table_name, self.__g_oConfig['SERVER']['db_table_prefix'] + s_table_name, s_sql_compiled)
+                # s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
+                s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
         del result
-        # m = o_reg_ex.search(s_sql_compiled)  # match()와 search() 차이점 refer to 빠르게활용하는파이썬3.6프로그램 p241
-        # if m is not None:
-        #    # add table prefix on table name
-        #    s_table_name = m.group(0)
-        #    s_sql_compiled = re.sub(s_table_name, self.__g_oConfig['SERVER']['db_table_prefix'] + s_table_name, s_sql_compiled)
 
         return [s_query_type, s_sql_compiled]
     
     def __replace_tag_to_value(self, s_sql_compiled):
         # sql statement에 포함된 예약어를 탐색
-        # o_replacement_regex = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
-        # result = o_replacement_regex.finditer(s_sql_compiled)
         result = self.__g_dictRegEx['retrieve_reserved_tag'].finditer(s_sql_compiled)
         if result is not None:
             for r in result:
@@ -278,7 +269,6 @@ class SvMySql(sv_object.ISvObject):
                 s_reserved_tag = r.group(0)
                 s_replacing_value = str(self.__g_dictReservedTag[s_reserved_tag])
                 s_sql_compiled = re.sub('{{' + s_reserved_tag + '}}', s_replacing_value, s_sql_compiled)
-        # del o_replacement_regex
         del result
         return s_sql_compiled
 
@@ -295,15 +285,7 @@ class SvMySql(sv_object.ISvObject):
         return lst_rows  # return dataset
 
     def __categorizeQueryBySqlFilename(self, s_sql_filename):
-        # dictQueryType = {'select': r"^[g][e][t]\w+", 'update': r"^[u][p][d][a][t][e]\w+",
-        #                 'insert': r"^[i][n][s][e][r][t]\w+", 'delete': r"^[d][e][l][e][t][e]\w+"}
-        # for key, sregex in dictQueryType.items():
-        #    oRegEx = re.compile(sregex)
-        #    m = oRegEx.search(s_sql_filename)
-        #    if m is not None:
-        #        return key
         for key, o_regex in self.__g_dictRegExQueryFileClassifier.items():
-            # oRegEx = re.compile(sregex)
             m = o_regex.search(s_sql_filename)
             if m is not None:
                 return key
@@ -325,8 +307,10 @@ class SvMySql(sv_object.ISvObject):
 
     def __connect(self):
         # MySQL Connection 연결
-        self.__g_oConn = pymysql.connect(host=self.__g_oConfig['SERVER']['db_hostname'], user=self.__g_oConfig['SERVER']['db_userid'], 
-            password = self.__g_oConfig['SERVER']['db_password'], db=self.__g_oConfig['SERVER']['db_database'], charset=self.__g_oConfig['SERVER']['db_charset'])
+        # self.__g_oConn = pymysql.connect(host=self.__g_oConfig['SERVER']['db_hostname'], port=self.__g_oConfig['SERVER']['db_port'], user=self.__g_oConfig['SERVER']['db_userid'], 
+        #     password=self.__g_oConfig['SERVER']['db_password'], db=self.__g_oConfig['SERVER']['db_database'], charset=self.__g_oConfig['SERVER']['db_charset'])
+        self.__g_oConn = pymysql.connect(host=self.__g_dictConfig['db_hostname'], port=self.__g_dictConfig['db_port'], user=self.__g_dictConfig['db_userid'], 
+            password=self.__g_dictConfig['db_password'], db=self.__g_dictConfig['db_database'], charset=self.__g_dictConfig['db_charset'])
         
         # Connection 으로부터 Cursor 생성
         self.__g_oCursor = self.__g_oConn.cursor(pymysql.cursors.DictCursor) # set Dictionary cursor, Array based cursor if None
@@ -341,10 +325,8 @@ class SvMySql(sv_object.ISvObject):
             else: # connected
                 self.__g_oConn.close()
 
-    # def __createTable(self,sTableName,oRegEx):
     def __createTable(self,sTableName):
         # https://wikidocs.net/26
-        # f = open(self.__g_sAbsolutePath+'/schemas/'+sTableName+'.sql','r')
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', sTableName + '.sql')
         f = open(s_schema_path_abs,'r')
         sSqlStatement = f.read()
@@ -355,29 +337,20 @@ class SvMySql(sv_object.ISvObject):
         # m = oRegEx.search(sSqlStatement) # match()와 search() 차이점 refer to 빠르게활용하는파이썬3.6프로그램 p241
         m = self.__g_dictRegEx['prefix_create_tbl'].search(sSqlStatement)
         if m: # if table name is existing in the sql statement
-            sTableSearchSql = "show tables like '"+self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
+            # sTableSearchSql = "show tables like '"+self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
+            sTableSearchSql = "show tables like '"+self.__g_dictConfig['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
             self.__g_oCursor.execute(sTableSearchSql)
             rows = self.__g_oCursor.fetchall()
             if not self.__g_oCursor.rowcount: # table creation
                 if __name__ == '__main__':
                     self._printDebug("table creation")
-                sSqlStatement = re.sub(m.group(0), self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0), sSqlStatement ) # add table prefix on table name
+                # sSqlStatement = re.sub(m.group(0), self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0), sSqlStatement ) # add table prefix on table name
+                sSqlStatement = re.sub(m.group(0), self.__g_dictConfig['db_table_prefix']+m.group(0), sSqlStatement ) # add table prefix on table name
                 self.__g_oCursor.execute(sSqlStatement)
             else:
                 if __name__ == '__main__':
                     self._printDebug("already existing table")
     
-    # def set_app_name(self, s_app_name):
-    #     ##### will be deprecated ############
-    #     # for executeDynamicQuery() method only
-    #     # default is 'queries', if this method does not run 
-    #     if s_app_name == '__main__':  # eg., transform.view
-    #         self.__g_sAppName = 'queries.'
-    #     elif s_app_name == 'svplugins.sv_collect_doc_com.task':  # eg., svextract.plugin_console
-    #         self.__g_sAppName = 'svplugins.sv_collect_doc_com.queries.'
-    #     else:
-    #         print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
-
 
 if __name__ == '__main__': # for console debugging
     with SvMySql('job_plugins.nvadperformance_period') as oSvMysql:

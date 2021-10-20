@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import socket  # allow server ip automatically
 from pathlib import Path
 import os.path  # do not import os
-import configparser  # https://docs.python.org/3/library/configparser.html
+# https://simpleisbetterthancomplex.com/2015/11/26/package-of-the-week-python-decouple.html
+from decouple import config, Csv  # https://pypi.org/project/python-decouple/
 
 import pymysql  # added for nginx
 pymysql.install_as_MySQLdb()  # added for nginx
@@ -23,30 +24,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # allow server IP
 ALLOWED_HOSTS = ['127.0.0.1', socket.gethostbyname(socket.getfqdn())]
-
 # allow designated server domain name
-# s_domain_name_txt = os.path.join(BASE_DIR, 'domain_names.txt')
-s_domain_name_txt = os.path.join(BASE_DIR, 'conf', 'allowed_domain_names.txt')
-if os.path.isfile(s_domain_name_txt):
-    with open(s_domain_name_txt) as f:
-        s_domain_names = f.read().strip()
-    lst_domain_name = s_domain_names.splitlines()
-    for s_domain_name in lst_domain_name:
+lst_domain_name = config('ALLOWED_HOSTS', cast=Csv())  # cast=lambda v: [s.strip() for s in v.split(',')])
+for s_domain_name in lst_domain_name:
+    if len(s_domain_name):
         ALLOWED_HOSTS.append(s_domain_name)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-with open(os.path.join(BASE_DIR, 'conf', 'django_secret_key.txt')) as f:
-    SECRET_KEY = f.read().strip()
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
+DEBUG = config('DEBUG', cast=bool)  # True
 
 # Application definition
-
 INSTALLED_APPS = [
     'channels',  # web socket - # pip install -U channels
     'django.contrib.admin',
@@ -95,27 +88,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'svdjango.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-o_mysql_config = configparser.RawConfigParser()  # make python3 config parser parse key case sensitive
-o_mysql_config.optionxform = lambda option: option  # make python3 config parser parse key case sensitive
-s_mysql_config_file = os.path.join(BASE_DIR, 'conf', 'mysql_config.ini')
-with open(s_mysql_config_file) as f:
-    o_mysql_config.read_file(f)
-o_mysql_config.read(s_mysql_config_file)
-
 DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.mysql',
         'CONN_MAX_AGE': 3600,  # https://stackoverflow.com/questions/26958592/django-after-upgrade-mysql-server-has-gone-away
-        'NAME': o_mysql_config['SERVER']['db_database'],  # 'sv_test',
-        'USER': o_mysql_config['SERVER']['db_userid'],  # 'w9721066',
-        'PASSWORD': o_mysql_config['SERVER']['db_password'],  # 'w58648245!',
-        'HOST': o_mysql_config['SERVER']['db_hostname'],  # '127.0.0.1',
-        'PORT': o_mysql_config['SERVER']['db_port'],  # '3306',
+        'NAME': config('db_database'),
+        'USER': config('db_userid'),
+        'PASSWORD': config('db_password'),
+        'HOST': config('db_hostname'),
+        'PORT': config('db_port'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },

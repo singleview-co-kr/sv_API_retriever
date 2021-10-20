@@ -7,6 +7,8 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'svdjango.settings')
+    from svinitialize import init_from_command_line
+    init_from_command_line(sys.argv)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

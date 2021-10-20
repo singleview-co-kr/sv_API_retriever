@@ -42,12 +42,10 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_object, sv_plugin
     sys.path.append('../../conf') # singleview config
-    import basic_config
     import fb_biz_config
 else: # for platform running
     from svcommon import sv_object, sv_plugin
     # singleview config
-    from conf import basic_config # singleview config
     from conf import fb_biz_config
 
 
@@ -55,8 +53,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def do_task(self, o_callback):
@@ -69,7 +67,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         s_fb_biz_aid = dict_acct_info[s_sv_acct_id]['fb_biz_aid']
-
         if s_fb_biz_aid == '':
             self._printDebug('stop -> no business account id')
             return
@@ -87,11 +84,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(o_callback)
 
     def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle, sFbBizAid):
-        sDownloadPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
         
-        s_conf_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'conf')
+        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 

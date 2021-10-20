@@ -37,14 +37,10 @@ if __name__ == '__main__': # for console debugging
     import sv_mysql
     import sv_campaign_parser
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -56,8 +52,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.1'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.2'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def __enter__(self):
@@ -129,7 +125,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if sFxCode == 'KRW':
             return True
         
-        sCurrencyTrendPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', 'info_fx_' + sFxCode + '.tsv')
+        sCurrencyTrendPath = os.path.join(self._g_sAbsRootPath, 'files', 'info_fx_' + sFxCode + '.tsv')
         try:
             with open(sCurrencyTrendPath, 'r') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -155,7 +151,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return sFxCode
 
     def __arrangeFbRawDataFile(self, sSvAcctId, sAcctTitle):
-        sDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
+        sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
         # traverse directory and categorize data files
         lstTotalDataset = []
         lstFbBizAid = os.listdir(sDataPath)
@@ -312,7 +308,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nIdx += 1
 
     def __getCampaignNameAlias(self, sSvAcctId, sAcctTitle):
-        sParentDataPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
         dictCampaignNameAliasInfo = {}
         try:
             with codecs.open(os.path.join(sParentDataPath, 'alias_info_campaign.tsv'), 'r',encoding='utf8') as tsvfile:

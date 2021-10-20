@@ -39,13 +39,9 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -54,17 +50,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sCommaSeparatedWords = None
     __g_sStartYyyymmdd = None
     __g_sEndYyyymmdd = None
-
     __g_dictCountingNouns = {}
     __g_lstCountingNounsSrl = []
     __g_dictRegisteredNouns = {}
-
     __g_oTwitter = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.2'
-        self._g_sLastModifiedDate = '13th, Oct 2021'
+        self._g_sVersion = '0.0.3'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         self.__g_oTwitter = Twitter()
@@ -121,7 +115,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             n_noun_cnt = len(lst_noun)
             if n_noun_cnt:
-                s_font_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', 'viral_noun_retriever', 'fonts', 'godoMaum.ttf')
+                s_font_file_path_abs = os.path.join(self._g_sAbsRootPath, 'svplugins', 'viral_noun_retriever', 'fonts', 'godoMaum.ttf')
                 # wc = WordCloud(font_path='C:\\Windows\\Fonts\\08SeoulNamsanB_0.ttf', \
                 wc = WordCloud(font_path=s_font_file_path_abs, \
                     background_color="white", \
@@ -132,7 +126,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     
                 # wc.generate(news)
                 wc.generate_from_frequencies(dict(lst_noun))
-                s_wc_file_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', s_sv_acct_id, s_acct_title, 'keyword.png')
+                s_wc_file_path_abs = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'keyword.png')
                 wc.to_file(s_wc_file_path_abs)
         except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
             self._printDebug('Processing has been interrupted abnormally')
@@ -282,42 +276,3 @@ if __name__ == '__main__': # for console debugging and execution
             oJob.do_task(None)
     else:
         print('warning! [analytical_namesapce] [config_loc] [mode] params are required for console execution.')
-
-"""
-import sys
-from konlpy.tag import Okt
-from collections import Counter
-from wordcloud import WordCloud
-
-def get_noun(news):
-	okt = Okt()
-	noun = okt.nouns(news)
-	for i,v in enumerate(noun):
-		if len(v) < 2:
-			noun.pop(i)
-
-	count = Counter(noun)
-	noun_list = count.most_common(100)
-
-	return noun_list
-
-
-def visualize(noun_list):
-	wc = WordCloud(font_path='C:\\Windows\\Fonts\\08SeoulNamsanB_0.ttf', \
-		background_color="white", \
-		width=1000, \
-		height=1000, \
-		max_words=100, \
-		max_font_size=300)
-
-	wc.generate_from_frequencies(dict(noun_list))
-	wc.to_file('keyword.png')
-
-
-if __name__=="__main__":
-	filename = sys.argv[1]
-	f = open(filename,'r',encoding='utf-8')	
-	news = f.read()
-	noun_list = get_noun(news)
-	visualize(noun_list)
-"""

@@ -28,6 +28,7 @@ from abc import ABC, abstractmethod
 import threading
 
 # 3rd party library
+from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview library
 if __name__ == 'sv_plugin': # for console debugging
@@ -39,6 +40,7 @@ else:
 class ISvPlugin(ABC):
     _g_sPluginName = None
     _g_sVersion = None
+    _g_sAbsRootPath = None
     _g_sLastModifiedDate = None
     _g_oLogger = None
     _g_dictParam = {'analytical_namespace':None, 'config_loc':None}
@@ -64,6 +66,7 @@ class ISvPlugin(ABC):
                 return
             self._g_oThread = threading.currentThread()
 
+        self._g_sAbsRootPath = config('ABSOLUTE_PATH_BOT')
         oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
         return oSvApiConfigParser.getConfig()
 

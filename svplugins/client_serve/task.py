@@ -39,14 +39,10 @@ if __name__ == '__main__': # for console debugging
     import sv_http
     import sv_mysql
     import sv_object, sv_plugin
-    sys.path.append('../../conf') # singleview config
-    import basic_config
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
     from svcommon import sv_object, sv_plugin
-    # singleview config
-    from conf import basic_config # singleview config
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -64,8 +60,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '12th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '19th, Oct 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
@@ -91,7 +87,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return sMsg
         
     def __getKeyConfig(self, sSvAcctId, sAcctTitle):
-        sKeyConfigPath = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
+        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
         try:
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
