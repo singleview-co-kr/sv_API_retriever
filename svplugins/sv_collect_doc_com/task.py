@@ -178,7 +178,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     s_dictionary_start_date = dict_date_range['dictionary_start_date']
                     s_dictionary_start_date = datetime.strptime(s_dictionary_start_date, '%Y%m%d').strftime('%Y-%m-%d')
                     self._printDebug('dictionary get from ' + s_wc_start_date)
-                    lst_dictionary = o_sv_mysql.executeQuery('getDictionaryFromTo', s_dictionary_start_date, s_dictionary_end_date)
+                    lst_dictionary = o_sv_mysql.executeQuery('getDictionaryFrom', s_dictionary_start_date)
                 except ValueError: # if sStartDate == 'na'
                     self._printDebug('get whole dictionary')
                     lst_dictionary = o_sv_mysql.executeQuery('getAllDictionary')
