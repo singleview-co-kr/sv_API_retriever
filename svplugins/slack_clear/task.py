@@ -77,7 +77,7 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
-            oJob.set_my_name('aw_get_day')
+            oJob.set_my_name('slack_clear')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:

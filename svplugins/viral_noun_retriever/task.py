@@ -24,6 +24,7 @@
 
 # standard library
 import os
+import re
 import sys
 import logging
 from datetime import datetime
@@ -32,7 +33,7 @@ from collections import Counter
 # 3rd-party library
 from ckonlpy.tag import Twitter
 from wordcloud import WordCloud
-
+import nltk
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -54,14 +55,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_lstCountingNounsSrl = []
     __g_dictRegisteredNouns = {}
     __g_oTwitter = None
+    __o_reg_korean = None
+    __o_reg_alpha_numeric = None
+    __o_lambda_is_noun = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.3'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '0.0.4'
+        self._g_sLastModifiedDate = '4th, Nov 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         self.__g_oTwitter = Twitter()
+        self.__o_reg_korean = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')  # get Korean unicode
+        self.__o_reg_alpha_numeric = re.compile('[a-zA-Z0-9]+')  # get alphanumeric
+        self.__o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
 
     def do_task(self, o_callback):
         self.__g_sMode = self._g_dictParam['mode']
@@ -74,6 +81,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if dict_acct_info is None:
             self._printDebug('invalid config_loc')
             return
+
+        ################################
+        # https://www.inflearn.com/questions/158593
+        nltk.download('punkt')
+        nltk.download('averaged_perceptron_tagger')
+        ################################
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
@@ -209,6 +222,37 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del lst_new_doc_detail
     
     def __get_noun(self, s_phrase):
+        lst_eng_kor_word = self.__get_noun_eng_kor_combined(s_phrase)
+        lst_counting_word = self.__get_noun_pure_korean(s_phrase)
+        return lst_counting_word + lst_eng_kor_word
+
+    def __get_noun_eng_kor_combined(self, s_phrase):
+        # begin - eng + kor combined morpheme
+        lst_eng_kor_word = []
+        s_phrase = s_phrase.upper()  # upper if contains English
+        lst_eng_tokenized = nltk.word_tokenize(s_phrase)
+        lst_eng_temp = [word for (word, pos) in nltk.pos_tag(lst_eng_tokenized) if self.__o_lambda_is_noun(pos)]
+        del lst_eng_tokenized
+        
+        for s_eng_kor_word in lst_eng_temp:
+            if self.__o_reg_alpha_numeric.match(s_eng_kor_word):
+                # print(s_eng_kor_word + " contains an alphabet")
+                s_pure_english = re.sub(self.__o_reg_korean, '', s_eng_kor_word)
+                #print('remove korean : ' + s_pure_english)
+                s_pure_korean = re.sub(self.__o_reg_alpha_numeric, '', s_eng_kor_word)
+                #print('remove english : ' + s_pure_korean)
+                lst_kor_morpheme = self.__get_noun_pure_korean(s_pure_korean)
+                if len(lst_kor_morpheme) > 0:
+                    #print(s_pure_english + lst_kor_morpheme[0])
+                    lst_eng_kor_word.append(s_pure_english + lst_kor_morpheme[0])
+                elif len(s_pure_english) > 1:
+                        lst_eng_kor_word.append(s_pure_english)
+        # end - eng + kor combined morpheme
+        ################################
+        return lst_eng_kor_word
+
+    def __get_noun_pure_korean(self, s_phrase):
+        # begin - pure Korean morpheme
         lst_counting_word = []
         lst_retrieved_nouns = self.__g_oTwitter.nouns(s_phrase)
         for n_idx, s_noun in enumerate(lst_retrieved_nouns):
@@ -218,6 +262,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             lst_counting_word.append(s_noun_stripped)
         del lst_retrieved_nouns
+        # end - pure Korean morpheme
         return lst_counting_word
 
     def __retrieve_word_cnt(self, dict_period=None):
@@ -271,7 +316,7 @@ if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams >= 3:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
-            oJob.set_my_name('aw_get_day')
+            oJob.set_my_name('viral_noun_retriever')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:

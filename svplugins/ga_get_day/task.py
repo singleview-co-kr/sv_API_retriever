@@ -274,7 +274,7 @@ if __name__ == '__main__': # for console debugging and execution
             	oJob.getConsoleAuth( sys.argv )
         else:
             with svJobPlugin() as oJob: # to enforce to call plugin destructor
-                oJob.set_my_name('aw_get_day')
+                oJob.set_my_name('ga_get_day')
                 oJob.parse_command(sys.argv)
                 oJob.do_task(None)
     else:
