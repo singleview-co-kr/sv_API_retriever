@@ -1,0 +1,20 @@
+CREATE TABLE `twt_status` (
+  `log_srl` bigint(11) NOT NULL AUTO_INCREMENT,
+  `morpheme_srl` bigint(11) NOT NULL,
+  `status_id` bigint(11) unsigned NOT NULL,
+  `user_id` bigint(11) unsigned NOT NULL,
+  `rtweet_status_id` bigint(11) unsigned NULL,
+  `qtweet_status_id` bigint(11) unsigned NULL,
+  `rtweet_cnt` bigint(11) unsigned NOT NULL,
+  `qtweet_cnt` bigint(11) unsigned NOT NULL,
+  `full_text_srl` bigint(11) unsigned NULL,
+  `b_proc` char(1) NOT NULL DEFAULT '0',
+  `logdate` DATETIME NOT NULL,
+  `regdate` DATETIME DEFAULT NOW(),
+  PRIMARY KEY (`log_srl`),
+  KEY `idx_morpheme_srl` (`morpheme_srl`),
+  KEY `idx_status_id` (`status_id`),
+  UNIQUE `unique_morpheme_status_srl` (`morpheme_srl`, `status_id`),
+  KEY `idx_logdate` (`logdate`),
+  KEY `idx_b_proc` (`b_proc`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
