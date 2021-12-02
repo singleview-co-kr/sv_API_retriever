@@ -40,11 +40,13 @@ from facebook_business.adobjects.adcreative import AdCreative
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
     sys.path.append('../../conf') # singleview config
     import fb_biz_config
 else: # for platform running
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
     # singleview config
     from conf import fb_biz_config
 
@@ -53,8 +55,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '18th, Nov 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def do_task(self, o_callback):
@@ -71,10 +73,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('stop -> no business account id')
             return
 
-        self._printDebug('fb_get_day plugin launched')
-        self._printDebug(s_fb_biz_aid)
+        self._printDebug('fb_get_day plugin launched with acct id" ' + s_fb_biz_aid)
         try:
-            self.__getFbBusinessRaw(s_sv_acct_id, s_acct_title, s_fb_biz_aid )
+            self.__getFbBusinessRaw(s_sv_acct_id, s_acct_title, s_fb_biz_aid)
             pass
         except TypeError as error:
             # Handle errors in constructing a query.
@@ -119,7 +120,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         sAccessToken = fb_biz_config.ACCESS_TOKEN
         sAdAccountId = 'act_'+sFbBizAid
-        FacebookAdsApi.init(access_token=sAccessToken, api_version='v10.0')
+        FacebookAdsApi.init(access_token=sAccessToken, api_version='v11.0')
         lstAd = []
         oAccount = AdAccount(sAdAccountId) #'your-adaccount-id'
         self._printDebug('error occured')
@@ -135,6 +136,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
                                 'token right select: ads_management, ads_read, read_insights -> get token\n' + \
                                 'paste new token into /conf/fb_biz_config.py')
+            else:
+                self._printDebug(err)
             return
         
         for oAds in ads:
@@ -288,7 +291,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     out.write(sRow)
                                 continue
                 else:
-                    self._printDebug( 'WARNING! no data detected!\nstop querying if you do not spend.\nfb api does not like free querying\nthey might block API access temporarily.')
+                    self._printDebug('WARNING! no data detected!\nstop querying if you do not spend.\nfb api does not like free querying\nthey might block API access temporarily.')
                 
                 try:
                     f = open(sLatestFilepath, 'w')

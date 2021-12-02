@@ -24,8 +24,10 @@
 
 # standard library
 import sys
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import threading
+import time
 
 # 3rd party library
 from decouple import config  # https://pypi.org/project/python-decouple/
@@ -82,7 +84,6 @@ class ISvPlugin(ABC):
 
         self._g_oThread = threading.currentThread()  # in the begining
         # begin something
-        import time
         i = 0
         while self._continue_iteration():  # getattr(self._g_oThread, "b_run", True):
             self._printDebug(self._g_sPluginName + " "+str(i))
@@ -107,5 +108,6 @@ class ISvPlugin(ABC):
                         lst_param_pair = sArg.split('=')
                         self._g_dictParam[s_param_name] = lst_param_pair[1]
 
-if __name__ == '__main__': # for console debugging
-	pass
+
+# if __name__ == '__main__': # for console debugging
+# 	pass

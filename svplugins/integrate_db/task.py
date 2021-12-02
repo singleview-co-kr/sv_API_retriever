@@ -47,34 +47,37 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sMode = None
     __g_bFbProcess = False
+    __g_bGoogleAdsProcess = False
     __g_nPnsTouchingDate = 20190126 # to seperate the old & non-systematic & complicated situation for PNS cost process
     __g_sDataPath = None
     __g_sRetrieveMonth = None
     __g_sNvrPnsInfoFilePath = None
     __g_sFbPnsInfoFilePath = None
-    __g_dictNvadMergedDailyLog = None
-    __g_dictAdwMergedDailyLog = None
-    __g_dictKkoMergedDailyLog = None
-    __g_dictYtMergedDailyLog = None
-    __g_dictFbMergedDailyLog = None
-    __g_dictOtherMergedDailyLog = None
+    __g_dictNvadMergedDailyLog = {}
+    __g_dictAdwMergedDailyLog = {}
+    __g_dictKkoMergedDailyLog = {}
+    __g_dictYtMergedDailyLog = {}
+    __g_dictFbMergedDailyLog = {}
+    __g_dictOtherMergedDailyLog = {}
     __g_dictNvPnsUaCostPortion = {'M':0.7, 'P':0.3} # sum must be 1
     __g_oSvCampaignParser = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.17'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '1.0.18'
+        self._g_sLastModifiedDate = '30th, Nov 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
 
@@ -149,7 +152,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if sCid == 'alias_info_campaign.tsv':
                     continue
                 try:
-                    file = open(os.path.join(self.__g_sDataPath, 'fb_biz', sCid, 'conf', 'general.latest', 'r'))
+                    open(os.path.join(self.__g_sDataPath, 'fb_biz', sCid, 'conf', 'general.latest', 'r'))
                     self.__g_bFbProcess = True
                 except FileNotFoundError:
                     pass
@@ -160,7 +163,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sEndDateRetrieval = self.__g_sRetrieveMonth[:4] + '-' + self.__g_sRetrieveMonth[4:None] + '-' + str(lstMonthRange[1])
         with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            lstRst = oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
+            oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
         dictRst['start_date'] = datetime.datetime.strptime(sStartDateRetrieval, '%Y-%m-%d')
         dictRst['end_date'] = datetime.datetime.strptime(sEndDateRetrieval, '%Y-%m-%d')
@@ -172,7 +175,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'naver_ad'))
         lstNaveradLastDate = []
         try:
-            lstDirectory.remove('alias_info_campaign.tsv')
+            lstDirectory.remove('alias_info_adgrp.tsv')
         except ValueError:
             pass
         for sCid in lstDirectory:
@@ -186,32 +189,42 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstNaveradLastDate.append(dtLatest)
             
         # get latest retrieval info of adwords
-        lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'adwords'))
-        lstAdwordsLastDate = []
         try:
-            lstDirectory.remove('alias_info_campaign.tsv')
-        except ValueError:
+            lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'adwords'))
+            self.__g_bGoogleAdsProcess = True
+        except FileNotFoundError:
             pass
         
-        for sCid in lstDirectory:
-             # check adwords agency_info.tsv
-            dictCostRst = self.__redefineCost('adwords', sCid, 100)  # 100 is dummy to check agency_info.tsv file
-            if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
-                return dictRst
-            file = open(os.path.join(self.__g_sDataPath, 'adwords', sCid, 'conf', 'general.latest'), 'r') 
-            sLatestDate = file.read()
-            dtLatest = datetime.date(int(sLatestDate[:4]), int(sLatestDate[4:6]), int(sLatestDate[6:8]))
-            lstAdwordsLastDate.append(dtLatest)
-
+        lstAdwordsLastDate = []
+        if self.__g_bGoogleAdsProcess:
+            try:
+                lstDirectory.remove('alias_info_campaign.tsv')
+            except ValueError:
+                pass
+            for sCid in lstDirectory:
+                # check adwords agency_info.tsv
+                dictCostRst = self.__redefineCost('adwords', sCid, 100)  # 100 is dummy to check agency_info.tsv file
+                if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+                    return dictRst
+                file = open(os.path.join(self.__g_sDataPath, 'adwords', sCid, 'conf', 'general.latest'), 'r') 
+                sLatestDate = file.read()
+                dtLatest = datetime.date(int(sLatestDate[:4]), int(sLatestDate[4:6]), int(sLatestDate[6:8]))
+                lstAdwordsLastDate.append(dtLatest)
+        
         # get latest retrieval info of fb_biz
+        b_fb_biz_proc = True
         try:
             lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'fb_biz'))
-            lstFbbizLastDate = []
+        except FileNotFoundError:
+            b_fb_biz_proc = False
+            self.__g_bFbProcess = False
+
+        lstFbbizLastDate = []
+        if b_fb_biz_proc:
             for sCid in lstDirectory:
                 if sCid == 'alias_info_campaign.tsv':
                     continue
-                
-                # check adwords agency_info.tsv
+                # check agency_info.tsv
                 dictCostRst = self.__redefineCost('fb_biz', sCid, 100)  # 100 is dummy to check agency_info.tsv file
                 if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
                     return dictRst
@@ -223,9 +236,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self.__g_bFbProcess = True
                 except FileNotFoundError:
                     pass
-        except FileNotFoundError:
-            pass
-
         if self.__g_sMode == 'ignore_fb':
             self.__g_bFbProcess = False
 
@@ -235,19 +245,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictRst = {}
             # define last date of process
             lstLastDate = []
-
             lstGaLogDateRange = oSvMysql.executeQuery('getGaLogDateMaxMin')
             lstLastDate.append(lstGaLogDateRange[0]['maxdate'])
-            
-            lstAdwLogDateRange = oSvMysql.executeQuery('getAdwLogDateMin')
-            lstNvadLogDateRange = oSvMysql.executeQuery('getNvadLogDateMin')
-            if self.__g_bFbProcess:
-                lstFbLogDateRange = oSvMysql.executeQuery('getFbIgLogDateMin')
-            
-            lstLastDate.append(max(lstAdwordsLastDate))
+
+            # lstAdwLogDateRange = oSvMysql.executeQuery('getAdwLogDateMin')
+            # lstNvadLogDateRange = oSvMysql.executeQuery('getNvadLogDateMin')
+            # if self.__g_bFbProcess:
+            #     lstFbLogDateRange = oSvMysql.executeQuery('getFbIgLogDateMin')
+            if self.__g_bGoogleAdsProcess:
+                lstLastDate.append(max(lstAdwordsLastDate))
+
             lstLastDate.append(max(lstNaveradLastDate))
             dictRst['end_date'] = min(lstLastDate)
-            
             # define first date of process
             lstFirstDate = []
             lstGrossCompiledLogDateRange = oSvMysql.executeQuery('getGrossCompiledLogDateMaxMin')
@@ -267,46 +276,41 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except ValueError:
             self._printDebug(sTouchingDate + ' is invalid date string')
             return
-
         # check non integrated date
-        self.__g_dictNvadMergedDailyLog = {}
-        self.__g_dictAdwMergedDailyLog = {}
-        self.__g_dictYtMergedDailyLog = {}
-        self.__g_dictKkoMergedDailyLog = {}
-        self.__g_dictFbMergedDailyLog = {}
-        self.__g_dictOtherMergedDailyLog = {}
-
         with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstGaLogDaily = oSvMysql.executeQuery('getGaLogDaily', sTouchingDate)
-            
             #if sTouchingDate == '2019-01-27':
             for lstGaLog in lstGaLogDaily:
                 # get naver ad media data
                 if lstGaLog['source'] == 'naver' and lstGaLog['rst_type'] == 'PS':
                     self.__cleanupNvAdGaRaw(lstGaLog, oSvMysql, sTouchingDate)
-                elif lstGaLog['source'] == 'google' and lstGaLog['rst_type'] == 'PS':
-                    self.__cleanupAdwGaRaw(lstGaLog, oSvMysql, sTouchingDate)
-                elif lstGaLog['source'] == 'youtube' and lstGaLog['rst_type'] == 'PS':
-                    self.__cleanupYtGaRaw(lstGaLog, oSvMysql, sTouchingDate)
+                elif self.__g_bGoogleAdsProcess and lstGaLog['source'] == 'google' and lstGaLog['rst_type'] == 'PS':
+                    self.__cleanupAdwGaRaw(lstGaLog)  # , oSvMysql, sTouchingDate)
+                elif self.__g_bGoogleAdsProcess and lstGaLog['source'] == 'youtube' and lstGaLog['rst_type'] == 'PS':
+                    self.__cleanupYtGaRaw(lstGaLog)  # , oSvMysql, sTouchingDate)
                 elif lstGaLog['source'] == 'kakao' and lstGaLog['rst_type'] == 'PS':
-                    self.__cleanupKkoGaRaw(lstGaLog, oSvMysql, sTouchingDate)
-                elif self.__g_bFbProcess and lstGaLog['source'] == 'facebook' or self.__g_bFbProcess and lstGaLog['source'] == 'instagram':
+                    self.__cleanupKkoGaRaw(lstGaLog)  #, oSvMysql, sTouchingDate)
+                elif self.__g_bFbProcess and lstGaLog['source'] == 'facebook' or lstGaLog['source'] == 'instagram':
                     if lstGaLog['rst_type'] == 'PS':
-                        self.__cleanupFbGaRaw(lstGaLog, oSvMysql, sTouchingDate)
+                        self.__cleanupFbGaRaw(lstGaLog)  # , oSvMysql, sTouchingDate)
                 else: # others
                     self.__cleanupOtherGaRaw(lstGaLog, sTouchingDate)
             
-            self.__mergeNvAdGaRaw(oSvMysql, sTouchingDate)
-            self.__mergeAdwGaRaw(oSvMysql, sTouchingDate)
-            self.__mergeYtGaRaw(oSvMysql, sTouchingDate)
-            if self.__g_bFbProcess:
+            if len(self.__g_dictNvadMergedDailyLog) > 0: # only if nvad log exists
+                self.__mergeNvAdGaRaw(oSvMysql, sTouchingDate)
+            if len(self.__g_dictAdwMergedDailyLog) > 0: # only if google ads log exists
+                self.__mergeAdwGaRaw(oSvMysql, sTouchingDate)
+            if len(self.__g_dictYtMergedDailyLog) > 0: # only if YT ads exists
+                self.__mergeYtGaRaw(oSvMysql, sTouchingDate)
+            if len(self.__g_dictFbMergedDailyLog) > 0: # only if facebook business log exists
                 self.__mergeFbGaRaw(oSvMysql, sTouchingDate)
-            if len(self.__g_dictKkoMergedDailyLog) > 0: # only if kakao performance log exists
+            if len(self.__g_dictKkoMergedDailyLog) > 0: # only if kakao moment log exists
                 self.__mergeKkoGaRaw(oSvMysql, sTouchingDate)
+            
             self.__mergeOtherGaRaw(oSvMysql, sTouchingDate)
 
-    def __cleanupFbGaRaw(self, lstGaLogSingle, oSvMysql, sTouchingDate):
+    def __cleanupFbGaRaw(self, lstGaLogSingle):  #, oSvMysql, sTouchingDate):
         sTerm = lstGaLogSingle['term'].replace(' ', '').upper() # facebook never provides term via their insight API
         # but sometimes set utm_term on their campaign, then GA report term-level specified FB campaign
         # that's why GA term needs to be capitalized before integrate with FB log
@@ -325,9 +329,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
-        try: # if designated log already created
-            self.__g_dictFbMergedDailyLog[sRowId]
+        # try: # if designated log already created
+        if sRowId in list(self.__g_dictFbMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictFbMergedDailyLog[sRowId]
             self.__g_dictFbMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictFbMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictFbMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -336,7 +340,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictFbMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictFbMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictFbMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        # except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictFbMergedDailyLog[sRowId] = {
                 'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
                 'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
@@ -355,9 +360,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             }
         
         # sort FB log dictionary by session number; FB sometimes reports utm_term and GA separate FB campaign code by utm_term
-        dictFbMergedDailyLogSortBySession = sorted(self.__g_dictFbMergedDailyLog.items(), key=(lambda x:x[1]['session']), reverse=True)
-        for lstMergedLog in self.__g_dictFbMergedDailyLog:
-            aRowId = lstMergedLog.split('|@|')
+        # dictFbMergedDailyLogSortBySession = sorted(self.__g_dictFbMergedDailyLog.items(), key=(lambda x:x[1]['session']), reverse=True)
+        # for lstMergedLog in self.__g_dictFbMergedDailyLog:
+        for s_unique_tag, dict_row in self.__g_dictFbMergedDailyLog.items():
+            aRowId = s_unique_tag.split('|@|')
             sUa = aRowId[0]
             sSource = aRowId[1]
             sRstType = aRowId[2]
@@ -375,68 +381,76 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if nRecCnt == 1:
                     dictFbLogDailyLogSrl.pop(lstFbLogDaily[0]['log_srl'])
                     dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), lstFbLogDaily[0]['imp'],lstFbLogDaily[0]['click'],
-                            lstFbLogDaily[0]['conv_cnt'],lstFbLogDaily[0]['conv_amnt'], 
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['session'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_new_session'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_transactions'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
+                        lstFbLogDaily[0]['imp'],lstFbLogDaily[0]['click'], lstFbLogDaily[0]['conv_cnt'], lstFbLogDaily[0]['conv_amnt'], 
+                        dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
+                        sTouchingDate)
                 
                 if nRecCnt == 0:
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                         0,0,0,0,0,0,0,
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['session'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_registrations'],
+                        dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
                         sTouchingDate)
             elif nRecCnt == 1:
                 try: # if designated log exists
                     dictFbLogDailyLogSrl.pop(lstFbLogDaily[0]['log_srl'])
                     dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), lstFbLogDaily[0]['imp'],lstFbLogDaily[0]['click'],
-                            lstFbLogDaily[0]['conv_cnt'],lstFbLogDaily[0]['conv_amnt'], 
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['session'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_new_session'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_transactions'],
-                            self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
+                        str(dictCostRst['vat']), lstFbLogDaily[0]['imp'], lstFbLogDaily[0]['click'],
+                        lstFbLogDaily[0]['conv_cnt'], lstFbLogDaily[0]['conv_amnt'], 
+                        dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
+                        sTouchingDate)
                 except KeyError: 
                     # if designated log has been already popped; FB sometimes reports utm_term and GA separate FB campaign code by utm_term;
                     # self.__g_dictFbMergedDailyLog already has been sorted by session number; 
                     # as a result specified cost already has been allocated to the most-sessioned utm_term
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                         0,0,0,0,0,0,0,
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['session'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictFbMergedDailyLog[lstMergedLog]['tot_registrations'],
+                        dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
                         sTouchingDate)
             else:
                 self._printDebug('fb record with multiple media data on ' + sTouchingDate)
             
         # proc residual - fb api sends log but GA does not detect
         if len(dictFbLogDailyLogSrl):
-            for lstRemainingLog in dictFbLogDailyLogSrl:
-                dictCostRst = self.__redefineCost('fb_biz', dictFbLogDailyLogSrl[lstRemainingLog]['biz_id'], dictFbLogDailyLogSrl[lstRemainingLog]['cost'])
-                sUa = dictFbLogDailyLogSrl[lstRemainingLog]['ua']
-                sSource = dictFbLogDailyLogSrl[lstRemainingLog]['source']
-                sRstType = dictFbLogDailyLogSrl[lstRemainingLog]['rst_type']
-                sMedia = dictFbLogDailyLogSrl[lstRemainingLog]['media']
-                sBrd = dictFbLogDailyLogSrl[lstRemainingLog]['brd']
-                sCamp1st = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_1st']
-                sCamp2nd = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_2nd']
-                sCamp3rd = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_3rd']
+            # for lstRemainingLog in dictFbLogDailyLogSrl:
+                # dictCostRst = self.__redefineCost('fb_biz', dictFbLogDailyLogSrl[lstRemainingLog]['biz_id'], dictFbLogDailyLogSrl[lstRemainingLog]['cost'])
+                # sUa = dictFbLogDailyLogSrl[lstRemainingLog]['ua']
+                # sSource = dictFbLogDailyLogSrl[lstRemainingLog]['source']
+                # sRstType = dictFbLogDailyLogSrl[lstRemainingLog]['rst_type']
+                # sMedia = dictFbLogDailyLogSrl[lstRemainingLog]['media']
+                # sBrd = dictFbLogDailyLogSrl[lstRemainingLog]['brd']
+                # sCamp1st = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_1st']
+                # sCamp2nd = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_2nd']
+                # sCamp3rd = dictFbLogDailyLogSrl[lstRemainingLog]['campaign_3rd']
+                # sTerm = ''
+                # oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                #     str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictFbLogDailyLogSrl[lstRemainingLog]['imp'],
+                #     dictFbLogDailyLogSrl[lstRemainingLog]['click'], dictFbLogDailyLogSrl[lstRemainingLog]['conv_cnt'], dictFbLogDailyLogSrl[lstRemainingLog]['conv_amnt'], 
+                #     0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
+            for s_remaing_log, dict_remaing_row in dictFbLogDailyLogSrl.items():
+                dictCostRst = self.__redefineCost('fb_biz', dict_remaing_row['biz_id'], dict_remaing_row['cost'])
+                sUa = dict_remaing_row['ua']
+                sSource = dict_remaing_row['source']
+                sRstType = dict_remaing_row['rst_type']
+                sMedia = dict_remaing_row['media']
+                sBrd = dict_remaing_row['brd']
+                sCamp1st = dict_remaing_row['campaign_1st']
+                sCamp2nd = dict_remaing_row['campaign_2nd']
+                sCamp3rd = dict_remaing_row['campaign_3rd']
                 sTerm = ''
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                    str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictFbLogDailyLogSrl[lstRemainingLog]['imp'],
-                    dictFbLogDailyLogSrl[lstRemainingLog]['click'], dictFbLogDailyLogSrl[lstRemainingLog]['conv_cnt'], dictFbLogDailyLogSrl[lstRemainingLog]['conv_amnt'], 
-                    0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                    str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
+                    dict_remaing_row['imp'], dict_remaing_row['click'], dict_remaing_row['conv_cnt'], 
+                    dict_remaing_row['conv_amnt'],  0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
-    def __cleanupAdwGaRaw(self, lstGaLogSingle, oSvMysql, sTouchingDate):
+    def __cleanupAdwGaRaw(self, lstGaLogSingle):  # , oSvMysql, sTouchingDate):
         sTerm = lstGaLogSingle['term'].replace(' ', '').upper() # adwords sometimes provides log like "campaign code = (not set) term = (not set)"
         # upper() needs to be done as ADW capitalizes term always but GA term is case sensitive.
         # that's why GA term needs to be capitalized before integrate with ADW log
@@ -459,8 +473,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-        try: # if designated log already created
-            self.__g_dictAdwMergedDailyLog[sRowId]
+        # try: # if designated log already created
+        if sRowId in list(self.__g_dictAdwMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictAdwMergedDailyLog[sRowId]
             self.__g_dictAdwMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -469,10 +484,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        # except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictAdwMergedDailyLog[sRowId] = {
-                'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
-                'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
+                'session':nSession, 'tot_new_session':fTotNew, 'tot_bounce':fTotBounce, 'tot_duration_sec':fTotDurSec,
+                'tot_pvs':fTotPvs, 'tot_transactions':nTrs, 'tot_revenue':nRev, 'tot_registrations':nReg
             }
 
     def __mergeAdwGaRaw(self, oSvMysql, sTouchingDate):
@@ -483,17 +499,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstAdwLogDaily = oSvMysql.executeQuery('getAdwLogDaily', sTouchingDate, 'GG')
         for dictSingleLog in lstAdwLogDaily:
             dictAdwLogDailyLogSrl[dictSingleLog['log_srl']] = {
-                'customer_id':dictSingleLog['customer_id'],'ua':dictSingleLog['ua'],'term':dictSingleLog['term'],'rst_type':dictSingleLog['rst_type'],
-                'media':dictSingleLog['media'],'brd':dictSingleLog['brd'],'campaign_1st':dictSingleLog['campaign_1st'],
-                'campaign_2nd':dictSingleLog['campaign_2nd'],'campaign_3rd':dictSingleLog['campaign_3rd'],
-                'cost':dictSingleLog['cost'],'imp':dictSingleLog['imp'],'click':dictSingleLog['click'],
-                'conv_cnt':dictSingleLog['conv_cnt'],'conv_amnt':dictSingleLog['conv_amnt']
+                'customer_id':dictSingleLog['customer_id'], 'ua':dictSingleLog['ua'], 'term':dictSingleLog['term'], 
+                'rst_type':dictSingleLog['rst_type'], 'media':dictSingleLog['media'], 'brd':dictSingleLog['brd'],
+                'campaign_1st':dictSingleLog['campaign_1st'], 'campaign_2nd':dictSingleLog['campaign_2nd'],
+                'campaign_3rd':dictSingleLog['campaign_3rd'], 'cost':dictSingleLog['cost'], 'imp':dictSingleLog['imp'],
+                'click':dictSingleLog['click'], 'conv_cnt':dictSingleLog['conv_cnt'],'conv_amnt':dictSingleLog['conv_amnt']
             }
-
-        for lstMergedLog in self.__g_dictAdwMergedDailyLog:
-            aRowId = lstMergedLog.split('|@|')
+        # for lstMergedLog in self.__g_dictAdwMergedDailyLog:
+        for s_unique_tag, dict_row in self.__g_dictAdwMergedDailyLog.items():
+            aRowId = s_unique_tag.split('|@|')
             sUa = aRowId[0]
-            sSource = aRowId[1]
+            # sSource = aRowId[1]
             sRstType = aRowId[2]
             sMedia = aRowId[3]
             sBrd = aRowId[4]
@@ -501,9 +517,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
-            
-            if sCamp1st.find('GDN') > -1: # if the campaign is related with GDN
-                lstAdwLogDailyTemp = oSvMysql.executeQuery('getAdwLogSpecificRmk', sTouchingDate, 'GG', sMedia, sCamp1st, sCamp2nd, sCamp3rd, sUa )
+            if sCamp1st.find('GDN') > -1:  # if the campaign is related with GDN
+                lstAdwLogDailyTemp = oSvMysql.executeQuery('getAdwLogSpecificRmk', sTouchingDate, 
+                    'GG', sMedia, sCamp1st, sCamp2nd, sCamp3rd, sUa )
                 nRecCnt = len(lstAdwLogDailyTemp)
                 if nRecCnt == 0:
                     lstAdwLogDaily = []
@@ -523,20 +539,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         nGrossConvCnt += lstAdwLogSingle['conv_cnt']
                         nGrossConvAmnt += lstAdwLogSingle['conv_amnt']
 
-                    dictTmp = {'customer_id':lstAdwLogSingle['customer_id'], 'cost': nGrossCost, 'imp': nGrossImp, 'click': nGrossClick, 'conv_cnt': nGrossConvCnt, 'conv_amnt': nGrossConvAmnt}
+                    dictTmp = {'customer_id':lstAdwLogSingle['customer_id'], 'cost': nGrossCost, 'imp': nGrossImp, 
+                        'click': nGrossClick, 'conv_cnt': nGrossConvCnt, 'conv_amnt': nGrossConvAmnt}
                     lstAdwLogDaily.append(dictTmp)
             else: # if the campaign is related with normal ADW
-                lstAdwLogDaily = oSvMysql.executeQuery('getAdwLogSpecific', sTouchingDate, 'GG', sMedia, sTerm, sCamp1st, sCamp2nd, sCamp3rd, sUa)
+                lstAdwLogDaily = oSvMysql.executeQuery('getAdwLogSpecific', sTouchingDate, 'GG', sMedia, sTerm, 
+                    sCamp1st, sCamp2nd, sCamp3rd, sUa)
 
             nRecCnt = len(lstAdwLogDaily)
             if nRecCnt == 0: # add new non-media bounded log, if unable to find related ADW raw log
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, 'google', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        0,0,0,0,0,0,0,
-                        self.__g_dictAdwMergedDailyLog[lstMergedLog]['session'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_registrations'],
-                        sTouchingDate)
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, 'google', sRstType, 
+                    sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                    0,0,0,0,0,0,0,
+                    dict_row['session'], dict_row['tot_new_session'],
+                    dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                    dict_row['tot_pvs'], dict_row['tot_transactions'],
+                    dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)
             elif nRecCnt == 1: # add new media bounded log, if able to find related ADW raw log
                 try:
                     dictAdwLogDailyLogSrl.pop(lstAdwLogDaily[0]['log_srl'])
@@ -545,29 +563,34 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictAdwLogDailyLogSrl.pop(lstAdwLogSingle['log_srl'])
                 finally:
                     dictCostRst = self.__redefineCost('adwords', lstAdwLogDaily[0]['customer_id'], lstAdwLogDaily[0]['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, 'google', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), lstAdwLogDaily[0]['imp'],lstAdwLogDaily[0]['click'],
-                            lstAdwLogDaily[0]['conv_cnt'],lstAdwLogDaily[0]['conv_amnt'], 
-                            self.__g_dictAdwMergedDailyLog[lstMergedLog]['session'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_new_session'],
-                            self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                            self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_transactions'],
-                            self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictAdwMergedDailyLog[lstMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, 'google', sRstType, sMedia,
+                        sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
+                        lstAdwLogDaily[0]['imp'],lstAdwLogDaily[0]['click'],
+                        lstAdwLogDaily[0]['conv_cnt'],lstAdwLogDaily[0]['conv_amnt'], 
+                        dict_row['session'], dict_row['tot_new_session'],
+                        dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'],
+                        dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)
             else:
                 self._printDebug('adw record with multiple media data on ' + sTouchingDate)
-                self._printDebug(lstMergedLog)
-                self._printDebug(self.__g_dictAdwMergedDailyLog[lstMergedLog])
+                self._printDebug(s_unique_tag)
+                self._printDebug(dict_row)
                 self._printDebug(lstAdwLogDaily)
 
         # proc residual
         dictImpression = {'M_1':0, 'M_0':0, 'P_1':0, 'P_0':0} # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         for nLogSrl in dictAdwLogDailyLogSrl:
             if dictAdwLogDailyLogSrl[nLogSrl]['cost'] > 0:
-                dictCostRst = self.__redefineCost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], dictAdwLogDailyLogSrl[nLogSrl]['cost'])
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	dictAdwLogDailyLogSrl[nLogSrl]['ua'], dictAdwLogDailyLogSrl[nLogSrl]['term'], 
-                    'google', dictAdwLogDailyLogSrl[nLogSrl]['rst_type'],dictAdwLogDailyLogSrl[nLogSrl]['media'],dictAdwLogDailyLogSrl[nLogSrl]['brd'],
-                    dictAdwLogDailyLogSrl[nLogSrl]['campaign_1st'], dictAdwLogDailyLogSrl[nLogSrl]['campaign_2nd'], dictAdwLogDailyLogSrl[nLogSrl]['campaign_3rd'],
-                    str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictAdwLogDailyLogSrl[nLogSrl]['imp'],dictAdwLogDailyLogSrl[nLogSrl]['click'],
+                dictCostRst = self.__redefineCost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], 
+                    dictAdwLogDailyLogSrl[nLogSrl]['cost'])
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', dictAdwLogDailyLogSrl[nLogSrl]['ua'],
+                    dictAdwLogDailyLogSrl[nLogSrl]['term'], 'google', dictAdwLogDailyLogSrl[nLogSrl]['rst_type'],
+                    dictAdwLogDailyLogSrl[nLogSrl]['media'],dictAdwLogDailyLogSrl[nLogSrl]['brd'],
+                    dictAdwLogDailyLogSrl[nLogSrl]['campaign_1st'], dictAdwLogDailyLogSrl[nLogSrl]['campaign_2nd'], 
+                    dictAdwLogDailyLogSrl[nLogSrl]['campaign_3rd'],
+                    str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
+                    dictAdwLogDailyLogSrl[nLogSrl]['imp'],dictAdwLogDailyLogSrl[nLogSrl]['click'],
                     dictAdwLogDailyLogSrl[nLogSrl]['conv_cnt'],dictAdwLogDailyLogSrl[nLogSrl]['conv_amnt'], 
                     0, 0, 0, 0,	0, 0, 0, 0,	sTouchingDate)
             elif dictAdwLogDailyLogSrl[nLogSrl]['cost'] == 0:
@@ -579,11 +602,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 aIdx = sIdx.split('_')
                 sUa = aIdx[0]
                 bBrded = aIdx[1]
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
                     'google', 'PS','cpc',bBrded, '|@|sv','|@|sv', '|@|sv',
                     0,0, 0, dictImpression[sIdx],0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
-    def __cleanupYtGaRaw(self, lstGaLogSingle, oSvMysql, sTouchingDate):
+    def __cleanupYtGaRaw(self, lstGaLogSingle):  # , oSvMysql, sTouchingDate):
         # assume that term from youtube is always '(not set)'
         sRowId = lstGaLogSingle['ua']+'|@|'+lstGaLogSingle['source']+'|@|'+lstGaLogSingle['rst_type']+'|@|'+lstGaLogSingle['media']+'|@|'+str(lstGaLogSingle['brd'])+'|@|'+ \
             lstGaLogSingle['campaign_1st']+'|@|'+lstGaLogSingle['campaign_2nd']+'|@|'+ lstGaLogSingle['campaign_3rd']
@@ -600,9 +623,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
-        try: # if designated log already created
-            self.__g_dictYtMergedDailyLog[sRowId]
+        # try: # if designated log already created
+        if sRowId in list(self.__g_dictYtMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictYtMergedDailyLog[sRowId]
             self.__g_dictYtMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictYtMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictYtMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -611,10 +634,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictYtMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictYtMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictYtMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        # except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictYtMergedDailyLog[sRowId] = {
-                'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
-                'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
+                'session':nSession, 'tot_new_session':fTotNew, 'tot_bounce':fTotBounce, 'tot_duration_sec':fTotDurSec,
+                'tot_pvs':fTotPvs, 'tot_transactions':nTrs, 'tot_revenue':nRev, 'tot_registrations':nReg
             }
 
     def __mergeYtGaRaw(self, oSvMysql, sTouchingDate):
@@ -630,11 +654,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 'cost':dictSingleLog['cost'],'imp':dictSingleLog['imp'],'click':dictSingleLog['click'],
                 'conv_cnt':dictSingleLog['conv_cnt'],'conv_amnt':dictSingleLog['conv_amnt']
             }
-        
-        for lstMergedLog in self.__g_dictYtMergedDailyLog:
-            aRowId = lstMergedLog.split('|@|')
+        # for lstMergedLog in self.__g_dictYtMergedDailyLog:
+        for s_unique_tag, dict_row in self.__g_dictYtMergedDailyLog.items():
+            aRowId = s_unique_tag.split('|@|')
             sUa = aRowId[0]
-            sSource = aRowId[1]
+            # sSource = aRowId[1]
             sRstType = aRowId[2]
             sMedia = aRowId[3]
             sBrd = aRowId[4]
@@ -642,7 +666,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp2nd = aRowId[6]
             sCamp3rd = aRowId[7]
             sTerm = '(not set)' # assume that term from youtube is always '(not set)'
-            lstYtLogDailyTemp = oSvMysql.executeQuery('getAdwLogSpecificRmk', sTouchingDate, 'YT', sMedia, sCamp1st, sCamp2nd, sCamp3rd, sUa)
+            lstYtLogDailyTemp = oSvMysql.executeQuery('getAdwLogSpecificRmk', sTouchingDate, 'YT', sMedia, 
+                sCamp1st, sCamp2nd, sCamp3rd, sUa)
             nRecCnt = len(lstYtLogDailyTemp)
             if nRecCnt == 0:
                 lstYtLogDaily = []
@@ -662,18 +687,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     nGrossConvCnt += lstYtLogSingle['conv_cnt']
                     nGrossConvAmnt += lstYtLogSingle['conv_amnt']
 
-                dictTmp = {'customer_id':lstYtLogSingle['customer_id'], 'cost': nGrossCost, 'imp': nGrossImp, 'click': nGrossClick, 'conv_cnt': nGrossConvCnt, 'conv_amnt': nGrossConvAmnt}
+                dictTmp = {'customer_id':lstYtLogSingle['customer_id'], 'cost': nGrossCost, 'imp': nGrossImp, 'click': nGrossClick,
+                    'conv_cnt': nGrossConvCnt, 'conv_amnt': nGrossConvAmnt}
                 lstYtLogDaily.append(dictTmp)
-
             nRecCnt = len(lstYtLogDaily)
             if nRecCnt == 0:
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'youtube', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        0,0,0,0,0,0,0,
-                        self.__g_dictYtMergedDailyLog[lstMergedLog]['session'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_registrations'],
-                        sTouchingDate)
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'youtube', sRstType, sMedia,sBrd,
+                    sCamp1st,sCamp2nd,sCamp3rd,
+                    0,0,0,0,0,0,0,
+                    dict_row['session'], dict_row['tot_new_session'],
+                    dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                    dict_row['tot_pvs'], dict_row['tot_transactions'],
+                    dict_row['tot_revenue'], dict_row['tot_registrations'],
+                    sTouchingDate)
             elif nRecCnt == 1:
                 try:
                     dictYtLogDailyLogSrl.pop(lstYtLogDaily[0]['log_srl'])
@@ -686,47 +712,56 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         # 비슷한 캠페인 명칭에 이미 비용이 할당되었기 때문에 0비용으로 처리함 ex) YT_PS_DISP_JOX[빈칸]_INDOOR_DISINFECT  vs YT_PS_DISP_JOX_INDOOR_DISINFECT
                 finally:
                     dictCostRst = self.__redefineCost('adwords', lstYtLogDaily[0]['customer_id'], lstYtLogDaily[0]['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'youtube', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), lstYtLogDaily[0]['imp'],lstYtLogDaily[0]['click'],
-                            lstYtLogDaily[0]['conv_cnt'],lstYtLogDaily[0]['conv_amnt'], 
-                            self.__g_dictYtMergedDailyLog[lstMergedLog]['session'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_new_session'],
-                            self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                            self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_transactions'],
-                            self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictYtMergedDailyLog[lstMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'youtube', sRstType, sMedia,
+                        sBrd, sCamp1st, sCamp2nd, sCamp3rd,
+                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
+                        str(dictCostRst['vat']), lstYtLogDaily[0]['imp'],lstYtLogDaily[0]['click'],
+                        lstYtLogDaily[0]['conv_cnt'],lstYtLogDaily[0]['conv_amnt'], 
+                        dict_row['session'], dict_row['tot_new_session'],
+                        dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'],
+                        dict_row['tot_revenue'], dict_row['tot_registrations'],
+                        sTouchingDate)
             else:
                 self._printDebug('youtube record with multiple media data on ' + sTouchingDate)
-                self._printDebug(lstMergedLog)
-                self._printDebug(self.__g_dictYtMergedDailyLog[lstMergedLog])
+                self._printDebug(s_unique_tag)
+                self._printDebug(dict_row)
                 self._printDebug(lstYtLogDaily)
-
         # proc residual
         dictYtResidualArrangedLog = {}
-        for nLogSrl in dictYtLogDailyLogSrl:
-            sRowId = dictYtLogDailyLogSrl[nLogSrl]['customer_id']+'|@|'+ dictYtLogDailyLogSrl[nLogSrl]['ua']+'|@|'+ \
-                dictYtLogDailyLogSrl[nLogSrl]['media']+'|@|'+dictYtLogDailyLogSrl[nLogSrl]['rst_type']+'|@|'+str(dictYtLogDailyLogSrl[nLogSrl]['brd'])+'|@|'+ \
-                dictYtLogDailyLogSrl[nLogSrl]['campaign_1st']+'|@|'+dictYtLogDailyLogSrl[nLogSrl]['campaign_2nd']+'|@|'+ \
-                dictYtLogDailyLogSrl[nLogSrl]['campaign_3rd']
+        for nLogSrl, dict_single_yt_log in dictYtLogDailyLogSrl.items():
+            # sRowId = dictYtLogDailyLogSrl[nLogSrl]['customer_id']+'|@|'+ dictYtLogDailyLogSrl[nLogSrl]['ua']+'|@|'+ \
+            #     dictYtLogDailyLogSrl[nLogSrl]['media']+'|@|'+dictYtLogDailyLogSrl[nLogSrl]['rst_type']+'|@|'+str(dictYtLogDailyLogSrl[nLogSrl]['brd'])+'|@|'+ \
+            #     dictYtLogDailyLogSrl[nLogSrl]['campaign_1st']+'|@|'+dictYtLogDailyLogSrl[nLogSrl]['campaign_2nd']+'|@|'+ \
+            #     dictYtLogDailyLogSrl[nLogSrl]['campaign_3rd']
+            # nCost = int(dictYtLogDailyLogSrl[nLogSrl]['cost'])
+            # nImp = int(dictYtLogDailyLogSrl[nLogSrl]['imp'])
+            # nClick = int(dictYtLogDailyLogSrl[nLogSrl]['click'])
+            # nConvCnt = int(dictYtLogDailyLogSrl[nLogSrl]['conv_cnt'])
+            # nConvAmnt = int(dictYtLogDailyLogSrl[nLogSrl]['conv_amnt'])
+            sRowId = dict_single_yt_log['customer_id'] + '|@| '+ dict_single_yt_log['ua']  +'|@| '+ \
+                dict_single_yt_log['media']+'|@|' + dict_single_yt_log['rst_type'] + '|@|' + str(dict_single_yt_log['brd'])+'|@|' + \
+                dict_single_yt_log['campaign_1st']+'|@|'+ dict_single_yt_log['campaign_2nd']+'|@|'+ dict_single_yt_log['campaign_3rd']
 
-            nCost = int(dictYtLogDailyLogSrl[nLogSrl]['cost'])
-            nImp = int(dictYtLogDailyLogSrl[nLogSrl]['imp'])
-            nClick = int(dictYtLogDailyLogSrl[nLogSrl]['click'])
-            nConvCnt = int(dictYtLogDailyLogSrl[nLogSrl]['conv_cnt'])
-            nConvAmnt = int(dictYtLogDailyLogSrl[nLogSrl]['conv_amnt'])
-             
-            try: # if designated log already created
+            nCost = int(dict_single_yt_log['cost'])
+            nImp = int(dict_single_yt_log['imp'])
+            nClick = int(dict_single_yt_log['click'])
+            nConvCnt = int(dict_single_yt_log['conv_cnt'])
+            nConvAmnt = int(dict_single_yt_log['conv_amnt'])
+            # try: # if designated log already created
+            if sRowId in list(dictYtResidualArrangedLog.keys()):  # if designated log already created
                 dictYtResidualArrangedLog[sRowId]
                 dictYtResidualArrangedLog[sRowId]['cost'] += nCost
                 dictYtResidualArrangedLog[sRowId]['imp'] += nImp
                 dictYtResidualArrangedLog[sRowId]['click'] += nClick
                 dictYtResidualArrangedLog[sRowId]['conv_cnt'] += nConvCnt
                 dictYtResidualArrangedLog[sRowId]['conv_amnt'] += nConvAmnt
-            except KeyError: # if new log requested
+            # except KeyError: # if new log requested
+            else:  # if new log requested
                 dictYtResidualArrangedLog[sRowId] = {
                     'cost':nCost,'imp':nImp,'click':nClick,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
                 }
-        
-        for sMergedResidualYtLogId in dictYtResidualArrangedLog:
+        for sMergedResidualYtLogId, dict_single_arranged_log in dictYtResidualArrangedLog.items():
             aRowId = sMergedResidualYtLogId.split('|@|')
             sCid = aRowId[0]
             sUa = aRowId[1]
@@ -740,19 +775,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             fCost = 0.0
             fAgencyFee = 0.0
             fVat = 0.0
-            if dictYtResidualArrangedLog[sMergedResidualYtLogId]['cost'] > 0: # but assume that youtube does not provide free impression
-                dictCostRst = self.__redefineCost('adwords', sCid, dictYtResidualArrangedLog[sMergedResidualYtLogId]['cost'])
+            if dict_single_arranged_log['cost'] > 0: # but assume that youtube does not provide free impression
+                dictCostRst = self.__redefineCost('adwords', sCid, dict_single_arranged_log['cost'])
                 fCost = dictCostRst['cost']
                 fAgencyFee = dictCostRst['agency_fee']
                 fVat = dictCostRst['vat']
-            
-            oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'youtube', 
+            oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'youtube', 
                 sRstType, sMedia, sBrd,	sCamp1st, sCamp2nd, sCamp3rd, str(fCost), str(fAgencyFee), str(fVat), 
-                dictYtResidualArrangedLog[sMergedResidualYtLogId]['imp'],dictYtResidualArrangedLog[sMergedResidualYtLogId]['click'],
-                dictYtResidualArrangedLog[sMergedResidualYtLogId]['conv_cnt'],dictYtResidualArrangedLog[sMergedResidualYtLogId]['conv_amnt'], 
+                dict_single_arranged_log['imp'], dict_single_arranged_log['click'],
+                dict_single_arranged_log['conv_cnt'], dict_single_arranged_log['conv_amnt'], 
                 0, 0, 0, 0,	0, 0, 0, 0,	sTouchingDate)
+            # if dictYtResidualArrangedLog[sMergedResidualYtLogId]['cost'] > 0: # but assume that youtube does not provide free impression
+            #     dictCostRst = self.__redefineCost('adwords', sCid, dictYtResidualArrangedLog[sMergedResidualYtLogId]['cost'])
+            #     fCost = dictCostRst['cost']
+            #     fAgencyFee = dictCostRst['agency_fee']
+            #     fVat = dictCostRst['vat']
+            # oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'youtube', 
+            #     sRstType, sMedia, sBrd,	sCamp1st, sCamp2nd, sCamp3rd, str(fCost), str(fAgencyFee), str(fVat), 
+            #     dictYtResidualArrangedLog[sMergedResidualYtLogId]['imp'],dictYtResidualArrangedLog[sMergedResidualYtLogId]['click'],
+            #     dictYtResidualArrangedLog[sMergedResidualYtLogId]['conv_cnt'],dictYtResidualArrangedLog[sMergedResidualYtLogId]['conv_amnt'], 
+            #     0, 0, 0, 0,	0, 0, 0, 0,	sTouchingDate)
 
-    def __cleanupKkoGaRaw(self, lstGaLogSingle, oSvMysql, sTouchingDate):
+    def __cleanupKkoGaRaw(self, lstGaLogSingle):  #, oSvMysql, sTouchingDate):
         # nvad campaign parser should be integrated into svparser class
         sRowId = lstGaLogSingle['ua']+'|@|'+lstGaLogSingle['source']+'|@|'+lstGaLogSingle['rst_type']+'|@|'+lstGaLogSingle['media']+'|@|'+str(lstGaLogSingle['brd'])+'|@|'+ \
             lstGaLogSingle['campaign_1st']+'|@|'+lstGaLogSingle['campaign_2nd']+'|@|'+ lstGaLogSingle['campaign_3rd']+'|@|'+ lstGaLogSingle['term']
@@ -769,9 +813,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
-        try: # if designated log already created
-            self.__g_dictKkoMergedDailyLog[sRowId]
+        # try: # if designated log already created
+        if sRowId in list(self.__g_dictKkoMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictKkoMergedDailyLog[sRowId]
             self.__g_dictKkoMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -780,7 +824,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        # except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictKkoMergedDailyLog[sRowId] = {
                 'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
                 'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
@@ -796,11 +841,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDailyLogId = dictSingleLog['ua']+'|@|'+'kakao'+'|@|'+dictSingleLog['rst_type']+'|@|'+dictSingleLog['media']+'|@|'+str(dictSingleLog['brd'])+'|@|'+\
                 dictSingleLog['campaign_1st']+'|@|'+dictSingleLog['campaign_2nd']+'|@|'+dictSingleLog['campaign_3rd']+'|@|'+dictSingleLog['term']
             dictKkoLogDailyLogSrl[sDailyLogId] = {
-                'customer_id':dictSingleLog['customer_id'],'cost_inc_vat':dictSingleLog['cost_inc_vat'],'imp':dictSingleLog['imp'],'click':dictSingleLog['click'],
-                'conv_cnt_direct':dictSingleLog['conv_cnt_direct'],'conv_amnt_direct':dictSingleLog['conv_amnt_direct']
+                'customer_id':dictSingleLog['customer_id'], 'cost_inc_vat':dictSingleLog['cost_inc_vat'],
+                'imp':dictSingleLog['imp'], 'click':dictSingleLog['click'], 'conv_cnt_direct':dictSingleLog['conv_cnt_direct'],
+                'conv_amnt_direct':dictSingleLog['conv_amnt_direct']
             }
-
-        for sMergedLog in self.__g_dictKkoMergedDailyLog:
+        for sMergedLog, dict_single_row in self.__g_dictKkoMergedDailyLog.items():
             aRowId = sMergedLog.split('|@|')
             sUa = aRowId[0]
             sSource = aRowId[1]
@@ -812,35 +857,64 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
             nRecCnt = len(lstKkoLogDaily)
+            # if nRecCnt == 0: # GA log exists without KKO PS data
+            #     oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+            #         0,0,0,0,0,0,0,
+            #         self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
+            #         self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
+            #         self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
+            #         self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
+            #         sTouchingDate)
+            # else: # GA log exists with KKO PS data
+            #     try: # if designated log already created
+            #         dictKkoLogDailyLogSrl[sMergedLog]
+            #         dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'], dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
+            #         oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+            #             str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictKkoLogDailyLogSrl[sMergedLog]['imp'],dictKkoLogDailyLogSrl[sMergedLog]['click'],
+            #             dictKkoLogDailyLogSrl[sMergedLog]['conv_cnt_direct'],dictKkoLogDailyLogSrl[sMergedLog]['conv_amnt_direct'], 
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
+            #             sTouchingDate)
+            #         dictKkoLogDailyLogSrl.pop(sMergedLog) # removed resigtered log
+            #     except KeyError: # if new log requested
+            #         oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+            #             0,0,0,0,0,0,0,
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
+            #             self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
+            #             sTouchingDate)
             if nRecCnt == 0: # GA log exists without KKO PS data
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        0,0,0,0,0,0,0,
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
-                        sTouchingDate)
-            else: # GA log exists with KKO PS data
-                try: # if designated log already created
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+                    0,0,0,0,0,0,0,
+                    dict_single_row['session'], dict_single_row['tot_new_session'],
+                    dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
+                    dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
+                    dict_single_row['tot_revenue'], dict_single_row['tot_registrations'], sTouchingDate)
+            else:  # GA log exists with KKO PS data
+                try:  # if designated log already created
                     dictKkoLogDailyLogSrl[sMergedLog]
-                    dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'], dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictKkoLogDailyLogSrl[sMergedLog]['imp'],dictKkoLogDailyLogSrl[sMergedLog]['click'],
-                            dictKkoLogDailyLogSrl[sMergedLog]['conv_cnt_direct'],dictKkoLogDailyLogSrl[sMergedLog]['conv_amnt_direct'], 
-                            self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
-                            self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
-                            self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
-                            self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'],
+                        dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'kakao', sRstType, 
+                        sMedia, sBrd, sCamp1st, sCamp2nd, sCamp3rd,
+                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
+                        dictKkoLogDailyLogSrl[sMergedLog]['imp'], dictKkoLogDailyLogSrl[sMergedLog]['click'],
+                        dictKkoLogDailyLogSrl[sMergedLog]['conv_cnt_direct'], dictKkoLogDailyLogSrl[sMergedLog]['conv_amnt_direct'], 
+                        dict_single_row['session'], dict_single_row['tot_new_session'],
+                        dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
+                        dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
+                        dict_single_row['tot_revenue'], dict_single_row['tot_registrations'], sTouchingDate)
                     dictKkoLogDailyLogSrl.pop(sMergedLog) # removed resigtered log
                 except KeyError: # if new log requested
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'kakao', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        0,0,0,0,0,0,0,
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['session'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_new_session'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_bounce'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_duration_sec'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_pvs'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_transactions'],
-                        self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_revenue'], self.__g_dictKkoMergedDailyLog[sMergedLog]['tot_registrations'],
-                        sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'kakao', sRstType, sMedia,
+                        sBrd, sCamp1st, sCamp2nd, sCamp3rd, 0,0,0,0,0,0,0,
+                        dict_single_row['session'], dict_single_row['tot_new_session'],
+                        dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
+                        dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
+                        dict_single_row['tot_revenue'], dict_single_row['tot_registrations'], sTouchingDate)
         # proc residual minor kakao moment log
         dictImpression = {'M_1':0, 'M_0':0, 'P_1':0, 'P_0':0} # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         for sDailyLogId in dictKkoLogDailyLogSrl: # regist residual; means KKO MOMENT data without GA log 
@@ -856,7 +930,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sTerm = aRowId[8]
             if dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'] > 0:
                 dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'])	
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, sSource, sRstType, sMedia, sBrd,
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, sSource, sRstType, sMedia, sBrd,
                     sCamp1st, sCamp2nd, sCamp3rd,
                     str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictKkoLogDailyLogSrl[sDailyLogId]['imp'], dictKkoLogDailyLogSrl[sDailyLogId]['click'],
                     dictKkoLogDailyLogSrl[sDailyLogId]['conv_cnt_direct'], dictKkoLogDailyLogSrl[sDailyLogId]['conv_amnt_direct'], 
@@ -864,15 +938,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             elif dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'] == 0:
                 sIndication = sUa + '_' + str(sBrd)
                 dictImpression[sIndication] = dictImpression[sIndication] + int(dictKkoLogDailyLogSrl[sDailyLogId]['imp'])
-
         try: 
             for sIdx in dictImpression:
                 if dictImpression[sIdx] > 0:
                     aIdx = sIdx.split('_')
                     sUa = aIdx[0]
                     bBrded = aIdx[1]
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
-                        'kakao', 'PS','cpc',bBrded, '|@|sv','|@|sv', '|@|sv',0,0, 0, dictImpression[sIdx],0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
+                        'kakao', 'PS','cpc',bBrded, '|@|sv','|@|sv', '|@|sv',0,0, 0, dictImpression[sIdx],
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
         except NameError: # if imp only log not exists
             pass
 
@@ -881,17 +955,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogDaily', sTouchingDate)
         for dictSingleLog in lstNvadLogDaily:
             dictNvadLogDailyLogSrl[dictSingleLog['log_srl']] = {
-                'customer_id':dictSingleLog['customer_id'],'ua':dictSingleLog['ua'],'term':dictSingleLog['term'],'rst_type':dictSingleLog['rst_type'],
-                'media':dictSingleLog['media'],'brd':dictSingleLog['brd'],'campaign_1st':dictSingleLog['campaign_1st'],
-                'campaign_2nd':dictSingleLog['campaign_2nd'],'campaign_3rd':dictSingleLog['campaign_3rd'],
+                'customer_id':dictSingleLog['customer_id'],'ua':dictSingleLog['ua'], 'term':dictSingleLog['term'],
+                'rst_type':dictSingleLog['rst_type'], 'media':dictSingleLog['media'], 'brd':dictSingleLog['brd'],
+                'campaign_1st':dictSingleLog['campaign_1st'], 'campaign_2nd':dictSingleLog['campaign_2nd'],
+                'campaign_3rd':dictSingleLog['campaign_3rd'],
                 'cost':dictSingleLog['cost'],'imp':dictSingleLog['imp'],'click':dictSingleLog['click'],
                 'conv_cnt':dictSingleLog['conv_cnt'],'conv_amnt':dictSingleLog['conv_amnt']
             }
-        
-        for lstMergedLog in self.__g_dictNvadMergedDailyLog:
-            aRowId = lstMergedLog.split('|@|')
+        for s_unique_tag, dict_row in self.__g_dictNvadMergedDailyLog.items():
+            # print(s_unique_tag)
+            aRowId = s_unique_tag.split('|@|')
             sUa = aRowId[0]
-            sSource = aRowId[1]
+            # sSource = aRowId[1]
             sRstType = aRowId[2]
             sMedia = aRowId[3]
             sBrd = aRowId[4]
@@ -907,17 +982,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if len(lstNvadLogDaily) > 1:
                     pass #self._printDebug( 'NVAD separates NVSHOPPING item so allocate appropriately' )
             else:
-                lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogSpecificCpc', sTouchingDate, sMedia, sTerm, sCamp1st, sCamp2nd, sCamp3rd, sUa)
+                lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogSpecificCpc', sTouchingDate, sMedia, sTerm, 
+                    sCamp1st, sCamp2nd, sCamp3rd, sUa)
             
             nRecCnt = len(lstNvadLogDaily)
             if nRecCnt == 0:
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, 'naver', sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        0,0,0,0,0,0,0,
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['session'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_registrations'],
-                        sTouchingDate)
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa,sTerm, 'naver', sRstType, sMedia,sBrd,
+                    sCamp1st, sCamp2nd, sCamp3rd, 0, 0, 0, 0, 0, 0, 0,
+                    dict_row['session'], dict_row['tot_new_session'],
+                    dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                    dict_row['tot_pvs'], dict_row['tot_transactions'],
+                    dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)
             elif nRecCnt == 1:
                 try:
                     dictNvadLogDailyLogSrl.pop(lstNvadLogDaily[0]['log_srl'])
@@ -931,14 +1006,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             break
                 finally:
                     dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], lstNvadLogDaily[0]['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'naver', sRstType,sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                            str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), lstNvadLogDaily[0]['imp'],lstNvadLogDaily[0]['click'],
-                            lstNvadLogDaily[0]['conv_cnt'],lstNvadLogDaily[0]['conv_amnt'], 
-                            self.__g_dictNvadMergedDailyLog[lstMergedLog]['session'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_new_session'],
-                            self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                            self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_transactions'],
-                            self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_registrations'],
-                            sTouchingDate)
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
+                        sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']),
+                        lstNvadLogDaily[0]['imp'], lstNvadLogDaily[0]['click'], lstNvadLogDaily[0]['conv_cnt'],
+                        lstNvadLogDaily[0]['conv_amnt'], dict_row['session'], dict_row['tot_new_session'],
+                        dict_row['tot_bounce'], dict_row['tot_duration_sec'], dict_row['tot_pvs'], dict_row['tot_transactions'],
+                        dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)
             else:
                 # if 3rd campaign code of the NVR BRS ad group name is changed in busy hour, there would be two log with same term and different 3rd campaign code
                 if sMedia == 'display' and sCamp1st == 'BRS':
@@ -950,20 +1023,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictTempBrsLog['conv_cnt'] = dictTempBrsLog['conv_cnt'] + dictDuplicatedNvrBrsLog['conv_cnt']
                         dictTempBrsLog['conv_amnt'] = dictTempBrsLog['conv_amnt'] + dictDuplicatedNvrBrsLog['conv_amnt']
                     dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], dictTempBrsLog['cost'])
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'naver', sRstType,sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictTempBrsLog['imp'], dictTempBrsLog['click'],
-                        dictTempBrsLog['conv_cnt'], dictTempBrsLog['conv_amnt'], 
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['session'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_registrations'],
-                        sTouchingDate)	
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
+                        sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
+                        str(dictCostRst['vat']), dictTempBrsLog['imp'], dictTempBrsLog['click'],
+                        dictTempBrsLog['conv_cnt'], dictTempBrsLog['conv_amnt'], dict_row['session'], 
+                        dict_row['tot_new_session'], dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                        dict_row['tot_pvs'], dict_row['tot_transactions'], dict_row['tot_revenue'], 
+                        dict_row['tot_registrations'], sTouchingDate)	
                 else:
                     # aggregate each log into a single GA detected NVAD log, if there happens duplicated nvad log by different nvad campaign name; 
                     # GA recognize utm_campaign only, which is same level of NVAD adgrp name
                     self._printDebug('aggregate duplicated nvad log')
                     self._printDebug(sTouchingDate)
-                    self._printDebug(lstMergedLog)
+                    self._printDebug(s_unique_tag)
                     self._printDebug(lstNvadLogDaily)
                     nCost = 0
                     nImp = 0
@@ -979,23 +1051,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvadLogDailyLogSrl.pop(dictSingleNvadLog['log_srl'])
                     
                     dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], nCost)
-                    oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, sTerm, 'naver', sRstType,sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
-                        str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), nImp, nClick, nConvCnt, nConvAmnt, 
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['session'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_new_session'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_transactions'],
-                        self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictNvadMergedDailyLog[lstMergedLog]['tot_registrations'],
-                        sTouchingDate)					
+                    oSvMysql.executeQuery('insertGrossCompiledDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
+                        sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']),
+                        str(dictCostRst['vat']), nImp, nClick, nConvCnt, nConvAmnt, 
+                        dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'], 
+                        dict_row['tot_duration_sec'], dict_row['tot_pvs'], dict_row['tot_transactions'],
+                        dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)					
 
         dictImpression = {'M_1':0, 'M_0':0, 'P_1':0, 'P_0':0} # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         for nLogSrl in dictNvadLogDailyLogSrl: # regist residual; means NVAD data without GA log 
             if dictNvadLogDailyLogSrl[nLogSrl]['cost'] > 0 or dictNvadLogDailyLogSrl[nLogSrl]['campaign_1st'] == 'BRS':
-                dictCostRst = self.__redefineCost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], dictNvadLogDailyLogSrl[nLogSrl]['cost'])
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	dictNvadLogDailyLogSrl[nLogSrl]['ua'], dictNvadLogDailyLogSrl[nLogSrl]['term'], 
-                    'naver', dictNvadLogDailyLogSrl[nLogSrl]['rst_type'],dictNvadLogDailyLogSrl[nLogSrl]['media'],dictNvadLogDailyLogSrl[nLogSrl]['brd'],
-                    dictNvadLogDailyLogSrl[nLogSrl]['campaign_1st'], dictNvadLogDailyLogSrl[nLogSrl]['campaign_2nd'], dictNvadLogDailyLogSrl[nLogSrl]['campaign_3rd'],
-                    str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictNvadLogDailyLogSrl[nLogSrl]['imp'],dictNvadLogDailyLogSrl[nLogSrl]['click'],
-                    dictNvadLogDailyLogSrl[nLogSrl]['conv_cnt'],dictNvadLogDailyLogSrl[nLogSrl]['conv_amnt'], 
+                dictCostRst = self.__redefineCost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], 
+                    dictNvadLogDailyLogSrl[nLogSrl]['cost'])
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', dictNvadLogDailyLogSrl[nLogSrl]['ua'], 
+                    dictNvadLogDailyLogSrl[nLogSrl]['term'], 'naver', dictNvadLogDailyLogSrl[nLogSrl]['rst_type'],
+                    dictNvadLogDailyLogSrl[nLogSrl]['media'], dictNvadLogDailyLogSrl[nLogSrl]['brd'],
+                    dictNvadLogDailyLogSrl[nLogSrl]['campaign_1st'], dictNvadLogDailyLogSrl[nLogSrl]['campaign_2nd'], 
+                    dictNvadLogDailyLogSrl[nLogSrl]['campaign_3rd'], str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
+                    str(dictCostRst['vat']), dictNvadLogDailyLogSrl[nLogSrl]['imp'], dictNvadLogDailyLogSrl[nLogSrl]['click'],
+                    dictNvadLogDailyLogSrl[nLogSrl]['conv_cnt'], dictNvadLogDailyLogSrl[nLogSrl]['conv_amnt'], 
                     0, 0, 0, 0,	0, 0, 0, 0,	sTouchingDate)
             elif dictNvadLogDailyLogSrl[nLogSrl]['cost'] == 0:
                 sIndication = dictNvadLogDailyLogSrl[nLogSrl]['ua'] + '_' + str(dictNvadLogDailyLogSrl[nLogSrl]['brd'])
@@ -1006,14 +1080,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 aIdx = sIdx.split('_')
                 sUa = aIdx[0]
                 bBrded = aIdx[1]
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa, '|@|sv', 
                     'naver', 'PS','cpc',bBrded, '|@|sv','|@|sv', '|@|sv',
                     0,0, 0, dictImpression[sIdx],0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
     def __cleanupNvAdGaRaw(self, lstGaLogSingle, oSvMysql, sTouchingDate):
         sTerm = lstGaLogSingle['term'].replace(' ', '')
         if lstGaLogSingle['media'] == 'cpc' and lstGaLogSingle['campaign_1st'].find( 'NVSHOP' ) > -1: # merge and create new performance row
-            lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogSpecificNvshop', sTouchingDate, lstGaLogSingle['media'], sTerm, 'NVSHOP', lstGaLogSingle['ua'] )
+            lstNvadLogDaily = oSvMysql.executeQuery('getNvadLogSpecificNvshop', sTouchingDate, lstGaLogSingle['media'], 
+                sTerm, 'NVSHOP', lstGaLogSingle['ua'] )
             if len(lstNvadLogDaily) == 1:	# NVAD does not separate NVSHOPPING item so change term from "nvshop_XXX" to "nvshop"
                 # aTerm = sTerm.split('_') # it means "nvshop_XXX"
                 sTerm = 'nvshop' #aTerm[0] # it should be 'nvshop' even if a real value is 'nvshopping', 
@@ -1034,9 +1109,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
-        try: # if designated log already created
-            self.__g_dictNvadMergedDailyLog[sRowId]
+        if sRowId in list(self.__g_dictNvadMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictNvadMergedDailyLog[sRowId]
             self.__g_dictNvadMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -1045,11 +1119,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictNvadMergedDailyLog[sRowId] = {
                 'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
                 'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
             }
+        # try: # if designated log already created
+        #     self.__g_dictNvadMergedDailyLog[sRowId]
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['session'] += nSession
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_duration_sec'] += fTotDurSec
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_pvs'] += fTotPvs
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_transactions'] += nTrs
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_revenue'] += nRev
+        #     self.__g_dictNvadMergedDailyLog[sRowId]['tot_registrations'] += nReg
+        # except KeyError: # if new log requested
+        #     self.__g_dictNvadMergedDailyLog[sRowId] = {
+        #         'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
+        #         'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
+        #     }
 
     def __cleanupOtherGaRaw(self, lstGaLogSingle, sTouchingDate):
         sTerm = lstGaLogSingle['term'].replace(' ', '')
@@ -1068,9 +1157,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-
-        try: # if designated log already created
-            self.__g_dictOtherMergedDailyLog[sRowId]
+        if sRowId in list(self.__g_dictOtherMergedDailyLog.keys()):  # if designated log already created
+            # self.__g_dictOtherMergedDailyLog[sRowId]
             self.__g_dictOtherMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
@@ -1079,19 +1167,34 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_transactions'] += nTrs
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_revenue'] += nRev
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_registrations'] += nReg
-        except KeyError: # if new log requested
+        else:  # if new log requested
             self.__g_dictOtherMergedDailyLog[sRowId] = {
                 'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
                 'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
             }
+        # try: # if designated log already created
+        #     self.__g_dictOtherMergedDailyLog[sRowId]
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['session'] += nSession
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_bounce'] += fTotBounce
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_duration_sec'] += fTotDurSec
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_pvs'] += fTotPvs
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_transactions'] += nTrs
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_revenue'] += nRev
+        #     self.__g_dictOtherMergedDailyLog[sRowId]['tot_registrations'] += nReg
+        # except KeyError: # if new log requested
+        #     self.__g_dictOtherMergedDailyLog[sRowId] = {
+        #         'session':nSession,'tot_new_session':fTotNew,'tot_bounce':fTotBounce,'tot_duration_sec':fTotDurSec,
+        #         'tot_pvs':fTotPvs,'tot_transactions':nTrs,'tot_revenue':nRev,'tot_registrations':nReg
+        #     }
 
     def __mergeOtherGaRaw(self, oSvMysql, sTouchingDate):
         dictNvPnsInfo = self.__definePnsCost(sTouchingDate, 'naver')
         dictFbPnsInfo = self.__definePnsCost(sTouchingDate, 'facebook')
         nTouchingDate = int(sTouchingDate.replace('-', '' ))
-
-        for lstMergedLog in self.__g_dictOtherMergedDailyLog:
-            aRowId = lstMergedLog.split('|@|')
+        # for lstMergedLog in self.__g_dictOtherMergedDailyLog:
+        for s_unique_tag, dict_row in self.__g_dictOtherMergedDailyLog.items():
+            aRowId = s_unique_tag.split('|@|')
             sUa = aRowId[0]
             sSource = aRowId[1]
             sRstType = aRowId[2]
@@ -1146,13 +1249,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvPnsInfo.pop(sTermForPns)
                     except KeyError:
                         pass
-            oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
+            oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                 nMediaRawCost,nMediaAgencyCost,nMediaCostVat,0,0,0,0,
-                self.__g_dictOtherMergedDailyLog[lstMergedLog]['session'], self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_new_session'],
-                self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_bounce'], self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_duration_sec'],
-                self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_pvs'], self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_transactions'],
-                self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_revenue'], self.__g_dictOtherMergedDailyLog[lstMergedLog]['tot_registrations'],
-                sTouchingDate)
+                dict_row['session'], dict_row['tot_new_session'],
+                dict_row['tot_bounce'], dict_row['tot_duration_sec'],
+                dict_row['tot_pvs'], dict_row['tot_transactions'],
+                dict_row['tot_revenue'], dict_row['tot_registrations'], sTouchingDate)
         
         # register pns cost info if remaining pns info exists
         if len(dictNvPnsInfo) > 0:
@@ -1181,12 +1283,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 fMediaRawCost = dictNvPnsInfo[sIdx]['media_raw_cost']
                 fMediaAgencyCost = dictNvPnsInfo[sIdx]['media_agency_cost']
                 fMediaCostVat = dictNvPnsInfo[sIdx]['vat']
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sPnsUa, sTerm, 'naver', 'PNS', 'organic',0,sCamp1st,sCamp2nd,sCamp3rd,
-                    fMediaRawCost, fMediaAgencyCost, fMediaCostVat,0,0,0,0,#`media_imp`, `media_click`, `media_conv_cnt`, `media_conv_amnt`, 
-                    0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate )
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sPnsUa, sTerm, 'naver', 'PNS', 'organic', 0,
+                    sCamp1st, sCamp2nd, sCamp3rd, fMediaRawCost, fMediaAgencyCost, fMediaCostVat,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
         if len(dictFbPnsInfo) > 0:
-            for sIdx in dictFbPnsInfo: # for the latest & systematic situation only
+            for sIdx, dict_pns_row in dictFbPnsInfo.items(): # for the latest & systematic situation only
                 sTerm = sIdx.replace('_P', '').replace('_M', '')
                 aIdx = sIdx.split('_')
                 nRegdatePos = len(aIdx) - 2
@@ -1196,12 +1298,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCamp2nd = aIdx[nRegdatePos]
                 sCamp3rd = '00'
                 sPnsUa = aIdx[nUaPos]
-                fMediaRawCost = dictFbPnsInfo[sIdx]['media_raw_cost']
-                fMediaAgencyCost = dictFbPnsInfo[sIdx]['media_agency_cost']
-                fMediaCostVat = dictFbPnsInfo[sIdx]['vat']
-                oRst = oSvMysql.executeQuery('insertGrossCompiledDailyLog',	sPnsUa, sTerm, 'instagram', 'PNS', 'organic',0,sCamp1st,sCamp2nd,sCamp3rd,
-                    fMediaRawCost, fMediaAgencyCost, fMediaCostVat,0,0,0,0,
-                    0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate )
+                fMediaRawCost = dict_pns_row['media_raw_cost']
+                fMediaAgencyCost = dict_pns_row['media_agency_cost']
+                fMediaCostVat = dict_pns_row['vat']
+                oSvMysql.executeQuery('insertGrossCompiledDailyLog', sPnsUa, sTerm, 'instagram', 'PNS', 'organic', 0,
+                    sCamp1st, sCamp2nd, sCamp3rd, fMediaRawCost, fMediaAgencyCost, fMediaCostVat,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
     def __definePnsCost(self, sTouchingDate, sSource):
         dictPnsInfo = {}
@@ -1209,7 +1311,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nTouchingDate = int(sTouchingDate.replace('-', '' ))
         if sSource == 'naver':
             sPnsInfoFilePath = self.__g_sNvrPnsInfoFilePath
-        elif  sSource == 'facebook':
+        elif sSource == 'facebook':
             sPnsInfoFilePath = self.__g_sFbPnsInfoFilePath
         else:
             self._printDebug('invalid pns info request :' + sSource)

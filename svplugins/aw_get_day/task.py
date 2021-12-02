@@ -47,9 +47,11 @@ from google.ads.googleads.client import GoogleAdsClient
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else:
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
@@ -81,7 +83,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
         sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
-        
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
         

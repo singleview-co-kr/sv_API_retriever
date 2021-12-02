@@ -34,18 +34,20 @@ import random
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
     from powernad.API.MasterReport import *
     from powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
     from powernad.API.StatReport import *
     from powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 else:
-    from svcommon import sv_object, sv_plugin
-    sys.path.append(os.path.join(os.getcwd(),'svplugins', 'nvad_get_day'))
-    from powernad.API.MasterReport import *
-    from powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
-    from powernad.API.StatReport import *
-    from powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
+    from svcommon import sv_object
+    from svcommon import sv_plugin
+    sys.path.append(os.path.join(os.getcwd(),'svcommon'))
+    from svcommon.powernad.API.MasterReport import *
+    from svcommon.powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
+    from svcommon.powernad.API.StatReport import *
+    from svcommon.powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -54,6 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sEncodedApiKey = None
     __g_sEncodedSecretKey = None
     __g_sNvrAdManagerLoginId = None
+    __g_bNvrAdManagerLoginIdWarned = False
     __g_sRetrieveInfoPath = None
     __g_sDownloadPathNew = None
     __g_nRetryBackoffCnt = 0
@@ -61,8 +64,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.13'
-        self._g_sLastModifiedDate = '19th, Oct 2019'
+        self._g_sVersion = '1.0.14'
+        self._g_sLastModifiedDate = '25th, Nov 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self.__g_dtCurDatetime = datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -78,27 +81,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
         self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
         self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
-        self.__g_sCustomerId = dict_nvr_ad_acct['customer_id']
-        
+        # self.__g_sCustomerId = dict_nvr_ad_acct['customer_id']
+        s_customer_id = dict_nvr_ad_acct['customer_id']
         del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
 
-        self._printDebug('-> '+ self.__g_sCustomerId +' delete master reports')
-        o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, self.__g_sCustomerId)
+        o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
+        # delete master report
         dict_rst = o_master_report.delete_master_report_all()
         if 'transaction_id' not in list(dict_rst.keys()):
             self._printDebug('communication failed - stop')
             return
         else:
-            self._printDebug('transaction id - ' + dict_rst['transaction_id'])
+            self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         # lst_master_rpt = o_master_report.get_master_report_list()
         # for o_single_rpt in lst_master_rpt:
         #     print(o_single_rpt.status)
         #     print(o_single_rpt.downloadUrl)
             
-        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'conf')
+        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
             os.makedirs(self.__g_sRetrieveInfoPath)
-        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', self.__g_sCustomerId, 'data')
+        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'data')
         if os.path.isdir(self.__g_sDownloadPathNew) == False:
             os.makedirs(self.__g_sDownloadPathNew)
 
@@ -110,10 +113,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('write on ' + self.__g_sDownloadPathNew + ' is not permitted')
             return
             
-        self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, self.__g_sCustomerId, dict_nvr_ad_acct[self.__g_sCustomerId]['nvr_master_report'] )
+        self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_master_report'] )
         del o_master_report
-        o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, self.__g_sCustomerId)
-        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, self.__g_sCustomerId, dict_nvr_ad_acct[self.__g_sCustomerId]['nvr_stat_report']) #statdate arg should be defined
+        o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
+        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_stat_report']) #statdate arg should be defined
         del o_stat_report
 
         self._task_post_proc(o_callback)
@@ -129,17 +132,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('No master rpts activated - stop collecting stat rpt!')
             return
 
+        lst_handling_task = list(dictMasterReportQueue.keys())
         # 네이버 stat report 보관일수
         dict_stat_rpt_expired_days = {'AD_DETAIL': 31, 'AD_CONVERSION_DETAIL': 45, 'AD': 366, 'AD_CONVERSION': 366, 'ADEXTENSION': 366, 'ADEXTENSION_CONVERSION': 366, 'EXPKEYWORD': 366, 'NAVERPAY_CONVERSION': 366}
         while self._continue_iteration(): # loop for each report type
-            self.__g_nRetryBackoffCnt = 0
             try:
-                sTobeHandledTaskName = list(dictMasterReportQueue.keys())[list(dictMasterReportQueue.values()).index(0)] # find unhandled report task
+                if list(dictMasterReportQueue.values()).count(0) == 0:
+                    break
+                sTobeHandledTaskName = lst_handling_task[list(dictMasterReportQueue.values()).index(0)] # find unhandled report task
             except ValueError:
-                self._printDebug(sTobeHandledTaskName)
-                self._printDebug('stop collecting stat rpt!')
+                self._printDebug('weird error occured - stop collecting stat ' + sTobeHandledTaskName + ' rpt!')
                 break
-
             try:
                 sLatestFilepath = os.path.join(self.__g_sRetrieveInfoPath, sTobeHandledTaskName+'.latest')
                 f = open(sLatestFilepath, 'r')
@@ -172,12 +175,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dictDateQueue[dt_date_elem] = 0
                 dictDateExceptionCnt[dt_date_elem] = 0
             
+            # print(dictDateQueue)
             if len(dictDateQueue) == 0:
                 dictMasterReportQueue[sTobeHandledTaskName] = 1
+                self._printDebug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtDateEndRetrieval.strftime('%Y%m%d%H%M%S'))
                 continue
             
             while self._continue_iteration(): # loop for each report date
                 try:
+                    self.__g_nRetryBackoffCnt = 0
                     dtDateRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
                     self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + dtDateRetrieval.strftime('%Y%m%d'))
                     dt_today = datetime.today().date()
@@ -195,7 +201,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                     sDateRetrieval = dtDateRetrieval.strftime('%Y%m%d')
                     dict_rst = self.__retrieveNvStatReportAct(o_stat_report, sTobeHandledTaskName, sDateRetrieval) # '20190202') #
-                    if dict_rst['b_error'] is True:
+                    # dict_rst = {'b_error': False}
+                    if dict_rst['b_error']:
                         if dictDateExceptionCnt[dtDateRetrieval] < 3: # allow exception occurrence count to 3 by each report
                             dictDateExceptionCnt[dtDateRetrieval] += 1
                             # nWaitSec = 60
@@ -208,7 +215,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 elif s_todo == 'pass':
                                     self._printDebug('pass and go')
                                     dictDateQueue[dtDateRetrieval] = 1
-                                    return
+                                    continue
                                 elif s_todo == 'stop':
                                     self._printDebug('stop')
                                     dictDateQueue[dtDateRetrieval] = 1
@@ -222,6 +229,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dictDateQueue[dtDateRetrieval] = 1
                             continue    
                     else:
+                        dictMasterReportQueue[sTobeHandledTaskName] = 1
                         dictDateQueue[dtDateRetrieval] = 1
                         f = open(sLatestFilepath, 'w')
                         f.write(sDateRetrieval)
@@ -229,8 +237,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         continue
                 except ValueError:
                     break
+        del lst_handling_task
 
     def __retrieveNvStatReportAct(self, o_stat_report, s_req_rpt_name, s_date_retrieval):
+        """ an actual method retrieving a stat report """
         dict_rst = {'b_error': False, 's_todo': None} #, 's_msg': None}
         o_report_conf = CreateStatReportObject(s_req_rpt_name, s_date_retrieval)
         o_rst = o_stat_report.create_stat_report(o_report_conf)
@@ -239,21 +249,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_download_url = o_rst.downloadUrl
         # print(o_rst.reportTp)  # eg 'AD'
         # o_rst.statDt, o_rst.regTm, o_rst.updateTm
-        if self.__g_sNvrAdManagerLoginId != o_rst.loginId:
-            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on bog, NVR API returned ' + o_rst.loginId)
-            dict_rst['b_error'] = True
-            dict_rst['s_todo'] = 'stop'
-            del o_rst
-            return dict_rst
+        if self.__g_sNvrAdManagerLoginId != o_rst.loginId and not self.__g_bNvrAdManagerLoginIdWarned:
+            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.loginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
+            self.__g_bNvrAdManagerLoginIdWarned = True
+            # dict_rst['b_error'] = True
+            # dict_rst['s_todo'] = 'stop'
+            # del o_rst
+            # return dict_rst
 
         if s_rpt_status is None:
-			#$oOutput->add('status', 'unhandled');
-			#$sStatus = 'unhandled';
             n_error_code = o_rst.code
             if n_error_code == 11001: # http status 400 with {"code":11001,"message":"잘못된 파라미터 형식입니다."} 1년 이전의 데이터를 요청하면 발생
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'pass'
-                self._printDebug(o_rst.message + ' - 1년 이전의 데이터 요청')
+                self._printDebug(o_rst.message + ' - 너무 오래된 데이터 요청')
             if n_error_code == 20007: # "해당 일자 지표 준비중입니다."
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'stop'
@@ -273,9 +282,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     o_rst = o_stat_report.get_stat_report(s_rpt_report_job_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
-                    self._printDebug('received respond from NVR ad server for ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                    self._printDebug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_report_job_id)
                 else:
-                    self._printDebug('exceed trial limit and giveup a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                    self._printDebug('exceed trial limit and giveup a report with requested id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
                     dict_rst['b_error'] = True
                     dict_rst['s_todo'] = 'pass'
                     return dict_rst
@@ -300,6 +309,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('NVR Ad API msg - NVR API server is aggregating... stop')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'stop'
+        elif s_rpt_status == 'NONE':
+            pass
         else:  # $sStatus == 'ERROR' || $sStatus == 'NONE' || $sStatus == '4XX' || $sStatus == '5XX'
             # if( (int)($oOutput->get('status') / 200) != 1 ) // if status is not 2XX - wait
 			# 	$this->_debug('finish retrieve '.$sReportType.' report from NVR ad server on '.$sStatDate.', transaction id '.$sTransactionId.' report job id '.$sReportJobId.' with HTTP status '.$oOutput->get('status') );
@@ -410,17 +421,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
             
     def __reirieveNvMasterReportAct(self, o_master_report, s_req_rpt_name, dt_from_retrieval):
+        """ an actual method retrieving a master report """
         dict_rst = {'b_error': False, 's_todo': None}
         o_report_conf = CreateMasterReportObject(s_req_rpt_name, dt_from_retrieval)
         o_rst = o_master_report.create_master_report(o_report_conf)
         s_rpt_id = o_rst.id
         s_rpt_status = o_rst.status
-        if self.__g_sNvrAdManagerLoginId != o_rst.managerLoginId:
-            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on bog, NVR API returned ' + o_rst.managerLoginId)
-            dict_rst['b_error'] = True
-            dict_rst['s_todo'] = 'pass'
-            del o_rst
-            return dict_rst
+        if self.__g_sNvrAdManagerLoginId != o_rst.managerLoginId and not self.__g_bNvrAdManagerLoginIdWarned:
+            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.managerLoginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
+            self.__g_bNvrAdManagerLoginIdWarned = True
+            # dict_rst['b_error'] = True
+            # dict_rst['s_todo'] = 'pass'
+            # del o_rst
+            # return dict_rst
         del o_rst
         
         while self._continue_iteration():
@@ -435,7 +448,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     o_rst = o_master_report.get_master_report_by_id(s_rpt_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
-                    self._printDebug('received respond from NVR ad server for ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
+                    self._printDebug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_id)
                 else:
                     self._printDebug('exceed trial limit and giveup a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
                     dict_rst['b_error'] = True
@@ -459,6 +472,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'wait'
+        elif s_rpt_status == 'NONE':
+            pass
         else:
             self._printDebug('received ' + s_rpt_status + ' status... done')
             dict_rst['b_error'] = True

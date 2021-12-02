@@ -89,9 +89,9 @@ class SvApiConfigParser(sv_object.ISvObject):
 
         dictNvrAdAcct = {}
         lstGoogleadsAcct = []
-        dictOtherAdsApiInfo = {}
         lstNvrMasterReport = [] 
         lstNvrStatReport = []
+        dictOtherAdsApiInfo = {}
         self.__g_oConfig.read(self.__g_sApiConfigFile)
         for sSectionTitle in self.__g_oConfig:
             if sSectionTitle == 'naver_searchad':
@@ -114,6 +114,17 @@ class SvApiConfigParser(sv_object.ISvObject):
                     if self.__g_oConfig[sSectionTitle][sValueTitle].lower() == 'on':
                         lstGoogleadsAcct.append(sValueTitle)
                     dictOtherAdsApiInfo['adw_cid'] = lstGoogleadsAcct
+            elif sSectionTitle == 'google_analytics':
+                dict_temp = {'s_version': None, 's_property_or_view_id':None, 'lst_access_level': []}
+                for sValueTitle in self.__g_oConfig[sSectionTitle]:
+                    if sValueTitle == 'version':
+                        s_version = self.__g_oConfig[sSectionTitle][sValueTitle]
+                        dict_temp['s_version'] = self.__g_oConfig[sSectionTitle][sValueTitle]
+                    elif sValueTitle == 'property_or_view_id':
+                        dict_temp['s_property_or_view_id'] = self.__g_oConfig[sSectionTitle][sValueTitle]
+                    elif self.__g_oConfig[sSectionTitle][sValueTitle].lower() == 'on':
+                        dict_temp['lst_access_level'].append(sValueTitle)
+                    dictOtherAdsApiInfo['google_analytics'] = dict_temp
             elif sSectionTitle == 'others':
                 for sValueTitle in self.__g_oConfig[sSectionTitle]:
                     dictOtherAdsApiInfo[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
@@ -134,5 +145,5 @@ class SvApiConfigParser(sv_object.ISvObject):
         return dictResp
 
 
-if __name__ == '__main__': # for console debugging
-	pass
+# if __name__ == '__main__': # for console debugging
+# 	pass

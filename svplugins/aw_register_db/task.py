@@ -46,11 +46,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else:
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -66,8 +68,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '1.0.4'
+        self._g_sLastModifiedDate = '1st, Dec 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None})
 
@@ -97,7 +99,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__deleteCertainMonth()
         else:
             self._printDebug('-> register aw raw data')
-
         self.__arrangeAwRawDataFile(s_sv_acct_id, s_acct_title, lst_google_ads)
         self.__registerDb()
 
@@ -116,12 +117,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sEndDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-' + str(lstMonthRange[1])
         with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            lstRst = oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
+            oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
-        try:
-            with codecs.open(os.path.join(sParentDataPath, 'alias_info_campaign.tsv'), 'r',encoding='utf8') as tsvfile:
+
+        s_alias_file_path = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
+        # try:
+        if os.path.isfile(s_alias_file_path):
+            with codecs.open(s_alias_file_path, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 nRowCnt = 0
                 for row in reader:
@@ -129,9 +133,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
 
                     nRowCnt = nRowCnt + 1
-        except FileNotFoundError:
-            pass
-        
+        # except FileNotFoundError:
+        #     pass
         return dictCampaignNameAliasInfo
 
     def __arrangeAwRawDataFile(self, sSvAcctId, sAcctTitle, lstGoogleads):
@@ -178,87 +181,98 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sSourceDataPath = os.path.join(sParentDataPath, sCid, 'data', 'closing') # to archive data file
                 sDataFileFullname = os.path.join(sParentDataPath, sCid, 'data', 'closing', sFilename)
             
-            try:
-                with open(sDataFileFullname, 'r') as tsvfile:
-                    reader = csv.reader(tsvfile, delimiter='\t')
-                    for row in reader:
-                        bBrd = 0
-                        lstCampaignCode = row[0].split('_')
-                        if lstCampaignCode[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
-                            continue
-                        
-                        # process body
-                        if len(lstCampaignCode) > 3: # adwords campaign name follows singleview campaign code
-                            if lstCampaignCode[0] == 'OLD': # OLD campaign
-                                lstCampaignCode.pop(0)
-                                nLastIdx = len(lstCampaignCode) - 1
-                                sTempCampaign3rd = lstCampaignCode[nLastIdx]
-                                lstCampaignCode[nLastIdx] = sTempCampaign3rd + '_OLD'
-                        else: # adwords group name follows singleview campaign code
-                            self._printDebug(lstCampaignCode)
-                            lstCampaignCode = row[1].split('_')
-                        
-                        if len(lstCampaignCode) == 6 and (lstCampaignCode[0] == 'GG' or lstCampaignCode[0] == 'YT'):
-                                sSource = lstCampaignCode[0]
-                                sRstType = lstCampaignCode[1]
-                                sMedium = lstCampaignCode[2]
-                                sCampaign1st = lstCampaignCode[3]
-                                sCampaign2nd = lstCampaignCode[4]
-                                sCampaign3rd = lstCampaignCode[5]
-                        else:
-                            try:
-                                sCampaignName = row[0]
-                                dictCampaignNameAlias[ sCampaignName ]
-                                sSource = dictCampaignNameAlias[ sCampaignName ]['source']
-                                sRstType = dictCampaignNameAlias[ sCampaignName ]['rst_type']
-                                sMedium = dictCampaignNameAlias[ sCampaignName ]['medium']
-                                sCampaign1st = dictCampaignNameAlias[ sCampaignName ]['camp1st']
-                                sCampaign2nd = dictCampaignNameAlias[ sCampaignName ]['camp2nd']
-                                sCampaign3rd = dictCampaignNameAlias[ sCampaignName ]['camp3rd']
-                            except KeyError: # if unacceptable googleads campaign name
-                                self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                                self._printDebug('weird googleads log!')
-                                return
-                        
-                        sUa = self.__g_oSvCampaignParser.getUa(row[6])
-                        sTerm = row[2]
-                        sPlacement = None
-                        # diff between "adwords term" and "adwords placement"
-                        if self.__g_oSvCampaignParser.decideAwPlacementTagByTerm(sTerm) == True:
-                            sPlacement = sTerm
-                            sTerm = None
-                        # finally determine branded by term
-                        if self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm) == True:
-                            bBrd = 1
-
-                        nImpression = int(row[3])
-                        nClick = int(row[4])
-                        nCost = int(int(row[5]) / 1000000)
-                        nConvCnt = int(float(row[7]))
-                        nConvAmnt = int(float(row[8]))
-                        sDatadate = row[9]
-                        sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+str(bBrd)+'|@|'+\
-                            sCampaign1st+'|@|'+\
-                            sCampaign2nd+'|@|'+\
-                            sCampaign3rd+'|@|'+\
-                            str(sTerm)+'|@|'+\
-                            str(sPlacement)
-
-                        try: # if designated log already created
-                            self.__g_dictAdwRaw[sReportId]
-                            self.__g_dictAdwRaw[sReportId]['imp'] += nImpression
-                            self.__g_dictAdwRaw[sReportId]['clk'] += nClick
-                            self.__g_dictAdwRaw[sReportId]['cost'] += nCost
-                            self.__g_dictAdwRaw[sReportId]['conv_cnt'] += nConvCnt
-                            self.__g_dictAdwRaw[sReportId]['conv_amnt'] += nConvAmnt
-                        except KeyError: # if new log requested
-                            self.__g_dictAdwRaw[sReportId] = {
-                                'imp':nImpression,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
-                            }
-                self.__archiveGaDataFile(sSourceDataPath, sFilename)
-            except FileNotFoundError:
+            if not os.path.isfile(sDataFileFullname):
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-            
+                continue
+
+            with open(sDataFileFullname, 'r') as tsvfile:
+                reader = csv.reader(tsvfile, delimiter='\t')
+                for row in reader:
+                    bBrd = 0
+                    lstCampaignCode = row[0].split('_')
+                    if lstCampaignCode[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
+                        continue
+                    
+                    # process body
+                    if len(lstCampaignCode) > 3:  # adwords group name following singleview campaign code
+                        if lstCampaignCode[0] == 'OLD':  # try to check old sv campaign convention
+                            lstCampaignCode.pop(0)
+                            nLastIdx = len(lstCampaignCode) - 1
+                            sTempCampaign3rd = lstCampaignCode[nLastIdx]
+                            lstCampaignCode[nLastIdx] = sTempCampaign3rd + '_OLD'
+                    else:  # adwords group name not following singleview campaign convention
+                        # self._printDebug(lstCampaignCode)
+                        lstCampaignCode = row[1].split('_')  # try to parse wierd group name
+                    
+                    # adwords campaign name follows singleview campaign code
+                    if len(lstCampaignCode) == 6 and (lstCampaignCode[0] == 'GG' or lstCampaignCode[0] == 'YT'):
+                            sSource = lstCampaignCode[0]
+                            sRstType = lstCampaignCode[1]
+                            sMedium = lstCampaignCode[2]
+                            sCampaign1st = lstCampaignCode[3]
+                            sCampaign2nd = lstCampaignCode[4]
+                            sCampaign3rd = lstCampaignCode[5]
+                    else:  # lookup alias DB
+                        sCampaignName = row[0]
+                        # should log source group name to sv convention translation
+                        # try:
+                        if sCampaignName in dictCampaignNameAlias.keys():
+                            # dictCampaignNameAlias[sCampaignName]
+                            sSource = dictCampaignNameAlias[sCampaignName]['source']
+                            sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
+                            sMedium = dictCampaignNameAlias[sCampaignName]['medium']
+                            sCampaign1st = dictCampaignNameAlias[sCampaignName]['camp1st']
+                            sCampaign2nd = dictCampaignNameAlias[sCampaignName]['camp2nd']
+                            sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
+                        # except KeyError: # if unacceptable googleads campaign name
+                        else:  # if unacceptable googleads campaign name
+                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                            self._printDebug('weird googleads log!')
+                            return
+                    
+                    sUa = self.__g_oSvCampaignParser.getUa(row[6])
+                    sTerm = row[2]
+                    sPlacement = None
+                    # diff between "adwords term" and "adwords placement"
+                    if self.__g_oSvCampaignParser.decideAwPlacementTagByTerm(sTerm) == True:
+                        sPlacement = sTerm
+                        sTerm = None
+                    # finally determine branded by term
+                    # if self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm) == True:
+                    #     bBrd = 1
+                    dict_brded_rst = self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm)
+                    if dict_brded_rst['b_error'] == True:
+                        self._printDebug(dict_brded_rst['s_err_msg'])
+                    elif dict_brded_rst['b_brded']:
+                        bBrd = 1
+
+                    nImpression = int(row[3])
+                    nClick = int(row[4])
+                    nCost = int(int(row[5]) / 1000000)
+                    nConvCnt = int(float(row[7]))
+                    nConvAmnt = int(float(row[8]))
+                    sDatadate = row[9]
+                    sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+str(bBrd)+'|@|'+\
+                        sCampaign1st+'|@|'+\
+                        sCampaign2nd+'|@|'+\
+                        sCampaign3rd+'|@|'+\
+                        str(sTerm)+'|@|'+\
+                        str(sPlacement)
+
+                    # try: # if designated log already created
+                    if sReportId in self.__g_dictAdwRaw.keys():  # if designated log already created
+                        # self.__g_dictAdwRaw[sReportId]
+                        self.__g_dictAdwRaw[sReportId]['imp'] += nImpression
+                        self.__g_dictAdwRaw[sReportId]['clk'] += nClick
+                        self.__g_dictAdwRaw[sReportId]['cost'] += nCost
+                        self.__g_dictAdwRaw[sReportId]['conv_cnt'] += nConvCnt
+                        self.__g_dictAdwRaw[sReportId]['conv_amnt'] += nConvAmnt
+                    # except KeyError: # if new log requested
+                    else:  # if new log requested
+                        self.__g_dictAdwRaw[sReportId] = {
+                            'imp':nImpression,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
+                        }
+            self.__archiveGaDataFile(sSourceDataPath, sFilename)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
 
@@ -267,7 +281,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nSentinel = len(self.__g_dictAdwRaw)
         with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            for sReportId in self.__g_dictAdwRaw:
+            for sReportId, dict_row in self.__g_dictAdwRaw.items():
                 if not self._continue_iteration():
                     break
 
@@ -284,12 +298,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCampaign3rd = aReportType[9].strip()
                 sTerm = aReportType[10].strip()
                 sPlacement = aReportType[11].strip()
-                    
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                lstFetchRst = oSvMysql.executeQuery('insertAwCompiledDailyLog', sAdwordsCid, sUaType, sSource, sRstType, sMedium, bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,
-                    sTerm, sPlacement, str(self.__g_dictAdwRaw[sReportId]['cost']), self.__g_dictAdwRaw[sReportId]['imp'], str(self.__g_dictAdwRaw[sReportId]['clk']),
-                    str(self.__g_dictAdwRaw[sReportId]['conv_cnt']), str(self.__g_dictAdwRaw[sReportId]['conv_amnt']), sDataDate)
+                oSvMysql.executeQuery('insertAwCompiledDailyLog', sAdwordsCid, sUaType, sSource, sRstType, sMedium, 
+                    bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm, sPlacement, 
+                    str(dict_row['cost']), dict_row['imp'], str(dict_row['clk']),
+                    str(dict_row['conv_cnt']), str(dict_row['conv_amnt']), sDataDate)
 
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1

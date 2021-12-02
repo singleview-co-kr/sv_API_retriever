@@ -36,11 +36,13 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
     import sv_campaign_parser
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -52,8 +54,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '1st, Dec 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
 
     def __enter__(self):
@@ -96,7 +98,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for sFxIdx in self.__g_dictFxTrendInfo:
             aFxPeriodInfo = sFxIdx.split('_')
             sFxCode = aFxPeriodInfo[0]
-
             if sCheckFxCode == sFxCode:
                 aFxPeriod = aFxPeriodInfo[1].split('~')
                 if len(aFxPeriod[0]) > 0: # fx date - start
@@ -126,7 +127,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return True
         
         sCurrencyTrendPath = os.path.join(self._g_sAbsRootPath, 'files', 'info_fx_' + sFxCode + '.tsv')
-        try:
+        # try:
+        if os.path.isfile(sCurrencyTrendPath):
             with open(sCurrencyTrendPath, 'r') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 nRowCnt = 0
@@ -134,7 +136,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if nRowCnt > 0: 
                         self.__g_dictFxTrendInfo[sFxCode + '_' + row[0]] = int(row[1].replace(',',''))
                     nRowCnt = nRowCnt + 1
-        except FileNotFoundError:
+        # except FileNotFoundError:
+        else:
             self._printDebug('file ' + sCurrencyTrendPath + ' does not exist')
             return False
         return True
@@ -143,10 +146,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         sFxCodePath = os.path.join(s_conf_path_abs, 'info_fx.tsv')
         sFxCode = 'error'
-        try:
+        # try:
+        if os.path.isfile(sFxCodePath):
             with open(sFxCodePath, 'r') as f:
                 sFxCode = f.readline().strip().upper()
-        except FileNotFoundError:
+        #except FileNotFoundError:
+        else:
             self._printDebug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
 
@@ -191,7 +196,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDataFileFullname = os.path.join(sTempDataPath, aFileInfo[0])
             aFileDetailInfo = aFileInfo[0].split('_')
             sDatadate = aFileDetailInfo[0]
-            try:
+            # try:
+            if os.path.isfile(sDataFileFullname):
                 with open(sDataFileFullname, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for row in reader:
@@ -257,8 +263,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         except IndexError:
                             nConvAmnt = 0
                     
-                        try: # if designated log already created
-                            self.__g_dictFbRaw[sReportId]
+                        # try: # if designated log already created
+                        if sReportId in self.__g_dictFbRaw.keys():  # if designated log already created
+                            # self.__g_dictFbRaw[sReportId]
                             self.__g_dictFbRaw[sReportId]['reach'] += nReach
                             self.__g_dictFbRaw[sReportId]['imp'] += nImpression
                             self.__g_dictFbRaw[sReportId]['clk'] += nClick
@@ -266,12 +273,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             self.__g_dictFbRaw[sReportId]['cost'] += nCost
                             self.__g_dictFbRaw[sReportId]['conv_cnt'] += nConvCnt
                             self.__g_dictFbRaw[sReportId]['conv_amnt'] += nConvAmnt
-                        except KeyError: # if new log requested
+                        # except KeyError: # if new log requested
+                        else:  # if new log requested
                             self.__g_dictFbRaw[sReportId] = {
-                                'reach':nReach,'imp':nImpression,'u_clk':nUniqueClick,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
+                                'reach':nReach, 'imp':nImpression, 'u_clk':nUniqueClick, 'clk':nClick,
+                                'cost':nCost, 'conv_cnt':nConvCnt, 'conv_amnt':nConvAmnt
                             }
                 self.__archiveGaDataFile(sTempDataPath, aFileInfo[0])
-            except FileNotFoundError:
+            # except FileNotFoundError:
+            else:
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
 
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
@@ -282,27 +292,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nSentinel = len(self.__g_dictFbRaw)
         with sv_mysql.SvMySql('svplugins.fb_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            for sReportId in self.__g_dictFbRaw:
+            for sReportId, dict_single_raw in self.__g_dictFbRaw.items():
                 if not self._continue_iteration():
                     break
 
                 aReportType = sReportId.split('|@|')
-                sDataDate = datetime.strptime( aReportType[0], "%Y%m%d" )
+                sDataDate = datetime.strptime(aReportType[0], "%Y%m%d")
                 sFbBizAcctId = aReportType[1]
                 sUaType = aReportType[2]
                 sSource = aReportType[3]
                 sRstType = aReportType[4]
                 sMedium = aReportType[5]
-                bBrd = aReportType[6]
+                bBrd = aReportType[6] 
                 sCampaign1st = aReportType[7]
                 sCampaign2nd = aReportType[8]
                 sCampaign3rd = aReportType[9]
-                    
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                lstFetchRst = oSvMysql.executeQuery('insertFbCompiledDailyLog', sFbBizAcctId, sUaType, sSource, sRstType, sMedium, bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,
-                    str(self.__g_dictFbRaw[sReportId]['cost']), str(self.__g_dictFbRaw[sReportId]['reach']), self.__g_dictFbRaw[sReportId]['imp'], str(self.__g_dictFbRaw[sReportId]['clk']),
-                    str(self.__g_dictFbRaw[sReportId]['u_clk']),str(self.__g_dictFbRaw[sReportId]['conv_cnt']), str(self.__g_dictFbRaw[sReportId]['conv_amnt']), sDataDate )
+                oSvMysql.executeQuery('insertFbCompiledDailyLog', sFbBizAcctId, sUaType, sSource, sRstType, 
+                    sMedium, bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,
+                    str(dict_single_raw['cost']), str(dict_single_raw['reach']), dict_single_raw['imp'],
+                    str(dict_single_raw['clk']), str(dict_single_raw['u_clk']), str(dict_single_raw['conv_cnt']),
+                    str(dict_single_raw['conv_amnt']), sDataDate)
 
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
@@ -310,17 +321,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __getCampaignNameAlias(self, sSvAcctId, sAcctTitle):
         sParentDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
         dictCampaignNameAliasInfo = {}
-        try:
-            with codecs.open(os.path.join(sParentDataPath, 'alias_info_campaign.tsv'), 'r',encoding='utf8') as tsvfile:
+        s_alias_filename = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
+        # try:
+        if os.path.isfile(s_alias_filename):
+            with codecs.open(s_alias_filename, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 nRowCnt = 0
                 for row in reader:
                     if nRowCnt > 0:
-                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
-
-                    nRowCnt = nRowCnt + 1
-        except FileNotFoundError:
-            pass
+                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 
+                            'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6]}
+                    nRowCnt += 1
+        # except FileNotFoundError:
+        #    pass
         return dictCampaignNameAliasInfo
 
     def __archiveGaDataFile(self, sDataPath, sCurrentFileName):

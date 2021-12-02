@@ -38,7 +38,7 @@ import sys
 import argparse
 import random
 import httplib2
-from apiclient.errors import HttpError
+# from apiclient.errors import HttpError
 from apiclient.discovery import build
 
 from oauth2client import file
@@ -50,16 +50,20 @@ from oauth2client.client import AccessTokenRefreshError
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else:
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+    __g_lstAccessLevel = []
+
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
+        self._g_sVersion = '1.0.3'
+        self._g_sLastModifiedDate = '24th, Nov 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         
     def getConsoleAuth(self, argv):
@@ -91,26 +95,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # Define the auth scopes to request.
         scope = ['https://www.googleapis.com/auth/analytics.readonly']
         # Authenticate and construct service.
-        service = self.__getService('analytics', 'v3', scope, sClientSecretsJson )
+        service = self.__getService('analytics', 'v3', scope, sClientSecretsJson)
         # Try to make a request to the API. Print the results or handle errors.
         
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        s_ga_view_id = dict_acct_info[s_sv_acct_id]['ga_view_id']
-        
-        try:
-            oResult = self.__getInsiteRaw(service, s_sv_acct_id, s_acct_title, s_ga_view_id )
-        except TypeError as error:
-            # Handle errors in constructing a query.
-            self._printDebug(('There was an error in constructing your query : %s' % error))
-
-        except HttpError as error:
-            # Handle API errors.
-            self._printDebug(('Arg, there was an API error : %s : %s' % (error.resp.status, error._get_reason())))
-
-        except AccessTokenRefreshError:
-            # Handle Auth errors.
-            self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
+        s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
+        s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
+        self.__g_lstAccessLevel = dict_acct_info[s_sv_acct_id]['google_analytics']['lst_access_level']
+        if s_version == 'ua':  # universal analytics
+            try:
+                self.__getInsiteRaw(service, s_sv_acct_id, s_acct_title, s_property_or_view_id)
+            except TypeError as error:
+                # Handle errors in constructing a query.
+                self._printDebug(('There was an error in constructing your query : %s' % error))
+            except HttpError as error:
+                # Handle API errors.
+                self._printDebug(('Arg, there was an API error : %s : %s' % (error.resp.status, error._get_reason())))
+            except AccessTokenRefreshError:
+                # Handle Auth errors.
+                self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
+        elif s_version == 'ga4':
+            self._printDebug('plugin is developing')
 
         self._task_post_proc(o_callback)
 
@@ -124,36 +130,52 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         The response returned from the Core Reporting API.
         """
         sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
-        if os.path.isdir(sDataPath) is False :
+        if os.path.isdir(sDataPath) == False :
             os.makedirs(sDataPath)
         sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
-        if os.path.isdir(sConfPath) is False :
+        if os.path.isdir(sConfPath) == False :
             os.makedirs(sConfPath)
         
         # https://developers.google.com/analytics/devguides/reporting/core/dimsmets
         # https://ga-dev-tools.appspot.com/query-explorer/
         # dictation format : metric, dimension, sort, designated_filename
-        dictSession = {'met': 'sessions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'}
-        dictBounceRate = {'met': 'bounceRate', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'}
-        dictPercentNewSessions = {'met': 'percentNewSessions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'}
-        dictPageviewsPerSession = {'met': 'pageviewsPerSession', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'}
-        dictAvgSessionDuration = {'met': 'avgSessionDuration', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'}
-        dictTransactions = {'met': 'transactions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'} # will be removed
-        dictTransactionRevenue = {'met': 'transactionRevenue', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'} # will be removed
-        lstToQuery = [ dictSession, dictBounceRate, dictPercentNewSessions, dictPageviewsPerSession, dictAvgSessionDuration, dictTransactions, dictTransactionRevenue ]
-
+        lst_to_query = []
+        if 'homepage' in self.__g_lstAccessLevel:
+            lst_to_query.append({'met': 'sessions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+            lst_to_query.append({'met': 'bounceRate', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+            lst_to_query.append({'met': 'percentNewSessions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+            lst_to_query.append({'met': 'pageviewsPerSession', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+            lst_to_query.append({'met': 'avgSessionDuration', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+        if 'internal_search' in self.__g_lstAccessLevel:
+            lst_to_query.append({'met': 'searchUniques', 'dim': 'ga:searchKeyword', 'sort':'ga:searchKeyword'})
+        if 'catalog' in self.__g_lstAccessLevel:  # 'dim': 'ga:productSku' <- sku id  vs 'dim': 'ga:productName' <- sku title
+            lst_to_query.append({'met': 'productListViews', 'dim': 'ga:productName', 'sort':'ga:productName'})  # quota burden query
+            lst_to_query.append({'met': 'productListClicks', 'dim': 'ga:productName', 'sort':'ga:productName'})  # quota burden query
+            lst_to_query.append({'met': 'productDetailViews', 'dim': 'ga:productName', 'sort':'ga:productName'})  # quota burden query
+        if 'payment' in self.__g_lstAccessLevel:
+            lst_to_query.append({'met': 'buyToDetailRate', 'dim': 'ga:productName', 'sort':'ga:productName'})
+            lst_to_query.append({'met': 'cartToDetailRate', 'dim': 'ga:productName', 'sort':'ga:productName'})
+            lst_to_query.append({'met': 'productAddsToCart', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of tmes the product was added to the shopping cart
+            lst_to_query.append({'met': 'quantityAddedToCart', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of product units added to the shopping cart
+            lst_to_query.append({'met': 'productRemovesFromCart', 'dim': 'ga:productName', 'sort':'ga:productName'})
+            lst_to_query.append({'met': 'productRevenuePerPurchase', 'dim': 'ga:productName', 'sort':'ga:productName'})  # quota burden query; Average product revenue per purchase (commonly used with Product Coupon Code) (ga:itemRevenue / ga:uniquePurchases) - (Enhanced Ecommerce). This field is disallowed in segments.
+            lst_to_query.append({'met': 'itemQuantity', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Total number of items purchased. For example, if users purchase 2 frisbees and 5 tennis balls, this will be 7.
+            lst_to_query.append({'met': 'productCheckouts', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of times the product was included in the check-out process (Enhanced Ecommerce).
+            lst_to_query.append({'met': 'quantityCheckedOut', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of product units included in check out (Enhanced Ecommerce).
+            lst_to_query.append({'met': 'transactions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
+            lst_to_query.append({'met': 'transactionRevenue', 'dim': 'ga:transactionId, ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium', 'filename':'transactionRevenueByTrId'})
+            
         # sToday = time.strftime('%Y%m%d')
         nRetryBackoffCnt = 0
-        dictInsiteUaSegment = {'PC': 'sessions::condition::ga:deviceCategory==desktop', 'MOB': 'sessions::condition::ga:deviceCategory==mobile,ga:deviceCategory==tablet'}
+        dictInsiteUaSegment = {'PC': 'sessions::condition::ga:deviceCategory==desktop', 
+            'MOB': 'sessions::condition::ga:deviceCategory==mobile,ga:deviceCategory==tablet'}
         for sUa in dictInsiteUaSegment:
-            for dictSetting in lstToQuery:
+            for dictSetting in lst_to_query:
                 sMet = dictSetting['met']
-                
                 try: # set designated download filename if requested, or follow metric name
                     sFileName = dictSetting['filename']
                 except KeyError:
                     sFileName = sMet
-                
                 try:
                     sLatestFilepath = os.path.join(sConfPath, sUa+'_'+sFileName+'.latest')
                     f = open(sLatestFilepath, 'r')
@@ -166,16 +188,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 # requested report date should not be later than today
                 dtDateEndRetrieval = datetime.now() - timedelta(days=1) # yesterday
                 dtDateDiff = dtDateEndRetrieval - dtStartRetrieval
-                
                 nNumDays = int(dtDateDiff.days ) + 1
                 dictDateQueue = dict()
                 for x in range (0, nNumDays):
                     dtElement = dtStartRetrieval + timedelta(days = x)
                     dictDateQueue[dtElement] = 0
-
                 if len(dictDateQueue) == 0:
                     continue
-
                 while self._continue_iteration(): # loop for each report date
                     try:
                         dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
@@ -198,34 +217,39 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 # If you want more than 10000, you need to paginate with multiple queries and join the results.
                                 ).execute()
                             sTsvFilename = sDataDateForMysql + '_' + sUa + '_' + sFileName + '.tsv'
-
                             # write data table to file.
-                            with open( os.path.join(sDataPath, sTsvFilename), 'w', encoding='utf-8' ) as out:
+                            with open(os.path.join(sDataPath, sTsvFilename), 'w', encoding='utf-8') as out:
                                 if oRst.get('rows', []):
                                     for row in oRst.get('rows'):
                                         for cell in row:
                                             out.write(cell.replace('"', '').replace("'", '') + '\t')
                                         out.write( '\n')
-                            
                             try:
                                 f = open(sLatestFilepath, 'w')
                                 f.write(sDataDateForMysql)
                                 f.close()
                             except PermissionError:
                                 break
-                            
                             dictDateQueue[dtRetrieval] = 1
                             time.sleep(1)
                         except HttpError as error:
                             # https://developers.google.com/analytics/devguides/reporting/core/v4/errors
-                            if error.resp.reason in ['userRateLimitExceeded', 'quotaExceeded','internalServerError', 'backendError']:
+                            if error.resp.reason in ['quotaExceeded']:
+                                self._printDebug('stop - daily or monthly quota exceeded')
+                                return
+                            elif error.resp.reason in ['userRateLimitExceeded','internalServerError', 'backendError']:
                                 if nRetryBackoffCnt < 5:
-                                    self._printDebug( 'start retrying with exponential back-off that GA recommends.' )
-                                    self._printDebug( error.resp )
-                                    time.sleep((2 ** nRetryBackoffCnt ) + random.random())
+                                    self._printDebug('start retrying with exponential back-off that GA recommends.')
+                                    self._printDebug(error.resp)
+                                    time.sleep((2 ** nRetryBackoffCnt) + random.random())
                                     nRetryBackoffCnt = nRetryBackoffCnt + 1
                                 else:
-                                    raise Exception('remove' )
+                                    raise Exception('remove')
+                        except Exception as e:
+                            self._printDebug(e)
+                            self._printDebug('GA api has reported weird error while processing sv account id: ' + sSvAcctId)
+                            self._printDebug('remove')  # raise Exception('remove' )
+                            return
                     except ValueError:
                         break
 
@@ -279,62 +303,3 @@ if __name__ == '__main__': # for console debugging and execution
                 oJob.do_task(None)
     else:
         print('warning! [analytical_namespace] [config_loc] params or --noauth_local_webserver is required for console execution.')
-
-'''
-def __traverseAccountInfo(self, service):
-	"""Traverses Management API to return the all property and view id.
-	Args:
-		service: The service object built by the Google API Python client library.
-	Returns:
-		A object with the all property and view ID. None if a user does not have any accounts, webproperties, or profiles.
-	"""
-	accounts = service.management().accounts().list().execute()
-	if accounts.get('items'):
-		for account in accounts.get('items'):
-		
-			currentAccountId = account.get('id')
-			self._printDebug('> account ID '+ currentAccountId )
-			webproperties = service.management().webproperties().list(
-				accountId = currentAccountId).execute()
-
-			for WebpropertyId in webproperties.get('items'):
-				CurrentWebpropertyId = WebpropertyId.get('id')
-				self._printDebug('-> property ' + WebpropertyId.get('name') + ' ID '+ CurrentWebpropertyId )
-
-				profiles = service.management().profiles().list(
-					accountId=currentAccountId,
-					webPropertyId=CurrentWebpropertyId).execute()
-
-				for profile in profiles.get('items'):
-					#self._printDebug( profile )
-					self._printDebug( '--> view ' + profile.get('name') + ' ID ' + profile.get('id') )
-
-def __getFirstProfileId(self, service):
-	"""Traverses Management API to return the first profile id.
-	This first queries the Accounts collection to get the first account ID.
-	This ID is used to query the Webproperties collection to retrieve the first
-	webproperty ID. And both account and webproperty IDs are used to query the
-	Profile collection to get the first profile id.
-	Args:
-		service: The service object built by the Google API Python client library.
-	Returns:
-		A string with the first profile ID. None if a user does not have any accounts, webproperties, or profiles.
-	"""
-	accounts = service.management().accounts().list().execute()
-	
-	if accounts.get('items'):
-		firstAccountId = accounts.get('items')[0].get('id')
-		webproperties = service.management().webproperties().list(
-			accountId = firstAccountId).execute()
-		
-		if webproperties.get('items'):
-			firstWebpropertyId = webproperties.get('items')[0].get('id')
-			profiles = service.management().profiles().list(
-				accountId=firstAccountId,
-				webPropertyId=firstWebpropertyId).execute()
-			
-			if profiles.get('items'):
-				return profiles.get('items')[0].get('id')
-
-	return None
-'''

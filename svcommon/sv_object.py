@@ -83,18 +83,13 @@ class ISvObject(Error):
             if iteration == total: 
                 print()
 
-    def _printDebug(self, sMsg):
-        #print(__name__)
+    def _printDebug(self, s_msg):
         if __name__ == 'svcommon.sv_object' and self._g_oWebsocket is not None:
-            self._g_oWebsocket(sMsg)
+            if type(s_msg) != str:
+                s_msg = str(s_msg)
+            self._g_oWebsocket(s_msg)
         elif __name__ == 'sv_object': # for console debugging
-            print(sMsg)
+            print(s_msg)
 
-        if( self._g_oLogger is not None ):
-            self._g_oLogger.debug(sMsg)
-
-        # if __name__ == 'sv_object':
-        #     print(sMsg)
-        # else:
-        #     if self._g_oLogger is not None:
-        #         self._g_oLogger.debug(sMsg)
+        if self._g_oLogger is not None:
+            self._g_oLogger.debug(s_msg)

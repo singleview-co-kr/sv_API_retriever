@@ -131,13 +131,14 @@ class svCampaignParser(sv_object.ISvObject):
         except KeyError:
             return 'err_ua'
 
-    def validateGaMediumTag(self, sGaMediumTag):
+    def validateGaMediumTag(self, s_ga_medium_tag):
+        s_ga_medium_tag = s_ga_medium_tag.lower()
         dictRst = {'medium':'weird', 'found_pos':-1}
-        if sGaMediumTag in self.__g_dictGaMedium: # remedy erronous UTM parameter 
-            dictRst['medium'] = self.__g_dictGaMedium[sGaMediumTag] 
+        if s_ga_medium_tag in self.__g_dictGaMedium: # remedy erronous UTM parameter 
+            dictRst['medium'] = self.__g_dictGaMedium[s_ga_medium_tag] 
         else:
             for sGaOfficialMediaCode in self.__g_dictGaMedium:
-                nPos = sGaMediumTag.find(sGaOfficialMediaCode)
+                nPos = s_ga_medium_tag.find(sGaOfficialMediaCode)
                 if nPos > -1:
                     dictRst['medium'] = self.__g_dictGaMedium[sGaOfficialMediaCode]
                     dictRst['found_pos'] = nPos
@@ -149,28 +150,46 @@ class svCampaignParser(sv_object.ISvObject):
                 return True
         return False
 
-    def decideBrandedByTerm(self, sBrandedTermsPath, sTerm):
-        if sTerm == None:
-            return False
-        if self.__g_lstBrandedTrunc == None:
-            self.__g_lstBrandedTrunc = self.__getBrandedTrunc(sBrandedTermsPath)
-        if sTerm not in self.__g_lstGaUselessTerm:
+    def decideBrandedByTerm(self, s_brded_terms_path, s_term):
+        # self._printDebug(s_brded_terms_path + ' is required for better analysis!')
+        dict_rst = {'b_brded': False, 'b_error': False, 's_err_msg': None}
+        if s_term is None:
+            return dict_rst
+        if self.__g_lstBrandedTrunc is None:
+            self.__g_lstBrandedTrunc = self.__getBrandedTrunc(s_brded_terms_path)
+            if len(self.__g_lstBrandedTrunc) == 0:
+                dict_rst['b_error'] = True
+                dict_rst['s_err_msg'] = s_brded_terms_path + ' is required for better analysis!'
+                return dict_rst
+
+        if s_term not in self.__g_lstGaUselessTerm:
             for sBrandedTrunc in self.__g_lstBrandedTrunc:
-                if sTerm.find(sBrandedTrunc) > -1:
-                    return True
-        return False
+                if s_term.find(sBrandedTrunc) > -1:
+                    dict_rst['b_brded'] = True
+                    break
+        return dict_rst
 
-    def getSvPnsServiceTypeTag(self, sSvServiceType):
-        try:
-            return self.__g_dictPnsServiceType[sSvServiceType]
-        except KeyError:
+    def getSvPnsServiceTypeTag(self, s_sv_service_type):
+        lst_type = list(self.__g_dictPnsServiceType.keys())
+        if s_sv_service_type in lst_type:
+            return self.__g_dictPnsServiceType[s_sv_service_type]
+        else:
             return 'err_service_type'
+        # try:
+        #     return self.__g_dictPnsServiceType[s_sv_service_type]
+        # except KeyError:
+        #     return 'err_service_type'
 
-    def getSvMediumTag(self, sSvMediumCode):
-        try:
-            return self.__g_dictMediumTag[sSvMediumCode] 
-        except KeyError:
+    def getSvMediumTag(self, s_sv_medium_code):
+        lst_tag = list(self.__g_dictMediumTag.keys())
+        if s_sv_medium_code in lst_tag:
+            return self.__g_dictMediumTag[s_sv_medium_code]
+        else:
             return 'err_medium'
+        # try:
+        #     return self.__g_dictMediumTag[sSvMediumCode] 
+        # except KeyError:
+        #     return 'err_medium'
 
     def parseCampaignCodeFb(self, dictCampaignInfo, dictCampaignNameAlias):
         dictRst = {'source':'unknown','rst_type':'','medium':'','brd':'0','campaign1st':'0','campaign2nd':'0','campaign3rd':'0','detected':False}
@@ -198,11 +217,11 @@ class svCampaignParser(sv_object.ISvObject):
                     dictCampaignNameAlias[sCampaignName]
                     dictRst['source'] =  self.__g_dictSourceAbbreviation['FB']
                     dictRst['brd'] = '0'
-                    dictRst['rst_type'] = dictCampaignNameAlias[ sCampaignName ]['rst_type']
-                    dictRst['medium'] = dictCampaignNameAlias[ sCampaignName ]['medium'].lower()
-                    dictRst['campaign1st'] = dictCampaignNameAlias[ sCampaignName ]['camp1st']
-                    dictRst['campaign2nd'] = dictCampaignNameAlias[ sCampaignName ]['camp2nd']
-                    dictRst['campaign3rd'] = dictCampaignNameAlias[ sCampaignName ]['camp3rd']
+                    dictRst['rst_type'] = dictCampaignNameAlias[sCampaignName]['rst_type']
+                    dictRst['medium'] = dictCampaignNameAlias[sCampaignName ]['medium'].lower()
+                    dictRst['campaign1st'] = dictCampaignNameAlias[sCampaignName]['camp1st']
+                    dictRst['campaign2nd'] = dictCampaignNameAlias[sCampaignName]['camp2nd']
+                    dictRst['campaign3rd'] = dictCampaignNameAlias[sCampaignName]['camp3rd']
                     dictRst['detected'] = True
                 except KeyError: # if facebook inlink ad with unknown campaign name
                     dictRst['source'] = self.__g_dictSourceAbbreviation['FB']
@@ -233,7 +252,7 @@ class svCampaignParser(sv_object.ISvObject):
         return dictRst
 
     def parseCampaignCode(self, sSvCampaignCode=''):
-        ''' this method might be for ga_register??? '''
+        """ this method might be for ga_register??? """
         dictRst = {'source':'unknown','rst_type':'','medium':'','brd':0,'campaign1st':'00','campaign2nd':'00','campaign3rd':'00'}
         if sSvCampaignCode == '(not set)':
             return dictRst
@@ -367,20 +386,20 @@ class svCampaignParser(sv_object.ISvObject):
                     break
         return dictRst
 
-    def __getBrandedTrunc(self, sBrandedTermsPath):
-        ''' called by self.decideBrandedByTerm() '''
+    def __getBrandedTrunc(self, s_brded_terms_path):
+        """ called by self.decideBrandedByTerm() """
         if self.__g_lstBrandedTrunc != None: # sentinel to prevent duplicated process
             return self.__g_lstBrandedTrunc
-        lstBrandedTrunc = []
-        if sBrandedTermsPath.find('/branded_term.conf') > -1:
+        lst_branded_trunc = []
+        if s_brded_terms_path.find('/branded_term.conf') > -1:
             try:
-                with open(sBrandedTermsPath, 'r') as tsvfile:
+                with open(s_brded_terms_path, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for term in reader:
-                        lstBrandedTrunc.append(term[0])
+                        lst_branded_trunc.append(term[0])
             except FileNotFoundError:
-                self._printDebug(sBrandedTermsPath + ' is required for better analysis!')
-        return lstBrandedTrunc
+                pass
+        return lst_branded_trunc
 
 			
 #if __name__ == '__main__': # for console debugging

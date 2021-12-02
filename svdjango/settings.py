@@ -144,5 +144,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # actual location of static files
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # 이 리스트에 STATIC_ROOT에서 정의한 디렉토리가 포함되면 안됨
-#STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
+if not DEBUG:
+    STATIC_ROOT = ''
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
+# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # 이 리스트에 STATIC_ROOT에서 정의한 디렉토리가 포함되면 안됨
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
