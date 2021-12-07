@@ -46,11 +46,15 @@ if __name__ == '__main__': # for console debugging
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import internal_search
+    import item_performance
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svplugins.ga_register_db import internal_search
+    from svplugins.ga_register_db import item_performance
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -62,6 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_dictSourceMediaNameAliasInfo = {}
     __g_dictGoogleAdsCampaignNameAlias = {}
     __g_dictNaverPowerlinkCampaignNameAlias = {}
+    __g_sSvNull = '#$'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -102,6 +107,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('-> '+ sGaViewId +' is registering GA data files')
         sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
         sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
+
+        # try internal search log
+        o_internal_search = internal_search.svInternalSearch()
+        o_internal_search.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
+        o_internal_search.proc_internal_search_log()
+        del o_internal_search
+
+        # try item performance log
+        o_item_perf = item_performance.svItemPerformance()
+        o_item_perf.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
+        o_item_perf.proc_item_perf_log()
+        del o_item_perf
+
+        # try transaction referral log
+        self.__proc_transaction_log(sDataPath)
+
         self.__getSourceMediaNameAlias(sConfPath)
         
         # retrieve google ads campaign name alias info
@@ -111,7 +132,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # retrieve naver powerlink campaign name alias info
         sNaverPowerlinkDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'naver_ad')
         self.__g_dictNaverPowerlinkCampaignNameAlias = self.__getCampaignNameAlias(sNaverPowerlinkDataPath)
-        self.__arrangeGaRawDataFileHomepageLevel(sDataPath)
+        self.__proc_media_perf_log(sDataPath)
         
         # stop if errornous source medium list not empty
         if len(self.__g_lstErrornousMedia) > 0:
@@ -138,13 +159,181 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #     pass
         return
 
-    def __parseGaRow(self, lstRow,sDataFileFullname):
-        try:
+    def __proc_transaction_log(self, s_data_path):
+        print('proc_transaction_log')
+        # traverse directory and categorize data files
+        lst_transaction_log = []
+        lst_data_file = os.listdir(s_data_path)
+        lst_data_file.sort()
+        n_idx = 0
+        n_sentinel = len(lst_data_file)
+        dict_query = {'transactionRevenueByTrId.tsv': 'rev'}
+        lst_analyzing_filename = dict_query.keys()
+        for s_filename in lst_data_file:
+            s_data_file_fullname = os.path.join(s_data_path, s_filename)
+            if s_filename == 'archive':
+                continue
+            lst_file_info = s_filename.split('_')
+            s_data_date = lst_file_info[0]
+            s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
+            s_specifier = lst_file_info[2]
+            if s_specifier in lst_analyzing_filename:
+                s_attr_name = dict_query[s_specifier]
+            else:
+                continue
+            
+            if os.path.isfile(s_data_file_fullname):
+                with open(s_data_file_fullname, 'r') as tsvfile:
+                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                    for row in reader:
+                        if not self._continue_iteration():
+                            break
+                        lst_tmp_row = row[1:]  # remove transaction ID
+                        dictRst = self.__parseGaRow(lst_tmp_row, s_data_file_fullname)
+                        del lst_tmp_row
+                        lst_transaction_log.append([row[0], s_ua_type, dictRst['source'], dictRst['rst_type'], 
+                            dictRst['medium'], str(dictRst['brd']), dictRst['campaign1st'], dictRst['campaign2nd'], 
+                            dictRst['campaign3rd'], row[2], str(row[4]), s_data_date])
+            else:
+                self._printDebug('pass ' + s_data_file_fullname + ' does not exist')
+
+            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            n_idx += 1
+        
+        n_idx = 0
+        n_sentinel = len(lst_transaction_log)
+        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            for lst_single_row in lst_transaction_log:
+                if not self._continue_iteration():
+                    break
+                # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
+                oSvMysql.executeQuery('insertGaTransactionDailyLog', 
+                    lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3], lst_single_row[4], 
+                    lst_single_row[5], lst_single_row[6], lst_single_row[7], lst_single_row[8], lst_single_row[9], 
+                    str(lst_single_row[10]), lst_single_row[11])
+
+                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                n_idx += 1
+        del lst_transaction_log
+        self._printDebug('UA data file has been arranged\n')
+
+    def __proc_media_perf_log(self, sDataPath):
+        """ process homepage level data """
+        # traverse directory and categorize data files
+        lstDataFiles = os.listdir(sDataPath)
+        lstDataFiles.sort()
+        
+        nIdx = 0
+        nSentinel = len(lstDataFiles)
+        dictQuery = {'avgSessionDuration.tsv':'dur_sec', 'bounceRate.tsv':'b_per', 'pageviewsPerSession.tsv':'pvs', 
+            'percentNewSessions.tsv':'new_per', 'sessions.tsv':'sess', 
+            # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
+            'transactions.tsv':'trs', 'transactionRevenueByTrId.tsv':'rev'}
+
+        lst_analyzing_filename = dictQuery.keys()
+        for sFilename in lstDataFiles:
+            sDataFileFullname = os.path.join(sDataPath, sFilename)
+            if sFilename == 'archive':
+                continue
+            
+            aFile = sFilename.split('_')
+            sDataDate = aFile[0]
+            sUaType = self.__g_oSvCampaignParser.getUa(aFile[1])
+            sSpecifier = aFile[2]
+            if sSpecifier in lst_analyzing_filename:
+                sIdxName = dictQuery[sSpecifier]
+            else:
+                continue
+            
+            if os.path.isfile(sDataFileFullname):
+                with open(sDataFileFullname, 'r') as tsvfile:
+                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                    for row in reader:
+                        if not self._continue_iteration():
+                            break
+                        if sSpecifier == 'transactionRevenueByTrId.tsv':
+                            row = row[1:]  # remove transaction ID
+
+                        dictRst = self.__parseGaRow(row, sDataFileFullname)
+                        sTerm = row[2]
+                        sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
+                            dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
+                            dictRst['campaign3rd']+'|@|'+sTerm
+                        
+                        if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
+                            self.__g_dictGaRaw[sReportId] = {
+                                'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
+                            }
+                        self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
+                self.__archive_ga_data_file(sDataPath, sFilename)
+            else:
+                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+
+            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            nIdx += 1
+        self._printDebug('UA data file has been arranged')
+        
+    def __getCampaignNameAlias(self, sParentDataPath):
+        dictCampaignNameAliasInfo = {}
+        s_alias_filepath = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
+        # try:
+        if os.path.isfile(s_alias_filepath):
+            with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
+                reader = csv.reader(tsvfile, delimiter='\t')
+                nRowCnt = 0
+                for row in reader:
+                    if nRowCnt > 0:
+                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 
+                            'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
+
+                    nRowCnt = nRowCnt + 1
+        # else:
+        #     self._printDebug('invalid alias info - ' + s_alias_filepath)
+        # except FileNotFoundError:
+        #     pass
+        return dictCampaignNameAliasInfo
+
+    def __registerSourceMediumTerm(self):
+        nIdx = 0
+        nSentinel = len(self.__g_dictGaRaw)
+        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            for sReportId, dict_single_raw in self.__g_dictGaRaw.items():
+                if not self._continue_iteration():
+                    break
+                
+                aReportType = sReportId.split('|@|')
+                sDataDate = datetime.strptime(aReportType[0], "%Y%m%d")
+                sUaType = aReportType[1]
+                sSource = aReportType[2]
+                sRstType = aReportType[3]
+                sMedium = aReportType[4]
+                bBrd = aReportType[5]
+                sCampaign1st = aReportType[6]
+                sCampaign2nd = aReportType[7]
+                sCampaign3rd = aReportType[8]
+                sTerm = aReportType[9]
+                # should check if there is duplicated date + SM log
+                # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
+                oSvMysql.executeQuery('insertGaCompiledDailyLog', sUaType, sSource, sRstType, sMedium, 
+                    bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm, 
+                    dict_single_raw['sess'], str(dict_single_raw['new_per']), str(dict_single_raw['b_per']), 
+                    str(dict_single_raw['dur_sec']), str(dict_single_raw['pvs']), dict_single_raw['trs'], 
+                    dict_single_raw['rev'], 0, sDataDate)
+
+                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                nIdx += 1
+
+    def __parseGaRow(self, lstRow, sDataFileFullname):
+        # try:
+        if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
             sSourceMediumAlias = str(self.__g_dictSourceMediaNameAliasInfo[lstRow[0]]['alias'])
             aSourceMedium = sSourceMediumAlias.split(' / ')
-        except KeyError:
+        # except KeyError:
+        else:
             aSourceMedium = lstRow[0].split(' / ')
-        
+
         sSource = aSourceMedium[0]
         sMedium = aSourceMedium[1]
         sCampaignCode = lstRow[1]
@@ -153,7 +342,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sCampaign2nd = ''
         sCampaign3rd = ''
         sTerm = lstRow[2]
-        
         # "skin-skin14--shop3.ratestw.cafe24.com" like source string occurs confusion
         m = re.search(r"[-\w.]+", sSource)
         nHttpPos = m.group(0).find('http')
@@ -173,12 +361,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 except AttributeError: # retry to handle very weird source tagging
                     # this block handles '＆' which is not & that naver shopping foolishly occurs
                     self._printDebug('weird source found on ' + sDataFileFullname + ' -> unicode ampersand which is not &')
-                    
                     # same source code needs to be method - begin
                     sEncodedSource = sSource.encode('UTF-8')
                     sEncodedSource = str(sEncodedSource)
                     aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86") # utf-8 encoded unicode ampersand ��
-                    
                     for sQueryElement in aWeirdSource:
                         aQuery = sQueryElement.split('=')
                         if aQuery[0] == 'utm_campaign':
@@ -217,7 +403,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign1st = dictSmRst['campaign1st']
                         sCampaign2nd = dictSmRst['campaign2nd']
                         sCampaign3rd = dictSmRst['campaign3rd']
-
                     if aQuery[0] == 'utm_term':
                             sTerm = aQuery[1]
             # same source code needs to be method - end
@@ -236,7 +421,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if sSource == 'google' and sMedium == 'cpc':
             # try:
             # lookup alias db, if non sv standard code
-            if sCampaignCode in self.__g_dictGoogleAdsCampaignNameAlias.keys():
+            # if sCampaignCode in self.__g_dictGoogleAdsCampaignNameAlias.keys():
+            if self.__g_dictGoogleAdsCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
                 # self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]
                 if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] == 'YT':
                     sSource = 'youtube'
@@ -254,7 +440,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif sSource == 'naver' and sMedium == 'cpc':
             # try:
             # lookup alias db, if non sv standard code
-            if sCampaignCode in self.__g_dictNaverPowerlinkCampaignNameAlias.keys():
+            # if sCampaignCode in self.__g_dictNaverPowerlinkCampaignNameAlias.keys():
+            if self.__g_dictNaverPowerlinkCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
                 # self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]
                 sCampaignCode = self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['source'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
@@ -279,14 +466,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sCampaign1st = dictCampaignRst['campaign1st']
         sCampaign2nd = dictCampaignRst['campaign2nd']
         sCampaign3rd = dictCampaignRst['campaign3rd']
-
         # finally determine branded by term
         dict_brded_rst = self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm)
         if dict_brded_rst['b_error'] == True:
             self._printDebug(dict_brded_rst['s_err_msg'])
         elif dict_brded_rst['b_brded']:
             bBrd = 1
-        
         # monitor weird source name - begin
         if len(sSource) > 50: 
             self._printDebug(sDataFileFullname)
@@ -295,123 +480,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # monitor weird source name - begin
         return {'source':sSource,'rst_type':sRstType,'medium':sMedium,'brd':bBrd,'campaign1st':sCampaign1st,'campaign2nd':sCampaign2nd,'campaign3rd':sCampaign3rd}
 
-    def __arrangeGaRawDataFileHomepageLevel(self, sDataPath):
-        """ process homepage level data """
-        # traverse directory and categorize data files
-        lstDataFiles = os.listdir(sDataPath)
-        lstDataFiles.sort()
-        
-        nIdx = 0
-        nSentinel = len(lstDataFiles)
-        dictQuery = {'avgSessionDuration.tsv':'dur_sec', 'bounceRate.tsv':'b_per', 'pageviewsPerSession.tsv':'pvs', 
-            'percentNewSessions.tsv':'new_per', 'sessions.tsv':'sess', 'transactionRevenue.tsv':'rev', 
-            'transactions.tsv':'trs'}
-
-        lst_analyzing_filename = dictQuery.keys()
-        for sFilename in lstDataFiles:
-            sDataFileFullname = os.path.join(sDataPath, sFilename)
-            if sFilename == 'archive':
-                continue
-            
-            aFile = sFilename.split('_')
-            sDataDate = aFile[0]
-            sUaType = self.__g_oSvCampaignParser.getUa(aFile[1])
-            sSpecifier = aFile[2]
-
-            if sSpecifier in lst_analyzing_filename:
-                sIdxName = dictQuery[sSpecifier]
-            else:
-                continue
-            
-            # try:
-            if os.path.isfile(sDataFileFullname):
-                with open(sDataFileFullname, 'r') as tsvfile:
-                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
-                    for row in reader:
-                        if not self._continue_iteration():
-                            break
-                        dictRst = self.__parseGaRow(row,sDataFileFullname)
-                        sTerm = row[2]
-                        sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
-                            dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
-                            dictRst['campaign3rd']+'|@|'+sTerm
-                        
-                        if sReportId not in self.__g_dictGaRaw.keys():  # if designated log already created
-                            self.__g_dictGaRaw[sReportId] = {
-                                'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0, 'ua':sUaType
-                            }
-                        self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
-                        
-                self.__archiveGaDataFile(sDataPath, sFilename)
-            # except FileNotFoundError:
-            else:
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
-            nIdx += 1
-        self._printDebug('UA data file has been arranged')
-        
-    def __getCampaignNameAlias(self, sParentDataPath):
-        dictCampaignNameAliasInfo = {}
-        s_alias_filepath = sParentDataPath+'alias_info_campaign.tsv'
-        # try:
-        if os.path.isfile(s_alias_filepath):
-            with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
-                reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
-                for row in reader:
-                    if nRowCnt > 0:
-                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 
-                            'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
-
-                    nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
-        #     pass
-        return dictCampaignNameAliasInfo
-
-    def __registerSourceMediumTerm(self):
-        nIdx = 0
-        nSentinel = len(self.__g_dictGaRaw)
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            for sReportId, dict_single_raw in self.__g_dictGaRaw.items():
-                if not self._continue_iteration():
-                    break
-                
-                aReportType = sReportId.split('|@|')
-                sDataDate = datetime.strptime(aReportType[0], "%Y%m%d")
-                sUaType = aReportType[1]
-                sSource = aReportType[2]
-                sRstType = aReportType[3]
-                sMedium = aReportType[4]
-                bBrd = aReportType[5]
-                sCampaign1st = aReportType[6]
-                sCampaign2nd = aReportType[7]
-                sCampaign3rd = aReportType[8]
-                sTerm = aReportType[9]
-                    
-                # should check if there is duplicated date + SM log
-                # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertGaCompiledDailyLog', sUaType, sSource, sRstType, sMedium, 
-                    bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm, 
-                    dict_single_raw['sess'], str(dict_single_raw['new_per']), str(dict_single_raw['b_per']), 
-                    str(dict_single_raw['dur_sec']), str(dict_single_raw['pvs']), dict_single_raw['trs'], 
-                    dict_single_raw['rev'], 0, sDataDate)
-
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
-                nIdx += 1
-
-    def __archiveGaDataFile(self, sDataPath, sCurrentFileName):
-        sSourcePath = sDataPath
-        if not os.path.exists(sSourcePath):
-            self._printDebug( 'error: google analytics source directory does not exist!' )
+    def __archive_ga_data_file(self, s_data_path, s_cur_filename):
+        if not os.path.exists(s_data_path):
+            self._printDebug('error: google analytics source directory does not exist!' )
             return
-        sArchiveDataPath = os.path.join(sDataPath, 'archive')
-        if not os.path.exists(sArchiveDataPath):
-            os.makedirs(sArchiveDataPath)
-        sSourceFilePath = os.path.join(sDataPath, sCurrentFileName)
-        sArchiveDataFilePath = os.path.join(sArchiveDataPath, sCurrentFileName)
-        shutil.move(sSourceFilePath, sArchiveDataFilePath)
+        s_data_archive_path = os.path.join(s_data_path, 'archive')
+        if not os.path.exists(s_data_archive_path):
+            os.makedirs(s_data_archive_path)
+        s_source_filepath = os.path.join(s_data_path, s_cur_filename)
+        sArchiveDataFilePath = os.path.join(s_data_archive_path, s_cur_filename)
+        shutil.move(s_source_filepath, sArchiveDataFilePath)
 
 
 if __name__ == '__main__': # for console debugging

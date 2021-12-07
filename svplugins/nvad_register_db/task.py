@@ -168,7 +168,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for lstMediLog in lstDailyMediaLog:
                 sCampaignId = lstMediLog['campaign_id']+'|@|'+lstMediLog['ad_group_id']+'|@|'+lstMediLog['ad_keyword_id']+'|@|'+lstMediLog['pc_mobile_type'] 
                 # try: # if designated log already created
-                if sCampaignId in dictCompliedDailyLog.keys():  # if designated log already created
+                # if sCampaignId in dictCompliedDailyLog.keys():  # if designated log already created
+                if dictCompliedDailyLog.get(sCampaignId, 0):  # returns 0 if sRowId does not exist
                     # dictCompliedDailyLog[sCampaignId]
                     dictCompliedDailyLog[sCampaignId]['cost'] += int(lstMediLog['cost'])
                     dictCompliedDailyLog[sCampaignId]['imp'] += int(lstMediLog['impression'])
@@ -176,7 +177,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 # except KeyError: # if new log requested
                 else:  # if new log requested
                     # try: # if campaign id already retrieved
-                    if lstMediLog['campaign_id'] in dictCampaignInfo.keys():  # if campaign id already retrieved
+                    # if lstMediLog['campaign_id'] in dictCampaignInfo.keys():  # if campaign id already retrieved
+                    if dictCampaignInfo.get(lstMediLog['campaign_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedCampaignTitle = dictCampaignInfo[lstMediLog['campaign_id']]
                     # except KeyError: # if new campaign id requested
                     else:  # if new campaign id requested
@@ -193,7 +195,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sTranslatedCampaignTitle = lstMediLog['campaign_id']
 
                     # try: # if ad group id already retrieved
-                    if lstMediLog['ad_group_id'] in dictAdGrpInfo.keys():
+                    # if lstMediLog['ad_group_id'] in dictAdGrpInfo.keys():
+                    if dictAdGrpInfo.get(lstMediLog['ad_group_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedGrpTitle = dictAdGrpInfo[lstMediLog['ad_group_id']]
                     # except KeyError: # if new ad group id requested
                     else:  # if new ad group id requested
@@ -211,7 +214,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                     if lstMediLog['ad_keyword_id'] != '-': # ignore non keyword media eg) nvr shopping
                         # try: # if ad keyword id already retrieved
-                        if lstMediLog['ad_keyword_id'] in dictKwInfo:
+                        # if lstMediLog['ad_keyword_id'] in dictKwInfo:
+                        if dictKwInfo.get(lstMediLog['ad_keyword_id'], 0):  # returns 0 if sRowId does not exist
                             sTranslatedKw = dictKwInfo[lstMediLog['ad_keyword_id']]
                         # except KeyError: # if new ad keyword id requested
                         else:  # if new ad keyword id requested
@@ -244,7 +248,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dictCompliedDailyLog[sConvId]['conv_cnt'] += int(lstSingleConvlog['conversion_count'])
                     dictCompliedDailyLog[sConvId]['conv_amnt'] += int(lstSingleConvlog['sales_by_conversion'])
                 except KeyError: # it is possible to exist conversion log without same day media impression data, in a word, supposed to be a delayed conversion
-                    
                     lstCampaign = oSvMysql.executeQuery('getCampaignInfo', lstSingleConvlog['campaign_id'], sCompileDate)
                     try:
                         sTranslatedCampaignTitle = lstCampaign[0]['campaign_name']

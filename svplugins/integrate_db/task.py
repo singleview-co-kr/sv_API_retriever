@@ -73,6 +73,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_dictOtherMergedDailyLog = {}
     __g_dictNvPnsUaCostPortion = {'M':0.7, 'P':0.3} # sum must be 1
     __g_oSvCampaignParser = None
+    __g_sSvNull = '#%'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -330,7 +331,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
         # try: # if designated log already created
-        if sRowId in list(self.__g_dictFbMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictFbMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictFbMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictFbMergedDailyLog[sRowId]
             self.__g_dictFbMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictFbMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
@@ -474,7 +476,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
         # try: # if designated log already created
-        if sRowId in list(self.__g_dictAdwMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictAdwMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictAdwMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictAdwMergedDailyLog[sRowId]
             self.__g_dictAdwMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictAdwMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
@@ -624,7 +627,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
         # try: # if designated log already created
-        if sRowId in list(self.__g_dictYtMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictYtMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictYtMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictYtMergedDailyLog[sRowId]
             self.__g_dictYtMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictYtMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
@@ -749,7 +753,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             nConvCnt = int(dict_single_yt_log['conv_cnt'])
             nConvAmnt = int(dict_single_yt_log['conv_amnt'])
             # try: # if designated log already created
-            if sRowId in list(dictYtResidualArrangedLog.keys()):  # if designated log already created
+            # if sRowId in list(dictYtResidualArrangedLog.keys()):  # if designated log already created
+            if dictYtResidualArrangedLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
                 dictYtResidualArrangedLog[sRowId]
                 dictYtResidualArrangedLog[sRowId]['cost'] += nCost
                 dictYtResidualArrangedLog[sRowId]['imp'] += nImp
@@ -814,7 +819,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
         # try: # if designated log already created
-        if sRowId in list(self.__g_dictKkoMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictKkoMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictKkoMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictKkoMergedDailyLog[sRowId]
             self.__g_dictKkoMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictKkoMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
@@ -1109,7 +1115,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-        if sRowId in list(self.__g_dictNvadMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictNvadMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictNvadMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictNvadMergedDailyLog[sRowId]
             self.__g_dictNvadMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictNvadMergedDailyLog[sRowId]['tot_new_session'] += fTotNew
@@ -1157,7 +1164,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         fTotBounce = nSession * fBouncePer
         fTotDurSec = nSession * fDurSec
         fTotPvs = nSession * fPvs
-        if sRowId in list(self.__g_dictOtherMergedDailyLog.keys()):  # if designated log already created
+        # if sRowId in list(self.__g_dictOtherMergedDailyLog.keys()):  # if designated log already created
+        if self.__g_dictOtherMergedDailyLog.get(sRowId, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             # self.__g_dictOtherMergedDailyLog[sRowId]
             self.__g_dictOtherMergedDailyLog[sRowId]['session'] += nSession
             self.__g_dictOtherMergedDailyLog[sRowId]['tot_new_session'] += fTotNew

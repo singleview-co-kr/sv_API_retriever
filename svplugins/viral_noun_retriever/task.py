@@ -208,9 +208,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             self._printDebug(self._g_sPluginName + ' is registering ' + str(n_iter_cnt) + 'th word')
                     
                     n_iter_cnt = n_iter_cnt + 1
-                    try:
+                    # try:
+                    if self.__g_dictRegisteredNouns.get(s_word, 0):  # returns 0 if sRowId does not exist
                         n_word_srl = self.__g_dictRegisteredNouns[s_word]['word_srl']
-                    except KeyError:
+                    # except KeyError:
+                    else:
                         lst_rst = o_sv_mysql.executeQuery('insertDictionary', s_word )
                         n_word_srl = lst_rst[0]['id']
                         self.__g_dictRegisteredNouns[s_word] = {'word_srl': n_word_srl, 'b_ignore': 0}

@@ -203,7 +203,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sCampaign2nd == None or sCampaign3rd == None:
                     sCampaignName = row[1] + '|@|' + row[2] + '|@|' + row[3]
                     # try:
-                    if sCampaignName in dictCampaignNameAlias.keys():
+                    # if sCampaignName in dictCampaignNameAlias.keys():
+                    if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                         sSource = dictCampaignNameAlias[sCampaignName]['source']
                         sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
                         sMedium = dictCampaignNameAlias[sCampaignName]['medium']
@@ -304,7 +305,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sCampaign2nd == None or sCampaign3rd == None:
                     sCampaignName = row[0] + '|@|' + row[1] + '|@|' + row[2]
                     # try:
-                    if sCampaignName in dictCampaignNameAlias.keys():
+                    # if sCampaignName in dictCampaignNameAlias.keys():
+                    if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                         sSource = dictCampaignNameAlias[sCampaignName]['source']
                         sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
                         sMedium = dictCampaignNameAlias[sCampaignName]['medium']

@@ -216,7 +216,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaignName = row[0]
                         # should log source group name to sv convention translation
                         # try:
-                        if sCampaignName in dictCampaignNameAlias.keys():
+                        # if sCampaignName in dictCampaignNameAlias.keys():
+                        if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                             # dictCampaignNameAlias[sCampaignName]
                             sSource = dictCampaignNameAlias[sCampaignName]['source']
                             sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
@@ -260,7 +261,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         str(sPlacement)
 
                     # try: # if designated log already created
-                    if sReportId in self.__g_dictAdwRaw.keys():  # if designated log already created
+                    # if sReportId in self.__g_dictAdwRaw.keys():  # if designated log already created
+                    if self.__g_dictAdwRaw.get(sReportId, 0):  # returns 0 if sRowId does not exist
                         # self.__g_dictAdwRaw[sReportId]
                         self.__g_dictAdwRaw[sReportId]['imp'] += nImpression
                         self.__g_dictAdwRaw[sReportId]['clk'] += nClick

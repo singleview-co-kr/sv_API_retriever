@@ -264,7 +264,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             nConvAmnt = 0
                     
                         # try: # if designated log already created
-                        if sReportId in self.__g_dictFbRaw.keys():  # if designated log already created
+                        # if sReportId in self.__g_dictFbRaw.keys():  # if designated log already created
+                        if self.__g_dictFbRaw.get(sReportId, 0):  # returns 0 if sRowId does not exist
                             # self.__g_dictFbRaw[sReportId]
                             self.__g_dictFbRaw[sReportId]['reach'] += nReach
                             self.__g_dictFbRaw[sReportId]['imp'] += nImpression
