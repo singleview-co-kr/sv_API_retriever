@@ -78,7 +78,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         self._g_sVersion = '1.0.18'
-        self._g_sLastModifiedDate = '30th, Nov 2021'
+        self._g_sLastModifiedDate = '23rd, Dec 2021'
         self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
 
@@ -134,6 +134,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__compileDailyRecord(sDate)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data:', suffix = 'Complete', length = 50)
             nIdx += 1
+            self.__g_dictNvadMergedDailyLog = {}  # clear log
+            self.__g_dictAdwMergedDailyLog = {}  # clear log
+            self.__g_dictKkoMergedDailyLog = {}  # clear log
+            self.__g_dictYtMergedDailyLog = {}  # clear log
+            self.__g_dictFbMergedDailyLog = {}  # clear log
+            self.__g_dictOtherMergedDailyLog = {}  # clear log
 
         self._task_post_proc(o_callback)
 
