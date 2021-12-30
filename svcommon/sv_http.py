@@ -138,7 +138,7 @@ class svHttpCom(sv_object.ISvObject):
                 'Content-Type': 'application/json',
                 'User-Agent' : 'sv_crontab_bot' # to deny illegal access ;; 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36'
             }
-            oReqRes = self.__g_oHttpConn.request('GET', sConvertedUrl, sBody, dictHeaders)
+            self.__g_oHttpConn.request('GET', sConvertedUrl, sBody, dictHeaders)
             oHttpResp = self.__g_oHttpConn.getresponse()
             if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                 sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
@@ -154,18 +154,16 @@ class svHttpCom(sv_object.ISvObject):
         except Exception as err:  
             nIdx = 0
             for e in err.args:
-                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str( e ))
+                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str(e))
                 nIdx += 1
             oResp = self.__g_dictRet
         finally:
             return self.__g_dictRet
         
-        return self.__g_dictRet
-
     def getUrl( self ):
         oResp = None
         try:
-            oReqRes = self.__g_oHttpConn.request('GET', self.__g_sSubUrl)
+            self.__g_oHttpConn.request('GET', self.__g_sSubUrl)
             oHttpResp = self.__g_oHttpConn.getresponse()
             if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                 sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
@@ -196,13 +194,29 @@ class svHttpCom(sv_object.ISvObject):
                 oHeaders = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'application/json'}
                 sParams = urllib.parse.urlencode({self.__g_sReservedQueryName: sJson})
                 # self._printDebug( self.__g_sSubUrl )
-                oReqRes = self.__g_oHttpConn.request('POST', self.__g_sSubUrl, sParams, oHeaders)
+                self.__g_oHttpConn.request('POST', self.__g_sSubUrl, sParams, oHeaders)
 
                 oHttpResp = self.__g_oHttpConn.getresponse()
                 if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                     sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
                     # self._printDebug( sResp )
-                    if sResp != 'NULL':
+                    if sResp == 'bar1':
+                        self._printDebug('invalid brand_id')
+                        self.__g_dictRet['error'] = -1
+                        self.__g_dictRet['variables']['todo'] = 'stop'
+                    elif sResp == 'bar2':
+                        self._printDebug('enc key not exist')
+                        self.__g_dictRet['error'] = -1
+                        self.__g_dictRet['variables']['todo'] = 'stop'
+                    elif sResp == 'bar3':
+                        self._printDebug('decryption failed')
+                        self.__g_dictRet['error'] = -1
+                        self.__g_dictRet['variables']['todo'] = 'stop'
+                    elif sResp == 'bar4':
+                        self._printDebug('not a debug mode')
+                        self.__g_dictRet['error'] = -1
+                        self.__g_dictRet['variables']['todo'] = 'stop'
+                    elif sResp != 'NULL':
                         sTmp = self.__g_oCipher.decryptString(sResp)
                         oTmp = json.loads(sTmp )
                         
@@ -215,19 +229,17 @@ class svHttpCom(sv_object.ISvObject):
                     #while not r1.closed:
                     #	print(r1.read(200))  # 200 bytes
                 else: # what if HTTP failed
-                    self._printDebug('invalid URL -> status:' + str(oHttpResp.status) + ' reason:' + oHttpResp.reason )
+                    self._printDebug('invalid URL -> status:' + str(oHttpResp.status) + ' reason:' + oHttpResp.reason)
             else:
-                self._printDebug('not a dict type params' )
+                self._printDebug('not a dict type params')
 
         except Exception as err:
             nIdx = 0
             for e in err.args:
-                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str( e ))
+                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str(e))
                 nIdx += 1
         finally:
             return self.__g_dictRet
-        
-        return self.__g_dictRet
     
     def getMsgDict(self):
         return self.__g_dictMsg

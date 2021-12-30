@@ -65,12 +65,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sRetrieveMonth = None
     __g_sNvrPnsInfoFilePath = None
     __g_sFbPnsInfoFilePath = None
-    __g_dictNvadMergedDailyLog = {}
-    __g_dictAdwMergedDailyLog = {}
-    __g_dictKkoMergedDailyLog = {}
-    __g_dictYtMergedDailyLog = {}
-    __g_dictFbMergedDailyLog = {}
-    __g_dictOtherMergedDailyLog = {}
+    __g_dictNvadMergedDailyLog = None
+    __g_dictAdwMergedDailyLog = None
+    __g_dictKkoMergedDailyLog = None
+    __g_dictYtMergedDailyLog = None
+    __g_dictFbMergedDailyLog = None
+    __g_dictOtherMergedDailyLog = None
     __g_dictNvPnsUaCostPortion = {'M':0.7, 'P':0.3} # sum must be 1
     __g_oSvCampaignParser = None
     __g_sSvNull = '#%'
@@ -134,13 +134,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__compileDailyRecord(sDate)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data:', suffix = 'Complete', length = 50)
             nIdx += 1
-            self.__g_dictNvadMergedDailyLog = {}  # clear log
-            self.__g_dictAdwMergedDailyLog = {}  # clear log
-            self.__g_dictKkoMergedDailyLog = {}  # clear log
-            self.__g_dictYtMergedDailyLog = {}  # clear log
-            self.__g_dictFbMergedDailyLog = {}  # clear log
-            self.__g_dictOtherMergedDailyLog = {}  # clear log
-
+            
         self._task_post_proc(o_callback)
 
     def __deleteCertainMonth(self):
@@ -283,6 +277,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except ValueError:
             self._printDebug(sTouchingDate + ' is invalid date string')
             return
+
+        # clear log
+        self.__g_dictNvadMergedDailyLog = {}  
+        self.__g_dictAdwMergedDailyLog = {}
+        self.__g_dictKkoMergedDailyLog = {}
+        self.__g_dictYtMergedDailyLog = {}
+        self.__g_dictFbMergedDailyLog = {}
+        self.__g_dictOtherMergedDailyLog = {}
+
         # check non integrated date
         with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
