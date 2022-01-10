@@ -99,6 +99,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def do_task(self, o_callback):
         self.__g_sTargetUrl = self._g_dictParam['target_host_url']
+        print(self.__g_sTargetUrl)
+
         if self._g_dictParam['mode'] != None:
             self.__g_sMode = self._g_dictParam['mode']
         if self._g_dictParam['mode'] == 'update':
@@ -122,8 +124,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-
         self.__getKeyConfig(s_sv_acct_id, s_acct_title)
+
+        if self.__g_sTargetUrl is None:
+            if 'server' in list(self.__g_oConfig.keys()):
+                self.__g_sTargetUrl = self.__g_oConfig['server']['target_host_url']
+            else:
+                self._printDebug('stop -> invalid target_host_url')
+                return
+
         self._printDebug('-> communication begin')
         if self.__g_sMode == 'update':
             self.__updatePeriod()
