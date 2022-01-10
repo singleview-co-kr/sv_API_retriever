@@ -1,4 +1,4 @@
-Singleview API retriever for Python CLI
+Singleview API retriever for Django
 ============
 
 [![License](http://img.shields.io/badge/license-GNU%20LGPL-brightgreen.svg)](http://www.gnu.org/licenses/gpl.html)
