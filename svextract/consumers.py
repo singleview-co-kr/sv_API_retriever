@@ -7,7 +7,8 @@ from svauth.models import User
 from channels.generic.websocket import WebsocketConsumer
 
 # singleview config
-from conf import basic_config
+# from conf import basic_config
+from decouple import config
 
 # install WebSocket
 # https://ssungkang.tistory.com/entry/Django-Channels-%EB%B9%84%EB%8F%99%EA%B8%B0%EC%A0%81-%EC%B1%84%ED%8C%85-%EA%B5%AC%ED%98%84%ED%95%98%EA%B8%B0-WebSocket-1
@@ -15,6 +16,7 @@ from conf import basic_config
 
 class PluginConsole(WebsocketConsumer):
     __g_sPluginPathAbs = None
+    __g_sAbsPathBot = None
     __g_dictPluginThread = {}  # should improve to a multiuser threading use case
 
     # websocket 연결 시 실행
@@ -22,6 +24,7 @@ class PluginConsole(WebsocketConsumer):
         # print('ws connect')
         # https://stackoverflow.com/questions/65482182/problem-changing-from-websocketconsumer-to-asyncwebsocketconsumer
         self.user = self.scope['user']
+        self.__g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
         self.accept()
 
     # websocket 연결 종료 시 실행
@@ -65,7 +68,7 @@ class PluginConsole(WebsocketConsumer):
             return
 
         # integrate_db mode=ad
-        self.__g_sPluginPathAbs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins', s_plugin_name)
+        self.__g_sPluginPathAbs = os.path.join(self.__g_sAbsPathBot, 'svplugins', s_plugin_name)
 
         if not self.__validate_plugin():
             self.print_msg_socket('invalid plugin')

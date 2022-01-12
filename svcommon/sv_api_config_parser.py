@@ -28,18 +28,19 @@ import sys
 import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 
+# 3rd party library
+from decouple import config 
+
 # singleview config
 if __name__ == 'svcommon.sv_api_config_parser' : # for websocket running
-    from conf import basic_config
     from svcommon import sv_object
 elif __name__ == 'sv_api_config_parser': # for plugin console debugging
-    sys.path.append('../../conf')
-    import basic_config
     import sv_object
 
 
 class SvApiConfigParser(sv_object.ISvObject):
     __g_oConfig = None
+    __g_sAbsolutePath = None
     __g_sAnalyticalNamespace = None
     __g_sConfigLoc = None
     __g_sApiConfigFile = None
@@ -49,7 +50,8 @@ class SvApiConfigParser(sv_object.ISvObject):
         self._g_oLogger = logging.getLogger(__file__)
         self.__g_oConfig = configparser.RawConfigParser() # make python3 config parser parse key case sensitive
         self.__g_oConfig.optionxform = lambda option: option # make python3 config parser parse key case sensitive
-        
+        self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')
+
         if len(s_analytical_namespace) == 0:
             raise Exception('invalid user namespace')
         self.__g_sAnalyticalNamespace = s_analytical_namespace
@@ -58,7 +60,7 @@ class SvApiConfigParser(sv_object.ISvObject):
             self._printDebug( 'absolute api_info.ini not process is not defined')
             raise IOError('failed to read api_info.ini')
         else: # relative config path case
-            self.__g_sApiConfigFile = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', self.__g_sConfigLoc, 'api_info.ini')
+            self.__g_sApiConfigFile = os.path.join(self.__g_sAbsolutePath, 'files', self.__g_sConfigLoc, 'api_info.ini')
             self.__g_lstAcctInfo = self.__g_sConfigLoc.split('/')
 
     def __enter__(self):
@@ -82,7 +84,7 @@ class SvApiConfigParser(sv_object.ISvObject):
                 sys.path.append('../../classes')
                 import sv_install
                 o_install = sv_install.svInstall()
-                dict_config_info = {'s_abs_path_bot': basic_config.ABSOLUTE_PATH_BOT, 's_acct_info': self.__g_sConfigLoc}
+                dict_config_info = {'s_abs_path_bot': self.__g_sAbsolutePath, 's_acct_info': self.__g_sConfigLoc}
                 o_install.start_up_job_plugin(dict_config_info)
                 del o_install
             # raise IOError('failed to read api_info.ini')

@@ -40,7 +40,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 # singleview library
 
 # singleview config
-from conf import basic_config
+from decouple import config
 
 # def room(request, plugin_name):
 #     return render(request, 'svextract/plugin.html', {
@@ -50,8 +50,10 @@ from conf import basic_config
 # Create your views here.
 class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
+    __g_sAbsPathBot = None
 
     def __init__(self):
+        self.__g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
         return
 
     def get(self, *args, **kwargs):
@@ -76,7 +78,7 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
         s_brand_name = kwargs['brand_name'].strip()
 
         # create a data storage directory
-        s_brand_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', str(self.request.user.pk), s_brand_name)
+        s_brand_path_abs = os.path.join(self.__g_sAbsPathBot, 'files', str(self.request.user.pk), s_brand_name)
         if os.path.isdir(s_brand_path_abs) == False:
             os.makedirs(s_brand_path_abs)
 
@@ -86,7 +88,7 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
 
     def __validate_storage(self, n_user_pk, s_brand_name_json):
         """ find the brand designated directory """
-        s_brand_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'files', str(n_user_pk), s_brand_name_json)
+        s_brand_path_abs = os.path.join(self.__g_sAbsPathBot, 'files', str(n_user_pk), s_brand_name_json)
         if os.path.isdir(s_brand_path_abs):
             return True
         else:
@@ -94,7 +96,7 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
 
     def __get_plugin_lst(self):
         """ get modules in /svplugins directory """
-        s_plugin_path_abs = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'svplugins')
+        s_plugin_path_abs = os.path.join(self.__g_sAbsPathBot, 'svplugins')
         lst_plugin = [f for f in os.listdir(s_plugin_path_abs) if not f.startswith('_')]
         lst_plugin.append('stop')
         return lst_plugin

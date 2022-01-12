@@ -15,6 +15,7 @@ changeLog.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 __init__.py
+!svauth/migrations/__init__.py
 *.py[cod]
 *$py.class
 

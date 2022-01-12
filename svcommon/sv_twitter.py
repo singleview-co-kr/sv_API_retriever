@@ -24,7 +24,6 @@
 
 # standard library
 import os
-import sys
 import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 import tweepy  # pip install tweepy
@@ -32,32 +31,26 @@ from datetime import datetime
 # import pytz
 
 # 3rd party library
+from decouple import config
 
 # singleview config
 if __name__ == 'svcommon.sv_twitter': # for platform running
-    from conf import basic_config
     from svcommon import sv_object
 elif __name__ == 'sv_twitter': # for plugin console debugging
-    sys.path.append('../../conf')
-    import basic_config
     import sv_object
 elif __name__ == '__main__': # for class console debugging
-    sys.path.append('../conf')
-    import basic_config
     import sv_object
 
     
 class svTwitter(sv_object.ISvObject):
     """  """
     __g_oTwitterApi = None
-    # __g_oConfig = None
     __g_bAvailable = False
 
     def __init__(self):
-        # self.__g_oConfig = configparser.ConfigParser()
         o_config = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
-        s_twitter_config_file = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'twitter_config.ini')
+        s_twitter_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'twitter_config.ini')
         
         try:
             with open(s_twitter_config_file) as f:

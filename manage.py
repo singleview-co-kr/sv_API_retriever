@@ -3,12 +3,15 @@
 import os
 import sys
 
-
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'svdjango.settings')
-    from svinitialize import init_from_command_line
-    init_from_command_line(sys.argv)
+    from svinitialize import sv_console_init
+    oSvConsoleInit = sv_console_init.svInitialize(sys.argv)
+    s_msg = oSvConsoleInit.execute()
+    if s_msg != 'pass':
+        sys.exit(0)
+    
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

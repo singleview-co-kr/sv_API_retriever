@@ -24,25 +24,21 @@
 
 # standard library
 import os
-import sys
 import requests
 import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 
 # 3rd party library
 from slack_cleaner2 import *
+from decouple import config 
 
 # singleview config
 if __name__ == 'svcommon.sv_slack': # for platform running
-    from conf import basic_config
     from svcommon import sv_object
 elif __name__ == 'sv_slack': # for plugin console debugging
-    sys.path.append('../../conf')
-    import basic_config
     import sv_object
 elif __name__ == '__main__': # for class console debugging
-    sys.path.append('../conf')
-    import basic_config
+    pass
 
     
 class svSlack(sv_object.ISvObject):
@@ -57,7 +53,7 @@ class svSlack(sv_object.ISvObject):
     def __init__(self, sCallingBot):
         self.__g_oConfig = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
-        sSlackConfigFile = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'slack_config.ini')
+        sSlackConfigFile = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'slack_config.ini')
         
         if sCallingBot == 'dbs':
             self.__g_sCallingBot = 'DBS'

@@ -35,21 +35,15 @@ from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview config
 if __name__ == 'svcommon.sv_mysql': # for platform running
-    #from conf import basic_config
     from svcommon import sv_object
 elif __name__ == 'sv_mysql': # for plugin console debugging
-    #sys.path.append('../../conf')
-    #import basic_config
     import sv_object
 elif __name__ == '__main__': # for class console debugging
-    #sys.path.append('../conf')
-    #import basic_config
     pass
 
 class SvMySql(sv_object.ISvObject):
     """ mysql operation class based on pymysql library """
     __g_sAppName = None
-    # __g_oConfig = None  ##########
     __g_dictConfig = {}
     __g_oConn = None
     __g_oCursor = None
@@ -60,10 +54,9 @@ class SvMySql(sv_object.ISvObject):
     __g_dictCompiledSqlStmt = {}
 
     def __init__(self, sCallingFrom=None):
-        # self.__g_oConfig = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
         
-        self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')  #basic_config.ABSOLUTE_PATH_BOT
+        self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')
         if sCallingFrom is not None:
             if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
                 self.__g_sAppName = sCallingFrom + '.queries.'
@@ -75,14 +68,6 @@ class SvMySql(sv_object.ISvObject):
                 sSubPath += '/' + sPath
             self.__g_sAbsolutePath += sSubPath
         
-        # sMysqlConfigFile = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'mysql_config.ini')
-        # try:
-        #     with open(sMysqlConfigFile) as f:
-        #         self.__g_oConfig.read_file(f)
-        # except IOError:
-        #     self._printDebug('config.ini not exist')
-        #     raise IOError('failed to initialize SvMySql')
-        # self.__g_oConfig.read(sMysqlConfigFile)
         self.__g_dictConfig['db_hostname'] = config('db_hostname')
         self.__g_dictConfig['db_port'] = int(config('db_port'))
         self.__g_dictConfig['db_userid'] = config('db_userid')
