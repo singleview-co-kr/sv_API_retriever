@@ -41,38 +41,58 @@ if __name__ == '__main__': # for console debugging
     import sv_mysql
     import sv_campaign_parser
     import sv_object
-    # import sv_api_config_parser
     import sv_plugin
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
-    # from svcommon import sv_api_config_parser
     from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sMode = None
-    __g_sTblPrefix = None
-    __g_sNvadPathAbs = None
-    __g_sNvadDataPathAbs = None
-    __g_sNvadConfPathAbs = None
-    __g_lstDatadateToCompile = [] # create date list to compile NVAD DB
+    __g_lstTblTruncate = ['nvad_assembled_daily_log', 'nvad_master_ad', 'nvad_master_ad_extension',
+                        'nvad_master_ad_grp', 'nvad_master_ad_grp_budget', 'nvad_master_bizch',
+                        'nvad_master_campaign', 'nvad_master_campaign_budget', 'nvad_master_keyword',
+                        'nvad_master_qi', 'nvad_stat_ad', 'nvad_stat_ad_conversion', 
+                        'nvad_stat_ad_conversion_detail', 'nvad_stat_ad_detail', 'nvad_stat_ad_extension',
+                        'nvad_stat_ad_extension_conversion', 'nvad_stat_expkeyword', 
+                        'nvad_stat_naverpay_conversion']
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.2'
-        self._g_sLastModifiedDate = '1st, Dec 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode':None})
-       
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sMode = None
+        self.__g_sTblPrefix = None
+        self.__g_sNvadPathAbs = None
+        self.__g_sNvadDataPathAbs = None
+        self.__g_sNvadConfPathAbs = None
+        self.__g_lstDatadateToCompile = [] # create date list to compile NVAD DB
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sMode = None
+        self.__g_sTblPrefix = None
+        self.__g_sNvadPathAbs = None
+        self.__g_sNvadDataPathAbs = None
+        self.__g_sNvadConfPathAbs = None
+        self.__g_lstDatadateToCompile = [] # create date list to compile NVAD DB
+
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_sMode = self._g_dictParam['mode']
 
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -109,24 +129,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('-> clear nvad raw data')
             with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-                oSvMysql.truncateTable('nvad_assembled_daily_log')
-                oSvMysql.truncateTable('nvad_master_ad')
-                oSvMysql.truncateTable('nvad_master_ad_extension')
-                oSvMysql.truncateTable('nvad_master_ad_grp')
-                oSvMysql.truncateTable('nvad_master_ad_grp_budget')
-                oSvMysql.truncateTable('nvad_master_bizch')
-                oSvMysql.truncateTable('nvad_master_campaign')
-                oSvMysql.truncateTable('nvad_master_campaign_budget')
-                oSvMysql.truncateTable('nvad_master_keyword')
-                oSvMysql.truncateTable('nvad_master_qi')
-                oSvMysql.truncateTable('nvad_stat_ad')
-                oSvMysql.truncateTable('nvad_stat_ad_conversion')
-                oSvMysql.truncateTable('nvad_stat_ad_conversion_detail')
-                oSvMysql.truncateTable('nvad_stat_ad_detail')
-                oSvMysql.truncateTable('nvad_stat_ad_extension')
-                oSvMysql.truncateTable('nvad_stat_ad_extension_conversion')
-                oSvMysql.truncateTable('nvad_stat_expkeyword')
-                oSvMysql.truncateTable('nvad_stat_naverpay_conversion')
+                for s_tbl in self.__g_lstTblTruncate:
+                    oSvMysql.truncateTable(s_tbl)
+            self._task_post_proc(self._g_oCallback)
             return
         
         # compile registered stat datafile
@@ -144,8 +149,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'assemble stat data & register:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-        self._task_post_proc(o_callback)
-
+        self._task_post_proc(self._g_oCallback)
+        
     def __compileDailyRecord(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
         try: # validate requsted date
             sCompileDate = datetime.strptime(sCompileDate, '%Y%m%d').strftime('%Y-%m-%d')
@@ -167,20 +172,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # compile daily nvad log by campaign_id & ad_group_id & ad_keyword_id & ua
             for lstMediLog in lstDailyMediaLog:
                 sCampaignId = lstMediLog['campaign_id']+'|@|'+lstMediLog['ad_group_id']+'|@|'+lstMediLog['ad_keyword_id']+'|@|'+lstMediLog['pc_mobile_type'] 
-                # try: # if designated log already created
-                # if sCampaignId in dictCompliedDailyLog.keys():  # if designated log already created
                 if dictCompliedDailyLog.get(sCampaignId, 0):  # returns 0 if sRowId does not exist
-                    # dictCompliedDailyLog[sCampaignId]
                     dictCompliedDailyLog[sCampaignId]['cost'] += int(lstMediLog['cost'])
                     dictCompliedDailyLog[sCampaignId]['imp'] += int(lstMediLog['impression'])
                     dictCompliedDailyLog[sCampaignId]['click'] += int(lstMediLog['click'])
-                # except KeyError: # if new log requested
                 else:  # if new log requested
-                    # try: # if campaign id already retrieved
-                    # if lstMediLog['campaign_id'] in dictCampaignInfo.keys():  # if campaign id already retrieved
                     if dictCampaignInfo.get(lstMediLog['campaign_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedCampaignTitle = dictCampaignInfo[lstMediLog['campaign_id']]
-                    # except KeyError: # if new campaign id requested
                     else:  # if new campaign id requested
                         lstCampaign = oSvMysql.executeQuery('getCampaignInfo', lstMediLog['campaign_id'], sCompileDate)
                         try:
@@ -194,11 +192,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dictCampaignInfo[lstMediLog['campaign_id']] = lstMediLog['campaign_id']
                             sTranslatedCampaignTitle = lstMediLog['campaign_id']
 
-                    # try: # if ad group id already retrieved
-                    # if lstMediLog['ad_group_id'] in dictAdGrpInfo.keys():
                     if dictAdGrpInfo.get(lstMediLog['ad_group_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedGrpTitle = dictAdGrpInfo[lstMediLog['ad_group_id']]
-                    # except KeyError: # if new ad group id requested
                     else:  # if new ad group id requested
                         lstAdGrp = oSvMysql.executeQuery('getAdGrpInfo', lstMediLog['ad_group_id'], sCompileDate)
                         try:
@@ -213,11 +208,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sTranslatedGrpTitle = lstMediLog['ad_group_id']
 
                     if lstMediLog['ad_keyword_id'] != '-': # ignore non keyword media eg) nvr shopping
-                        # try: # if ad keyword id already retrieved
-                        # if lstMediLog['ad_keyword_id'] in dictKwInfo:
                         if dictKwInfo.get(lstMediLog['ad_keyword_id'], 0):  # returns 0 if sRowId does not exist
                             sTranslatedKw = dictKwInfo[lstMediLog['ad_keyword_id']]
-                        # except KeyError: # if new ad keyword id requested
                         else:  # if new ad keyword id requested
                             lstKw = oSvMysql.executeQuery('getKwInfo', lstMediLog['ad_keyword_id'], sCompileDate )
                             try:
@@ -290,7 +282,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'conv_cnt':int(lstSingleConvlog['conversion_count']), 'conv_amnt':int(lstSingleConvlog['sales_by_conversion']),
                         'ua':lstSingleConvlog['pc_mobile_type']
                     }
-
             # translate compiled log
             for s_campaign_id, dict_daily_log in dictCompliedDailyLog.items():
                 dict_campaign_info = self.__parseCampaignCode(oSvMysql, dict_daily_log, sCompileDate)
@@ -306,7 +297,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
                     dictBrspageDailyCostRst = self.__defineNvBrspageCost(sCompileDate)
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-                        self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
+                        self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
                         return False
 
                 if dict_daily_log['media'] == 'CPC' and dict_daily_log['campaign_1st'].find('NVSHOP') > -1:
@@ -585,7 +576,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         lstLogPeriod = []
         sBrspagePerformanceInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'performance_brs_info.tsv')
-        # try:
         if os.path.isfile(sBrspagePerformanceInfoFilePath):
             with codecs.open(sBrspagePerformanceInfoFilePath, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -602,9 +592,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             lstLogPeriod.append(int(row[0]))
                             
                     nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
-        #     pass
-        
         return set(lstLogPeriod)
 
     def __retrieveNvBrspageManualInfoByDate(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
@@ -618,7 +605,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             nBrsDatadate = int(sCompileDate.replace('-',''))
             sBrspagePerformanceInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'performance_brs_info.tsv')
-            # try:
             if os.path.isfile(sBrspagePerformanceInfoFilePath):
                 with codecs.open(sBrspagePerformanceInfoFilePath, 'r',encoding='utf8') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
@@ -634,9 +620,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dictTempRow = {'ua':row[1], 'term':row[2], 'imp':row[3], 'click':row[4], 'conv_cnt':row[5], 'conv_amnt':row[6] }
                                 lstNvBrsManualInfo.append(dictTempRow)
                         nRowCnt = nRowCnt + 1
-            # except FileNotFoundError:
-            #     pass
-        
         return lstNvBrsManualInfo
 
     def __registerMasterQiFile(self, sAcctTitle, dictMasterData):
@@ -650,13 +633,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 m = re.search(r'^\d+', sCurrentFileName)
-                
                 if len(m.group(0)) == 8:
                     sCheckDate = datetime.strptime(m.group(0), "%Y%m%d")
                 elif len(m.group(0)) == 14:
                     sCheckDate = datetime.strptime(m.group(0)[0:8], "%Y%m%d")
 
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -664,7 +645,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             #sCheckDate = datetime.strptime( row[0], "%Y%m%d" )
                             oSvMysql.executeQuery('insertMasterQi', row[0], row[1], row[2], row[3], row[4], sCheckDate)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -681,7 +661,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -711,7 +690,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[16] = '0000-00-00 00:00:00'
                             oSvMysql.executeQuery('insertMasterAdExt', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13],row[14], row[15], row[16])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -728,7 +706,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -744,7 +721,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[10] = '0000-00-00 00:00:00'
                             oSvMysql.executeQuery('insertMasterAd', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self.printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 
@@ -761,7 +737,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -777,7 +752,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[11] = '0000-00-00 00:00:00'						
                             oSvMysql.executeQuery('insertMasterKeyword', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10], row[11])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -794,7 +768,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -810,7 +783,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[5] = '0000-00-00 00:00:00'						
                             oSvMysql.executeQuery('insertMasterAdGroupBudget', row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -821,7 +793,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # read adgrp alias info
         sAdgrpAliasInfoFilePath = os.path.join(self.__g_sNvadPathAbs, 'alias_info_adgrp.tsv')
         dictAdgrpAlias = {}
-        # try:
         if os.path.isfile(sAdgrpAliasInfoFilePath):
             with codecs.open(sAdgrpAliasInfoFilePath, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -830,8 +801,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if nRowCnt > 0:
                         dictAdgrpAlias[row[0]] = row[1]
                     nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
-        #     pass
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -841,7 +810,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -880,7 +848,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterAdGroup', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10]
                                 , row[11], row[12], row[13], row[14], row[15])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -900,7 +867,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -924,7 +890,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                             
                             oSvMysql.executeQuery('insertMasterCampaign', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 
@@ -944,7 +909,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 sCurrentFileName = dictMasterDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -959,7 +923,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[5] = '0000-00-00 00:00:00'						
                             oSvMysql.executeQuery('insertMasterCampaignBudget', row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -979,7 +942,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -991,7 +953,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug( 'pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -1011,7 +972,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1023,7 +983,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -1043,7 +1002,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1055,7 +1013,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 
@@ -1075,7 +1032,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1087,7 +1043,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -1107,7 +1062,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1119,7 +1073,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -1139,7 +1092,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1151,7 +1103,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug(err)
                                 self._printDebug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
@@ -1171,7 +1122,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
@@ -1183,7 +1133,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             except Exception as err:
                                 self._printDebug( sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 
@@ -1207,7 +1156,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 
                 sCurrentFileName = dictStatDataSorted[sDate]
                 sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # try:
                 if os.path.isfile(sDataFileFullpathname):
                     for line in fileinput.input([sDataFileFullpathname], inplace=True): # remove any " to prevent csv.reader malfunction
                         print(line.replace('"', ''), end='')
@@ -1231,7 +1179,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self._printDebug( err)
                     
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
-                # except FileNotFoundError:
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 

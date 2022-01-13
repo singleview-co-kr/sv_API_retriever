@@ -40,18 +40,41 @@ else: # for platform running
 
 
 class svInternalSearch():
-    __continue_iteration = None
-    __print_debug = None
-    __print_progress_bar = None
-    __g_oSvCampaignParser = None
-    __g_sTblPrefix = None
-    __g_sDataPath = None
-    __g_dictGaIntSearchRaw = {}
-    __g_dictWordSrl = defaultdict(int)
+    # __continue_iteration = None
+    # __print_debug = None
+    # __print_progress_bar = None
+    # __g_oSvCampaignParser = None
+    # __g_sTblPrefix = None
+    # __g_sDataPath = None
+    # __g_dictGaIntSearchRaw = {}
+    # __g_dictWordSrl = defaultdict(int)
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
+        # print('search:__init__')
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
+        self.__g_oSvCampaignParser = None
+        self.__g_sTblPrefix = None
+        self.__g_sDataPath = None
+        self.__g_dictGaIntSearchRaw = {}
+        self.__g_dictWordSrl = defaultdict(int)
         self._g_oLogger = logging.getLogger(__name__)
+
+    def __del__(self):
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
+        self.__g_oSvCampaignParser = None
+        self.__g_sTblPrefix = None
+        self.__g_sDataPath = None
+        self.__g_dictGaIntSearchRaw = {}
+        self.__g_dictWordSrl = defaultdict(int)
 
     def init_var(self, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
         f_print_debug, f_print_progress_bar, f_continue_iteration):
@@ -63,7 +86,6 @@ class svInternalSearch():
         self.__g_oSvCampaignParser = o_sv_campaign_parser
 
     def proc_internal_search_log(self):
-        print('proc_internal_search_log')
         # traverse directory and categorize data files
         lst_search_term = []
         lst_data_file = os.listdir(self.__g_sDataPath)
@@ -106,7 +128,6 @@ class svInternalSearch():
         for s_search_term in set(lst_search_term):
             self.__g_dictWordSrl[s_search_term]  # s_search_term: 0 automatically sets by defaultdict(int)
         del lst_search_term
-        self.__print_debug('UA data file has been arranged\n')
         self.__get_term_srl()
         self.__register_int_search_log()
 

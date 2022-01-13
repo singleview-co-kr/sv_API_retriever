@@ -19,3 +19,15 @@ https://pypi.org/project/customized-KoNLPy/
 
 # git clone https://github.com/lovit/customized_konlpy.git
 # pip3.x install customized_konlpy
+
+error case #1:
+AttributeError: module 'tweepy' has no attribute 'StreamListener'
+
+# vi /usr/local/lib/python3.7/site-packages/konlpy/stream/twitter.py 
+edit line 17
+
+from
+class CorpusListener(tweepy.StreamListener):
+
+to
+class CorpusListener(tweepy.Stream):

@@ -59,16 +59,26 @@ else:
     from svcommon import sv_plugin
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sDataLastDate = None
-    __g_sDataFirstDate = None
-    __g_lstAccessLevel = []
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '24th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sDataLastDate = None
+        self.__g_sDataFirstDate = None
+        self.__g_lstAccessLevel = []
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sDataLastDate = None
+        self.__g_sDataFirstDate = None
+        self.__g_lstAccessLevel = []
 
     def getConsoleAuth(self, argv):
         """ Get console auth with arg  --noauth_local_webserver """
@@ -81,6 +91,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             scope='https://www.googleapis.com/auth/analytics.readonly')
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+        
+        if self._g_dictParam['data_first_date'] is None or \
+            self._g_dictParam['data_last_date'] is None:
+            self._printDebug('you should designate data_first_date and data_last_date')
+            self._task_post_proc(self._g_oCallback)
+            return
         self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
 
@@ -88,6 +105,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
 
         """ Authenticate and construct service. """
@@ -99,10 +117,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         service = self.__getService('analytics', 'v3', scope, sClientSecretsJson )
         # Try to make a request to the API. Print the results or handle errors.
         
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # s_ga_view_id = dict_acct_info[s_sv_acct_id]['ga_view_id']
-
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
@@ -122,8 +136,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
         elif s_version == 'ga4':
             self._printDebug('plugin is developing')
-
-        self._task_post_proc(o_callback)
+            
+        self._task_post_proc(self._g_oCallback)
 
     def __getInsiteRaw(self, service, sSvAcctId, sAcctTitle, sGaViewId):
         """Executes and returns data from the Core Reporting API.

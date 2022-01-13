@@ -41,12 +41,12 @@ else:
 
 class ISvPlugin(ABC):
     _g_sPluginName = None
-    _g_sVersion = None
     _g_sAbsRootPath = None
     _g_sLastModifiedDate = None
     _g_oLogger = None
     _g_dictParam = {'analytical_namespace':None, 'config_loc':None}
     _g_oThread = None
+    _g_oCallback = None  # callback for self desturction
 
     def __enter__(self):
         """ grammtical method to use with "with" statement """
@@ -75,6 +75,7 @@ class ISvPlugin(ABC):
     def _task_post_proc(self, o_callback):
         if o_callback:  # regarding an execution on a web console 
             o_callback(self._g_sPluginName)
+        self._g_oThread = None
 
     @abstractmethod
     def do_task(self, o_callback):

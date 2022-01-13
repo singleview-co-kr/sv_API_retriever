@@ -32,39 +32,55 @@ import calendar
 import sys
 import gc
 
+import ctypes
+import time
 
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_http
     import sv_mysql
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     #__g_nRecordsToSend = 11000
     __g_nMaxBytesToSend = 19000000
+    __g_oConfig = configparser.ConfigParser()
     # if __g_nRecordsToSend is too big for a web server, 
     # a web server occurs error and return "Allowed memory size of 134,217,728(gabia) 67,108,864(teamjang) bytes exhausted (tried to allocate XX bytes)"
     # finally, sv_http report error "http generic error raised arg0: Data must be padded to 16 byte boundary in CBC mode"
-    __g_oConfig = None
-    __g_sTargetUrl = None
-    __g_sMode = None
-    __g_sReplaceYearMonth = None
-    __g_sTblPrefix = None
-    __g_dictMsg = {}
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
-        self.__g_oConfig = configparser.ConfigParser()
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sTargetUrl = None
+        self.__g_sMode = None
+        self.__g_sReplaceYearMonth = None
+        self.__g_sTblPrefix = None
+        self.__g_dictMsg = {}
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sTargetUrl = None
+        self.__g_sMode = None
+        self.__g_sReplaceYearMonth = None
+        self.__g_sTblPrefix = None
+        self.__g_dictMsg = {}
 
     def __postHttpResponse(self, sTargetUrl, dictParams):
         dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
@@ -93,21 +109,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
             self._printDebug( 'key.config.ini not exist')
-            raise Exception('stop')
+            return # raise Exception('stop')
 
         self.__g_oConfig.read(sKeyConfigPath)
 
-    def do_task(self, o_callback):
-        self.__g_sTargetUrl = self._g_dictParam['target_host_url']
-        print(self.__g_sTargetUrl)
+    def __getThreadId(self):
+        """
+        Returns OS thread id to identify 
+        a cached compiled query for each thread - Specific to Linux
+        """
+        libc = ctypes.cdll.LoadLibrary('libc.so.6')
+        # System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+        SYS_gettid = 186
+        return libc.syscall(SYS_gettid)
 
+    def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+        self.__g_sTargetUrl = self._g_dictParam['target_host_url']
         if self._g_dictParam['mode'] != None:
             self.__g_sMode = self._g_dictParam['mode']
         if self._g_dictParam['mode'] == 'update':
             self.__g_sReplaceYearMonth = self._g_dictParam['yyyymm']
 
-        oResp = self._task_pre_proc(o_callback)
-            
         # begin - get Protocol message dictionary
         oSvHttp = sv_http.svHttpCom('')
         self.__g_dictMsg = oSvHttp.getMsgDict()
@@ -116,21 +139,47 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # end - get Protocol message dictionary
 
         self._printDebug('-> send new data')
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         self.__getKeyConfig(s_sv_acct_id, s_acct_title)
+        
+        ############ begin python thread test ################ 
+        # try:
+        #     sLatestFilepath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'test_api_info.ini')
+        #     f = open(sLatestFilepath, 'r')
+        #     sMaxReportDate = f.readline()
+        #     f.close()
+        # except FileNotFoundError:
+        #     self._printDebug('FileNotFoundError')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # self._printDebug('File Found')
+
+        # nThreadId = self.__getThreadId()
+        # for n_idx in range(20):
+        #     self._printDebug(str(nThreadId) + '-> ' + str(n_idx))
+        #     time.sleep(1)
+        #     if not self._continue_iteration():
+        #         self._task_post_proc(self._g_oCallback)
+        #         return
+        # self._task_post_proc(self._g_oCallback)
+        # return
+        ############ end python thread test ################ 
 
         if self.__g_sTargetUrl is None:
             if 'server' in list(self.__g_oConfig.keys()):
-                self.__g_sTargetUrl = self.__g_oConfig['server']['target_host_url']
+                self.__g_sTargetUrl = self.__g_oConfig['server']['etl_host_url']
             else:
-                self._printDebug('stop -> invalid target_host_url')
+                self._printDebug('stop -> invalid etl_host_url')
+                self._task_post_proc(self._g_oCallback)
                 return
 
         self._printDebug('-> communication begin')
@@ -141,8 +190,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self.__addNew()
         self._printDebug('-> communication finish')
-
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
         
     def __addNew(self):
         # server give data to dashboard client case

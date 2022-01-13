@@ -52,28 +52,45 @@ else:
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNaveradApiBaseUrl = 'https://api.naver.com'
-    __g_dtCurDatetime = None
-    __g_sEncodedApiKey = None
-    __g_sEncodedSecretKey = None
-    __g_sNvrAdManagerLoginId = None
-    __g_bNvrAdManagerLoginIdWarned = False
-    __g_sRetrieveInfoPath = None
-    __g_sDownloadPathNew = None
-    __g_nRetryBackoffCnt = 0
     __g_nRptWaitingSec = 60
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.14'
-        self._g_sLastModifiedDate = '25th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
         self.__g_dtCurDatetime = datetime.now().strftime("%Y%m%d%H%M%S")
+        self.__g_sEncodedApiKey = None
+        self.__g_sEncodedSecretKey = None
+        self.__g_sNvrAdManagerLoginId = None
+        self.__g_bNvrAdManagerLoginIdWarned = False
+        self.__g_sRetrieveInfoPath = None
+        self.__g_sDownloadPathNew = None
+        self.__g_nRetryBackoffCnt = 0
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_dtCurDatetime = None
+        self.__g_sEncodedApiKey = None
+        self.__g_sEncodedSecretKey = None
+        self.__g_sNvrAdManagerLoginId = None
+        self.__g_bNvrAdManagerLoginIdWarned = False
+        self.__g_sRetrieveInfoPath = None
+        self.__g_sDownloadPathNew = None
+        self.__g_nRetryBackoffCnt = 0
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -90,6 +107,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = o_master_report.delete_master_report_all()
         if 'transaction_id' not in list(dict_rst.keys()):
             self._printDebug('communication failed - stop')
+            self._task_post_proc(self._g_oCallback)
             return
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
@@ -111,6 +129,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             os.remove(s_test_filepath)
         except PermissionError:
             self._printDebug('write on ' + self.__g_sDownloadPathNew + ' is not permitted')
+            self._task_post_proc(self._g_oCallback)
             return
             
         self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_master_report'] )
@@ -119,7 +138,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_stat_report']) #statdate arg should be defined
         del o_stat_report
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
     
     def __retrieveNvStatReport(self, o_stat_report, sSvAcctId, sNvrAdCustomerID, lstReport):
         """ retrieve NV Ad stat report """
@@ -157,7 +176,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             aNames = f.split('_')
                             if nLatestRetrieveDate < int(aNames[0] ):
                                 nLatestRetrieveDate = int(aNames[0] )
-
                 if nLatestRetrieveDate != 0:
                     dtStartRetrieval = datetime.strptime(str(nLatestRetrieveDate), '%Y%m%d') + timedelta(days=1) 
                 else:
@@ -174,13 +192,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dt_date_elem = dtElement.date()
                 dictDateQueue[dt_date_elem] = 0
                 dictDateExceptionCnt[dt_date_elem] = 0
-            
             # print(dictDateQueue)
             if len(dictDateQueue) == 0:
                 dictMasterReportQueue[sTobeHandledTaskName] = 1
                 self._printDebug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtDateEndRetrieval.strftime('%Y%m%d%H%M%S'))
                 continue
-            
             while self._continue_iteration(): # loop for each report date
                 try:
                     self.__g_nRetryBackoffCnt = 0

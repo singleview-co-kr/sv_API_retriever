@@ -56,24 +56,36 @@ else:
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sBrandedTruncPath = None
-    __g_oSvCampaignParser = None
-    __g_sReplaceMonth = None
-    __g_sTblPrefix = None
+    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()  # None
     __g_lstIgnoreText = ['CRITERIA', # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
                         'google', # for new google ads API report; ignore report title row: google_ads_api (v6)
                         'Campaign', # ignore column title row
                         'Total'] # for old adwords API report; ignore gross sum row
-    __g_dictAdwRaw = None  # prevent duplication on a web console
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.4'
-        self._g_sLastModifiedDate = '1st, Dec 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None})
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sBrandedTruncPath = None
+        self.__g_sReplaceMonth = None
+        self.__g_sTblPrefix = None
+        self.__g_dictAdwRaw = None  # prevent duplication on a web console
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sBrandedTruncPath = None
+        self.__g_sReplaceMonth = None
+        self.__g_sTblPrefix = None
+        self.__g_dictAdwRaw = None  # prevent duplication on a web console
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_sReplaceMonth = self._g_dictParam['yyyymm']
         self.__g_dictAdwRaw = {}  # prevent duplication on a web console
 
@@ -81,9 +93,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
         
-        self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         lst_google_ads = dict_acct_info[s_sv_acct_id]['adw_cid']
@@ -102,7 +114,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__arrangeAwRawDataFile(s_sv_acct_id, s_acct_title, lst_google_ads)
         self.__registerDb()
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
 
     def __deleteCertainMonth(self):
         nYr = int(self.__g_sReplaceMonth[:4])
@@ -121,9 +133,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
-
         s_alias_file_path = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
-        # try:
         if os.path.isfile(s_alias_file_path):
             with codecs.open(s_alias_file_path, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -133,8 +143,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
 
                     nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
-        #     pass
         return dictCampaignNameAliasInfo
 
     def __arrangeAwRawDataFile(self, sSvAcctId, sAcctTitle, lstGoogleads):
@@ -184,7 +192,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if not os.path.isfile(sDataFileFullname):
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
                 continue
-
+            
             with open(sDataFileFullname, 'r') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 for row in reader:
@@ -192,7 +200,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     lstCampaignCode = row[0].split('_')
                     if lstCampaignCode[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
                         continue
-                    
                     # process body
                     if len(lstCampaignCode) > 3:  # adwords group name following singleview campaign code
                         if lstCampaignCode[0] == 'OLD':  # try to check old sv campaign convention
@@ -201,7 +208,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sTempCampaign3rd = lstCampaignCode[nLastIdx]
                             lstCampaignCode[nLastIdx] = sTempCampaign3rd + '_OLD'
                     else:  # adwords group name not following singleview campaign convention
-                        # self._printDebug(lstCampaignCode)
                         lstCampaignCode = row[1].split('_')  # try to parse wierd group name
                     
                     # adwords campaign name follows singleview campaign code
@@ -215,8 +221,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     else:  # lookup alias DB
                         sCampaignName = row[0]
                         # should log source group name to sv convention translation
-                        # try:
-                        # if sCampaignName in dictCampaignNameAlias.keys():
                         if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                             # dictCampaignNameAlias[sCampaignName]
                             sSource = dictCampaignNameAlias[sCampaignName]['source']
@@ -225,7 +229,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sCampaign1st = dictCampaignNameAlias[sCampaignName]['camp1st']
                             sCampaign2nd = dictCampaignNameAlias[sCampaignName]['camp2nd']
                             sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                        # except KeyError: # if unacceptable googleads campaign name
                         else:  # if unacceptable googleads campaign name
                             self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                             self._printDebug('weird googleads log!')
@@ -260,16 +263,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         str(sTerm)+'|@|'+\
                         str(sPlacement)
 
-                    # try: # if designated log already created
-                    # if sReportId in self.__g_dictAdwRaw.keys():  # if designated log already created
                     if self.__g_dictAdwRaw.get(sReportId, 0):  # returns 0 if sRowId does not exist
-                        # self.__g_dictAdwRaw[sReportId]
                         self.__g_dictAdwRaw[sReportId]['imp'] += nImpression
                         self.__g_dictAdwRaw[sReportId]['clk'] += nClick
                         self.__g_dictAdwRaw[sReportId]['cost'] += nCost
                         self.__g_dictAdwRaw[sReportId]['conv_cnt'] += nConvCnt
                         self.__g_dictAdwRaw[sReportId]['conv_amnt'] += nConvAmnt
-                    # except KeyError: # if new log requested
                     else:  # if new log requested
                         self.__g_dictAdwRaw[sReportId] = {
                             'imp':nImpression,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt

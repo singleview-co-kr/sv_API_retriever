@@ -41,18 +41,29 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sTblPrefix = None
-    __g_sMode = {}
-    __g_sMorpheme = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.1'
-        self._g_sLastModifiedDate = '18th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode':None, 'morpheme':None})
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sTblPrefix = None
+        self.__g_sMode = {}
+        self.__g_sMorpheme = None
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sTblPrefix = None
+        self.__g_sMode = {}
+        self.__g_sMorpheme = None
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_sMode = self._g_dictParam['mode']
         self.__g_sMorpheme = self._g_dictParam['morpheme']
 
@@ -60,7 +71,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('invalid config_loc')
-            raise Exception('stop')
+            # raise Exception('stop')
+            self._task_post_proc(self._g_oCallback)
+            return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
@@ -87,7 +100,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 del lst_status_registered
             self._printDebug('-> communication finish')
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
     
     def __register_new_morpheme(self):
         if len(self.__g_sMorpheme) == 0:

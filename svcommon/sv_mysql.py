@@ -24,10 +24,9 @@
 
 # standard library
 import os
-import sys
 import logging
-import configparser # https://docs.python.org/3/library/configparser.html
 import re # https://docs.python.org/3/library/re.html
+import ctypes
 
 # 3rd party library
 import pymysql  # http://pythonstudy.xyz/python/article/202-MySQL-%EC%BF%BC%EB%A6%AC
@@ -52,10 +51,15 @@ class SvMySql(sv_object.ISvObject):
     __g_dictRegEx = {}  # SQL 분석을 위한 정규식 저장
     __g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
     __g_dictCompiledSqlStmt = {}
+    __g_nThreadId = None
 
     def __init__(self, sCallingFrom=None):
         self._g_oLogger = logging.getLogger(__file__)
-        
+        self.__g_nThreadId = self.__getThreadId()
+        # allocate thread memory to cache compiled stmt
+        if self.__g_dictCompiledSqlStmt.get(self.__g_nThreadId, None) is None:
+            self.__g_dictCompiledSqlStmt[self.__g_nThreadId] = {}
+
         self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')
         if sCallingFrom is not None:
             if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
@@ -67,7 +71,6 @@ class SvMySql(sv_object.ISvObject):
             for sPath in lstNameSpace:
                 sSubPath += '/' + sPath
             self.__g_sAbsolutePath += sSubPath
-        
         self.__g_dictConfig['db_hostname'] = config('db_hostname')
         self.__g_dictConfig['db_port'] = int(config('db_port'))
         self.__g_dictConfig['db_userid'] = config('db_userid')
@@ -75,7 +78,6 @@ class SvMySql(sv_object.ISvObject):
         self.__g_dictConfig['db_database'] = config('db_database')
         self.__g_dictConfig['db_charset'] = config('db_charset')
         self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
-
         self.__connect()
 
     def __enter__(self):
@@ -94,28 +96,21 @@ class SvMySql(sv_object.ISvObject):
         self.__g_dictRegExQueryFileClassifier['update'] = re.compile(r"^[u][p][d][a][t][e]\w+")
         self.__g_dictRegExQueryFileClassifier['insert'] = re.compile(r"^[i][n][s][e][r][t]\w+")
         self.__g_dictRegExQueryFileClassifier['delete'] = re.compile(r"^[d][e][l][e][t][e]\w+")
-
         self.__g_dictRegEx['prefix_create_tbl'] = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
         self.__g_dictRegEx['hint_select_or_delete'] = re.compile(r"(?<=[fF][rR][oO][mM]\s)\w+")
         self.__g_dictRegEx['hint_update'] = re.compile(r"(?<=[uU][pP][dD][aA][tT][eE]\s)\w+")
         self.__g_dictRegEx['hint_insert'] = re.compile(r"(?<=[iI][nN][tT][oO]\s)\w+")
         self.__g_dictRegEx['retrieve_reserved_tag'] = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
-
-        #self.__connect()
-        # oRegEx = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
-        # for root, dirs, files in os.walk(self.__g_sAbsolutePath+'/schemas/'):
+        
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', '')  # to end with '/'
-        for root, dirs, files in os.walk(s_schema_path_abs):
+        for _, _, files in os.walk(s_schema_path_abs):
             for filename in files:
                 if not filename.startswith('_'):
                     sTableName = re.sub(".sql", "", filename )
-                    # self.__createTable(sTableName, oRegEx)
                     self.__createTable(sTableName)
-        #self.__disconnect()
 
     def setTablePrefix(self, s_table_prefix):
         if s_table_prefix is not None:
-            # self.__g_oConfig['SERVER']['db_table_prefix'] = s_table_prefix+'_'
             self.__g_dictConfig['db_table_prefix'] = s_table_prefix+'_'
                 
     def set_reserved_tag_value(self, dict_tag):
@@ -125,37 +120,34 @@ class SvMySql(sv_object.ISvObject):
             self.__g_dictReservedTag[tag] = value
 
     def truncateTable(self, s_table_name):
-        # sRealTableName = self.__g_oConfig['SERVER']['db_table_prefix'] + sTableName
         s_real_tbl_name = self.__g_dictConfig['db_table_prefix'] + s_table_name
         s_sql_statement = 'truncate `' + s_real_tbl_name + '`;'
         self.__g_oCursor.execute(s_sql_statement)
     
     def createTableOnDemand(self, s_prefix, s_schema_filename):
-        if s_schema_filename.startswith('_'):  # _로 시작하는 스키마 파일은 필요할 때만 생성
-            # tbl prefix를 임시 변경
-            # s_tbl_prefix_origin = self.__g_dictConfig['db_table_prefix']
-            # self.__g_dictConfig['db_table_prefix'] = s_prefix  # create 문의 table 이름이 _로 시작함.
-            # o_reg_ex = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
-            # self.__createTable(s_schema_filename, o_reg_ex)
+        if s_schema_filename.startswith('_'):  # _로 시작하는 스키마 파일은 명시 요청할 때만 생성
             self.__createTable(s_schema_filename)
-            # tbl prefix를 복원
-            # self.__g_dictConfig['db_table_prefix'] = s_tbl_prefix_origin
 
     def executeDynamicQuery(self, s_pysql_id, dict_param):
-        # execute hard-coded sql statement without params
-        # no cache allowed as this is dynamic query
-        # dict_param은 msg broker를 통과할 수도 있으므로 문자열 변수만 포함해야 함
-        s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
-        if s_query_type == 'unknown':
-            return []
-        if s_sql_compiled is None:
-            return []
+        """ 
+        execute hard-coded sql statement without params
+        no cache allowed as this is dynamic query
+        dict_param은 msg broker를 통과할 수도 있으므로 문자열 변수만 포함해야 함
+        """
+        s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[self.__g_nThreadId].get(s_pysql_id, (None,None))
+        if s_query_type is None and s_sql_compiled is None:
+            s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
+            if s_query_type == 'unknown':
+                return []
+            if s_sql_compiled is None:
+                return []
+            # cache compiled sql statement
+            self.__g_dictCompiledSqlStmt[self.__g_nThreadId][s_pysql_id] = [s_query_type, s_sql_compiled]
         # execute query
         try:
             self.__g_oCursor.execute(s_sql_compiled)
         except Exception as e:  # eg, Duplicate entry Exception
             raise e
-        # return dataset
         return self.__arrange_query_rst(s_pysql_id, s_query_type)
 
     def executeQuery(self, s_sql_filename, *params):  # params is tuple type
@@ -164,24 +156,30 @@ class SvMySql(sv_object.ISvObject):
         # 튜플 언팩 연산자는 바인딩 구문에서도 활용될 수 있다. 우변의 연속된 값들이 해당 이름의 튜플이 된다는 의미이다.
         # **kwargs에서 **는 이름이 붙은 인자들을 dictionary로 언패킹한다는 의미.
         # no way to pass insert a list-like or comma-delimited one column to *param tuple
-        # cache a prepared query statement
-        try:
-            s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[s_sql_filename]
-        except KeyError:
+        s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[self.__g_nThreadId].get(s_sql_filename, (None,None))
+        if s_query_type is None and s_sql_compiled is None:
             s_query_type, s_sql_compiled = self.__compileStaticSql(s_sql_filename)
             if s_query_type == 'unknown':
                 return []
             if s_sql_compiled is None:
                 return []
             # cache compiled sql statement
-            self.__g_dictCompiledSqlStmt[s_sql_filename] = [s_query_type, s_sql_compiled]
-        # execute query
+            self.__g_dictCompiledSqlStmt[self.__g_nThreadId][s_sql_filename] = [s_query_type, s_sql_compiled]
         try:
             self.__g_oCursor.execute(s_sql_compiled, params)
         except Exception as e:  # eg, Duplicate entry Exception
             raise e
-        # return dataset
         return self.__arrange_query_rst(s_sql_filename, s_query_type)
+
+    def __getThreadId(self):
+        """
+        Returns OS thread id to identify 
+        a cached compiled query for each thread - Specific to Linux
+        """
+        libc = ctypes.cdll.LoadLibrary('libc.so.6')
+        # System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+        SYS_gettid = 186
+        return libc.syscall(SYS_gettid)
 
     def __import_pysql(self, s_module_name):
         if self.__g_sAppName is None:
@@ -222,7 +220,6 @@ class SvMySql(sv_object.ISvObject):
         s_sql_compiled = re.sub("`", "", s_sql_compiled)  # 존재할 수 있는 sql 문자열 wrapper 기호 제거 `
         s_sql_compiled = self.__replace_tag_to_value(s_sql_compiled)
         s_query_type = self.__categorizeQueryBySqlStatement(s_sql_compiled)
-
         # validate query type by comparing both of results
         if s_query_type_by_filename != s_query_type:
             return ['unknown', s_sql_compiled]
@@ -235,14 +232,12 @@ class SvMySql(sv_object.ISvObject):
             result = self.__g_dictRegEx['hint_insert'].finditer(s_sql_compiled)
         else:
             result = None
-        if result is not None:
+        if result:
             for r in result:
                 # add table prefix on table name
                 s_table_name = r.group(0)
-                # s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
                 s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
         del result
-
         return [s_query_type, s_sql_compiled]
     
     def __replace_tag_to_value(self, s_sql_compiled):
@@ -266,7 +261,6 @@ class SvMySql(sv_object.ISvObject):
             lst_rows = [{'rowcount': self.__g_oCursor.rowcount}]
         else:
             lst_rows = self.__fetch()
-
         return lst_rows  # return dataset
 
     def __categorizeQueryBySqlFilename(self, s_sql_filename):
@@ -292,8 +286,6 @@ class SvMySql(sv_object.ISvObject):
 
     def __connect(self):
         # MySQL Connection 연결
-        # self.__g_oConn = pymysql.connect(host=self.__g_oConfig['SERVER']['db_hostname'], port=self.__g_oConfig['SERVER']['db_port'], user=self.__g_oConfig['SERVER']['db_userid'], 
-        #     password=self.__g_oConfig['SERVER']['db_password'], db=self.__g_oConfig['SERVER']['db_database'], charset=self.__g_oConfig['SERVER']['db_charset'])
         self.__g_oConn = pymysql.connect(host=self.__g_dictConfig['db_hostname'], port=self.__g_dictConfig['db_port'], user=self.__g_dictConfig['db_userid'], 
             password=self.__g_dictConfig['db_password'], db=self.__g_dictConfig['db_database'], charset=self.__g_dictConfig['db_charset'])
         
@@ -301,10 +293,13 @@ class SvMySql(sv_object.ISvObject):
         self.__g_oCursor = self.__g_oConn.cursor(pymysql.cursors.DictCursor) # set Dictionary cursor, Array based cursor if None
 
     def __disconnect(self):
-        # Connection 닫기
+        # unset, if thread memory for cached compiled stmt exists
+        if self.__g_dictCompiledSqlStmt.get(self.__g_nThreadId, None):
+            del self.__g_dictCompiledSqlStmt[self.__g_nThreadId]
+        # Connection close
         if self.__g_oConn is not None and self.__g_oConn.open:
             try:
-               c = self.__g_oConn.cursor()
+               self.__g_oConn.cursor()
             except NameError: #	disconnected, whatever error raised, no difference
                 pass
             else: # connected
@@ -337,8 +332,8 @@ class SvMySql(sv_object.ISvObject):
                     self._printDebug("already existing table")
     
 
-if __name__ == '__main__': # for console debugging
-    with SvMySql('job_plugins.nvadperformance_period') as oSvMysql:
-        lstRows = oSvMysql.executeQuery('getJobList', 'Y')
-        #lstRows = oSvMysql.executeQuery('updateJobDetail', '20181112255522', '1' )
-        print(lstRows)
+# if __name__ == '__main__': # for console debugging
+#     with SvMySql('job_plugins.nvadperformance_period') as oSvMysql:
+#         lstRows = oSvMysql.executeQuery('getJobList', 'Y')
+#         #lstRows = oSvMysql.executeQuery('updateJobDetail', '20181112255522', '1' )
+#         print(lstRows)

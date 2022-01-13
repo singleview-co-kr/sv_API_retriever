@@ -22,28 +22,7 @@ import shutil
 import csv
 import codecs
 import sys
-# from datetime import timedelta
-# import re
-# import calendar
 
-# singleview library 
-# if __name__ == '__main__': # for console debugging
-#     import sys
-#     sys.path.append('../../classes')
-#     import sv_http
-#     import sv_mysql
-#     import sv_campaign_parser
-#     import sv_api_config_parser
-#     sys.path.append('../../conf') # singleview config
-#     import basic_config
-# else: # for platform running
-#     from classes import sv_http
-#     from classes import sv_mysql
-#     from classes import sv_campaign_parser
-#     from classes import sv_api_config_parser
-#     # singleview config
-#     from conf import basic_config # singleview config
-# singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
@@ -56,39 +35,48 @@ else:
     from svcommon import sv_object
     from svcommon import sv_plugin
 
-# class svJobPlugin():
+
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oSvCampaignParser = None
-    __g_dictKkoRaw = {}
+    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.6'
-        self._g_sLastModifiedDate = '1st, Dec 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_dictKkoRaw = {}
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_dictKkoRaw = {}
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         s_kakao_acct_id = dict_acct_info[s_sv_acct_id]['kko_moment_aid']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
         with sv_mysql.SvMySql('svplugins.kko_register_db') as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize() 
         
-        # self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
         self._printDebug('-> register kko raw data')
         self.__arrangeKkoRawDataFile(s_sv_acct_id, s_acct_title, s_kakao_acct_id)
         self.__registerDb()
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
 
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
@@ -101,7 +89,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if nRowCnt > 0:
                         sCampaignUniqueKey = row[0] + '|@|' + row[1] + '|@|' + row[2]
                         dictCampaignNameAliasInfo[sCampaignUniqueKey] = {'source':row[3], 'rst_type':row[4], 'medium':row[5], 'camp1st':row[6], 'camp2nd':row[7], 'camp3rd':row[8] }
-
                     nRowCnt = nRowCnt + 1
         return dictCampaignNameAliasInfo
 
@@ -117,7 +104,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             aFileExt = os.path.splitext(sDatafileName)
             if aFileExt[0] == 'agency_info' or aFileExt[0] == 'archive':
                 continue
-            
             sMode = 'r' # means regular daily
             lstMergedDataFiles.append(sDatafileName + '|@|' + sKakaoAcctId + '|@|' + sMode)
 
@@ -164,7 +150,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # 장바구니 보기(간접) row[20]
         # 구매(간접) row[21]
         # 구매금액(간접) row[22]
-        # try:
         if not os.path.isfile(sDataFileFullname):
             self._printDebug('pass ' + sDataFileFullname + ' does not exist')
             return
@@ -202,8 +187,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if sSource == None or sRstType == None or sMedium == None or sCampaign1st == None or \
                     sCampaign2nd == None or sCampaign3rd == None:
                     sCampaignName = row[1] + '|@|' + row[2] + '|@|' + row[3]
-                    # try:
-                    # if sCampaignName in dictCampaignNameAlias.keys():
                     if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                         sSource = dictCampaignNameAlias[sCampaignName]['source']
                         sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
@@ -211,7 +194,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign1st = dictCampaignNameAlias[sCampaignName]['camp1st']
                         sCampaign2nd = dictCampaignNameAlias[sCampaignName ]['camp2nd']
                         sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                    # except KeyError: # if unacceptable googleads campaign name
                     else:  # if unacceptable googleads campaign name
                         self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                         self._printDebug('weird kakao moment log!')
@@ -244,8 +226,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'conv_amnt_indirect':nConvAmntIndirect
                     }
         self.__archiveGaDataFile(sSourceDataPath, sFilename)
-        # except FileNotFoundError:
-        #   self._printDebug('pass ' + sDataFileFullname + ' does not exist')
 
     def __procKkoRawDataFileV1(self, sCid, sSourceDataPath, sDataFileFullname, sFilename, dictCampaignNameAlias):
         self._printDebug( 'v1 format')
@@ -304,8 +284,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if sSource == None or sRstType == None or sMedium == None or sCampaign1st == None or \
                     sCampaign2nd == None or sCampaign3rd == None:
                     sCampaignName = row[0] + '|@|' + row[1] + '|@|' + row[2]
-                    # try:
-                    # if sCampaignName in dictCampaignNameAlias.keys():
                     if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
                         sSource = dictCampaignNameAlias[sCampaignName]['source']
                         sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
@@ -313,12 +291,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign1st = dictCampaignNameAlias[sCampaignName]['camp1st']
                         sCampaign2nd = dictCampaignNameAlias[sCampaignName]['camp2nd']
                         sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                    # except KeyError: # if unacceptable googleads campaign name
                     else:  # if unacceptable googleads campaign name
                         self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                         self._printDebug('weird kakao moment log!')
                         return
-                
                 sUa = self.__g_oSvCampaignParser.getUa(row[5])
                 nImpression = int(row[6])
                 nClick = int(row[7])
@@ -332,7 +308,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sCampaign1st+'|@|'+	sCampaign2nd+'|@|'+	sCampaign3rd # +'|@|'+ str(sTerm)
 
                 if sReportId in self.__g_dictKkoRaw.keys():
-                    # self.__g_dictKkoRaw[sReportId]
                     self.__g_dictKkoRaw[sReportId]['imp'] += nImpression
                     self.__g_dictKkoRaw[sReportId]['clk'] += nClick
                     self.__g_dictKkoRaw[sReportId]['cost_inc_vat'] += nCost
@@ -379,11 +354,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if not os.path.exists(sSourcePath):
             self._printDebug('error: adw source directory does not exist!')
             return
-        
         sArchiveDataPath = os.path.join(sSourcePath, 'archive')
         if not os.path.exists(sArchiveDataPath):
             os.makedirs(sArchiveDataPath)
-
         sSourceFilePath = os.path.join(sSourcePath, sCurrentFileName)
         sArchiveDataFilePath = os.path.join(sArchiveDataPath, sCurrentFileName)
         shutil.move(sSourceFilePath, sArchiveDataFilePath)

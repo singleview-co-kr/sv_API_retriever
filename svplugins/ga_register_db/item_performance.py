@@ -40,19 +40,42 @@ else: # for platform running
 
 
 class svItemPerformance():
-    __continue_iteration = None
-    __print_debug = None
-    __print_progress_bar = None
-    __g_oSvCampaignParser = None
-    __g_sTblPrefix = None
-    __g_sDataPath = None
-    __g_dictGaItemPerfRaw = {}
-    __g_dictItemSrl = {}
+    # __continue_iteration = None
+    # __print_debug = None
+    # __print_progress_bar = None
+    # __g_oSvCampaignParser = None
+    # __g_sTblPrefix = None
+    # __g_sDataPath = None
+    # __g_dictGaItemPerfRaw = {}
+    # __g_dictItemSrl = {}
     __g_sSvNull = '$%'
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
+        # print('item:__init__')
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
+        self.__g_oSvCampaignParser = None
+        self.__g_sTblPrefix = None
+        self.__g_sDataPath = None
+        self.__g_dictGaItemPerfRaw = {}
+        self.__g_dictItemSrl = {}
         self._g_oLogger = logging.getLogger(__name__)
+
+    def __del__(self):
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
+        self.__g_oSvCampaignParser = None
+        self.__g_sTblPrefix = None
+        self.__g_sDataPath = None
+        self.__g_dictGaItemPerfRaw = {}
+        self.__g_dictItemSrl = {}
 
     def init_var(self, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
         f_print_debug, f_print_progress_bar, f_continue_iteration):
@@ -64,7 +87,6 @@ class svItemPerformance():
         self.__g_oSvCampaignParser = o_sv_campaign_parser
 
     def proc_item_perf_log(self):
-        print('proc_item_perf_log')
         # traverse directory and categorize data files
         lst_data_file = os.listdir(self.__g_sDataPath)
         lst_data_file.sort()
@@ -127,7 +149,6 @@ class svItemPerformance():
 
             self.__print_progress_bar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             n_idx += 1
-        self.__print_debug('UA data file has been arranged\n')
         self.__get_item_srl()
         self.__register_item_perf_log()
 

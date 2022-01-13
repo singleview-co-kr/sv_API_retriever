@@ -58,14 +58,22 @@ else:
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_lstAccessLevel = []
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '24th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
-        
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_lstAccessLevel = []
+    
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_lstAccessLevel = []
+
     def getConsoleAuth(self, argv):
         """ Get console auth with arg  --noauth_local_webserver """
         # move this method to ga job plugin?
@@ -83,10 +91,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             scope='https://www.googleapis.com/auth/analytics.readonly')
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+        
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
 
         """ Authenticate and construct service. """
@@ -118,8 +129,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif s_version == 'ga4':
             self._printDebug('plugin is developing')
 
-        self._task_post_proc(o_callback)
-
+        self._task_post_proc(self._g_oCallback)
+        
     def __getInsiteRaw(self, service, sSvAcctId, sAcctTitle, sGaViewId):
         """Executes and returns data from the Core Reporting API.
         This queries the API for the top 25 organic search terms by visits.

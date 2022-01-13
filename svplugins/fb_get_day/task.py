@@ -55,11 +55,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '18th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        pass
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
@@ -73,22 +79,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('stop -> no business account id')
             return
 
-        self._printDebug('fb_get_day plugin launched with acct id" ' + s_fb_biz_aid)
+        self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
         try:
             self.__getFbBusinessRaw(s_sv_acct_id, s_acct_title, s_fb_biz_aid)
             pass
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
+        
         self._printDebug('fb_get_day plugin finished')
-
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
 
     def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle, sFbBizAid):
         sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
-        
         s_conf_path_abs = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
@@ -109,7 +114,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dtDateEndRetrieval = datetime.now() - timedelta(days=1) # yesterday
         dtDateDiff = dtDateEndRetrieval - dtStartRetrieval
         nNumDays = int(dtDateDiff.days) + 1
-
         dictDateQueue = {}
         for x in range(0, nNumDays):
             dtElement = dtStartRetrieval + timedelta(days = x)
@@ -123,7 +127,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         FacebookAdsApi.init(access_token=sAccessToken, api_version='v11.0')
         lstAd = []
         oAccount = AdAccount(sAdAccountId) #'your-adaccount-id'
-        self._printDebug('error occured')
         try:
             ads = oAccount.get_ads(fields=[
                 Ad.Field.name,

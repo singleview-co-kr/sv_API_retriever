@@ -54,30 +54,53 @@ else:
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNaveradApiBaseUrl = 'https://api.naver.com'
     __g_nRptWaitingSec = 60
-    __g_sEncodedApiKey = None
-    __g_sEncodedSecretKey = None
-    __g_sNvrAdManagerLoginId = None
-    __g_bNvrAdManagerLoginIdWarned = False
-    __g_sRetrieveInfoPath = None
-    __g_sDataLastDate = None
-    __g_sDataFirstDate = None
-    __g_nRetryBackoffCnt = 0
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.7'
-        self._g_sLastModifiedDate = '25th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sEncodedApiKey = None
+        self.__g_sEncodedSecretKey = None
+        self.__g_sNvrAdManagerLoginId = None
+        self.__g_bNvrAdManagerLoginIdWarned = False
+        self.__g_sRetrieveInfoPath = None
+        self.__g_sDataLastDate = None
+        self.__g_sDataFirstDate = None
+        self.__g_nRetryBackoffCnt = 0
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sEncodedApiKey = None
+        self.__g_sEncodedSecretKey = None
+        self.__g_sNvrAdManagerLoginId = None
+        self.__g_bNvrAdManagerLoginIdWarned = False
+        self.__g_sRetrieveInfoPath = None
+        self.__g_sDataLastDate = None
+        self.__g_sDataFirstDate = None
+        self.__g_nRetryBackoffCnt = 0
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
+
+        if self._g_dictParam['data_first_date'] is None or \
+            self._g_dictParam['data_last_date'] is None:
+            self._printDebug('you should designate data_first_date and data_last_date')
+            self._task_post_proc(self._g_oCallback)
+            return
         self.__g_sDataFirstDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataLastDate = self._g_dictParam['data_last_date'].replace('-','')
-        
+
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
 
         s_sv_acct_id = list(dict_acct_info.keys())[0]
@@ -93,6 +116,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = o_master_report.delete_master_report_all()
         if 'transaction_id' not in list(dict_rst.keys()):
             self._printDebug('communication failed - stop')
+            self._task_post_proc(self._g_oCallback)
             return
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
@@ -107,7 +131,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
         self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_stat_report'])  # statdate arg should be defined
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
 
     def __retrieveNvStatReport(self, o_stat_report, sSvAcctId, sNvrAdCustomerID, lstReport):
         dictMasterReportQueue = dict()
@@ -137,11 +161,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dtDelta = datetime.today() - dtDateStatRetrieval
                         if dtDelta.days > 365:
                             self._printDebug('--> can not retrieve older than a year ago')
-                            raise Exception('remove')
-                            return
+                            return  # raise Exception('remove')
 
                         self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + str(dtDateStatRetrieval))
-                        
                         # if requested stat date is earlier than stat first date
                         if dtDateStatRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0): 
                             self._printDebug('finish: meet first stat date')

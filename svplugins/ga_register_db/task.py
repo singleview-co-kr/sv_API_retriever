@@ -58,37 +58,53 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sBrandedTruncPath = None
-    __g_oSvCampaignParser = None
-    __g_sTblPrefix = None
-    __g_lstErrornousMedia = []
-    __g_dictGaRaw = None  # prevent duplication on a web console
-    __g_dictSourceMediaNameAliasInfo = {}
-    __g_dictGoogleAdsCampaignNameAlias = {}
-    __g_dictNaverPowerlinkCampaignNameAlias = {}
+    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
     __g_sSvNull = '#$'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '29th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        # print('task:__init__')
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sBrandedTruncPath = None
+        self.__g_sTblPrefix = None
+        self.__g_lstErrornousMedia = []
+        self.__g_dictGaRaw = None  # prevent duplication on a web console
+        self.__g_dictSourceMediaNameAliasInfo = {}
+        self.__g_dictGoogleAdsCampaignNameAlias = {}
+        self.__g_dictNaverPowerlinkCampaignNameAlias = {}
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sBrandedTruncPath = None
+        self.__g_oSvCampaignParser = None
+        self.__g_sTblPrefix = None
+        self.__g_lstErrornousMedia = []
+        self.__g_dictGaRaw = None  # prevent duplication on a web console
+        self.__g_dictSourceMediaNameAliasInfo = {}
+        self.__g_dictGoogleAdsCampaignNameAlias = {}
+        self.__g_dictNaverPowerlinkCampaignNameAlias = {}
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_dictGaRaw = {}  # prevent duplication on a web console
-
+        
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
         
-        self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
         s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
-
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
         with sv_mysql.SvMySql('svplugins.ga_register_db') as o_sv_mysql:
@@ -101,24 +117,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif s_version == 'ga4':
             self._printDebug('plugin is developing')
 
-        self._task_post_proc(o_callback)
-
+        self._task_post_proc(self._g_oCallback)
+        
     def __parseGaDataFile(self, sSvAcctId, sAcctTitle, sGaViewId):
         self._printDebug('-> '+ sGaViewId +' is registering GA data files')
         sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
         sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
 
         # try internal search log
+        self.__print_debug('UA internal search log has been started\n')
         o_internal_search = internal_search.svInternalSearch()
         o_internal_search.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_internal_search.proc_internal_search_log()
         del o_internal_search
+        self.__print_debug('UA internal search log has been finished\n')
 
         # try item performance log
+        self.__print_debug('UA item performance log has been started\n')
         o_item_perf = item_performance.svItemPerformance()
         o_item_perf.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_item_perf.proc_item_perf_log()
         del o_item_perf
+        self.__print_debug('UA item performance log has been finished\n')
 
         # try transaction referral log
         self.__proc_transaction_log(sDataPath)
@@ -144,7 +164,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__registerSourceMediumTerm()
 
     def __getSourceMediaNameAlias(self, sParentDataPath):
-        # try:
         s_alias_filepath = os.path.join(sParentDataPath, 'alias_info_source_media.tsv')
         if os.path.isfile(s_alias_filepath):
             with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
@@ -155,8 +174,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self.__g_dictSourceMediaNameAliasInfo[row[0]] = {'alias':row[1]}
 
                     nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
-        #     pass
         return
 
     def __proc_transaction_log(self, s_data_path):
@@ -277,7 +294,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
         s_alias_filepath = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
-        # try:
         if os.path.isfile(s_alias_filepath):
             with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -288,10 +304,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
 
                     nRowCnt = nRowCnt + 1
-        # else:
-        #     self._printDebug('invalid alias info - ' + s_alias_filepath)
-        # except FileNotFoundError:
-        #     pass
         return dictCampaignNameAliasInfo
 
     def __registerSourceMediumTerm(self):
@@ -326,11 +338,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nIdx += 1
 
     def __parseGaRow(self, lstRow, sDataFileFullname):
-        # try:
         if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
             sSourceMediumAlias = str(self.__g_dictSourceMediaNameAliasInfo[lstRow[0]]['alias'])
             aSourceMedium = sSourceMediumAlias.split(' / ')
-        # except KeyError:
         else:
             aSourceMedium = lstRow[0].split(' / ')
 
@@ -419,38 +429,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_lstErrornousMedia.append(sDataFileFullname + ' -> ' + sSource+' / ' + sMedium)
 
         if sSource == 'google' and sMedium == 'cpc':
-            # try:
             # lookup alias db, if non sv standard code
-            # if sCampaignCode in self.__g_dictGoogleAdsCampaignNameAlias.keys():
             if self.__g_dictGoogleAdsCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                # self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]
                 if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] == 'YT':
                     sSource = 'youtube'
                 if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] == 'DISP':
                     sMedium = 'display'
-
                 sCampaignCode = self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] + '_' + \
                                 self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
                                 self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
                                 self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
                                 self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
                                 self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp3rd']
-            # except KeyError: # if sv standard campaign code
-            #     pass
         elif sSource == 'naver' and sMedium == 'cpc':
-            # try:
             # lookup alias db, if non sv standard code
-            # if sCampaignCode in self.__g_dictNaverPowerlinkCampaignNameAlias.keys():
             if self.__g_dictNaverPowerlinkCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                # self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]
                 sCampaignCode = self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['source'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp3rd']
-            # except KeyError: # if sv standard campaign code
-            #     pass
         
         dictCampaignRst = self.__g_oSvCampaignParser.parseCampaignCode(sSvCampaignCode=sCampaignCode)
         if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data

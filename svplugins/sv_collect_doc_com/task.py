@@ -35,70 +35,53 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_http
     import sv_mysql
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sTblPrefix = None
     __g_sFirstDateOfTheUniv = '20000101'
-    __g_sTargetUrl = None
-    __g_sMode = None
     __g_dictSource = {
         'singleview_estudio': 1,
         'twitter': 2,
         'naver': 3,
         'google': 4
         }
-    __g_dictMsg = {}
-    __g_oConfig = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.3'
-        self._g_sLastModifiedDate = '19th, Oct 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
-        
-    def __postHttpResponse(self, sTargetUrl, dictParams):
-        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
-        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
-        oSvHttp = sv_http.svHttpCom(sTargetUrl)
-        oResp = oSvHttp.postUrl(dictParams)
-        oSvHttp.close()
-        if oResp['error'] == -1:
-            sTodo = oResp['variables']['todo']
-            if sTodo:
-                self._printDebug('HTTP response raised exception!!')
-                raise Exception(sTodo)
-        else:
-            return oResp
-
-    def __translateMsgCode(self, nMsgKey):
-        for sMsg, nKey in self.__g_dictMsg.items():
-            if nKey == nMsgKey:
-                return sMsg
-        
-    def __getKeyConfig(self, sSvAcctId, sAcctTitle):
-        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
-        try:
-            with open(sKeyConfigPath) as f:
-                self.__g_oConfig.read_file(f)
-        except FileNotFoundError:
-            self._printDebug('key.config.ini not exist')
-            raise Exception('stop')
-
-        self.__g_oConfig.read(sKeyConfigPath)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sTblPrefix = None
+        self.__g_sTargetUrl = None
+        self.__g_sMode = None
+        self.__g_dictMsg = {}
+        self.__g_oConfig = None
+    
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sTblPrefix = None
+        self.__g_sTargetUrl = None
+        self.__g_sMode = None
+        self.__g_dictMsg = {}
+        self.__g_oConfig = None
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_sTargetUrl = self._g_dictParam['target_host_url']
         self.__g_sMode = self._g_dictParam['mode']
-
-        oResp = self._task_pre_proc(o_callback)
 
         # begin - get Protocol message dictionary
         oSvHttp = sv_http.svHttpCom('')
@@ -107,16 +90,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del oSvHttp
         # end - get Protocol message dictionary
 
+        oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('invalid config_loc')
-            raise Exception('stop')
+            self._task_post_proc(self._g_oCallback)
+            return
+            # raise Exception('stop')
+        if self.__g_sMode is None:
+            self._printDebug('you should designate mode')
+            self._task_post_proc(self._g_oCallback)
+            return
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-
         self.__getKeyConfig(s_sv_acct_id, s_acct_title)
+
+        if self.__g_sTargetUrl is None:
+            if 'server' in list(self.__g_oConfig.keys()):
+                self.__g_sTargetUrl = self.__g_oConfig['server']['sv_doc_host_url']
+            else:
+                self._printDebug('stop -> invalid sv_doc_host_url')
+                self._task_post_proc(self._g_oCallback)
+                return
         
         self._printDebug('-> communication begin')
         if self.__g_sMode == 'retrieve':
@@ -127,8 +124,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__sendNewToDashboardServer()
 
         self._printDebug('-> communication finish')
-
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
     
     def __sendNewToDashboardServer(self):
         """
@@ -196,7 +192,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug(len(dict_rst['lst_word_cnt']))
         self._printDebug(len(dict_rst['lst_dictionary']))
         dictParams = {'c': [self.__g_dictMsg['HYA']], 'd':  dict_rst}  # here you are
-        oResp = self.__postHttpResponse( self.__g_sTargetUrl, dictParams )
+        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
 
     def __askNewToSvXeWebService(self):
         """
@@ -282,6 +278,36 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
                 o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, n_sv_doc_srl, s_title, s_content, dt_regdate)
         return
+    
+    def __postHttpResponse(self, sTargetUrl, dictParams):
+        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
+        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
+        oSvHttp = sv_http.svHttpCom(sTargetUrl)
+        oResp = oSvHttp.postUrl(dictParams)
+        oSvHttp.close()
+        if oResp['error'] == -1:
+            sTodo = oResp['variables']['todo']
+            if sTodo:
+                self._printDebug('HTTP response raised exception!!')
+                raise Exception(sTodo)
+        else:
+            return oResp
+
+    def __translateMsgCode(self, nMsgKey):
+        for sMsg, nKey in self.__g_dictMsg.items():
+            if nKey == nMsgKey:
+                return sMsg
+        
+    def __getKeyConfig(self, sSvAcctId, sAcctTitle):
+        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
+        try:
+            with open(sKeyConfigPath) as f:
+                self.__g_oConfig.read_file(f)
+        except FileNotFoundError:
+            self._printDebug('key.config.ini not exist')
+            raise Exception('stop')
+
+        self.__g_oConfig.read(sKeyConfigPath)
 
 
 if __name__ == '__main__': # for console debugging

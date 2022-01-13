@@ -33,44 +33,59 @@ from collections import Counter
 # 3rd-party library
 from ckonlpy.tag import Twitter
 from wordcloud import WordCloud
-import nltk
+# import nltk
 
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
-    import sv_object, sv_plugin
+    import sv_object
+    import sv_plugin
 else: # for platform running
     from svcommon import sv_mysql
-    from svcommon import sv_object, sv_plugin
+    from svcommon import sv_object
+    from svcommon import sv_plugin
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sTblPrefix = None
-    __g_sMode = None
-    __g_sCommaSeparatedWords = None
-    __g_sStartYyyymmdd = None
-    __g_sEndYyyymmdd = None
-    __g_dictCountingNouns = {}
-    __g_lstCountingNounsSrl = []
-    __g_dictRegisteredNouns = {}
-    __g_oTwitter = None
-    __o_reg_korean = None
-    __o_reg_alpha_numeric = None
-    __o_lambda_is_noun = None
+    __o_reg_korean = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')  # get Korean unicode
+    __o_reg_alpha_numeric = re.compile('[a-zA-Z0-9]+')  # get alphanumeric
+    __o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '0.0.4'
-        self._g_sLastModifiedDate = '4th, Nov 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
-        self.__g_oTwitter = Twitter()
-        self.__o_reg_korean = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')  # get Korean unicode
-        self.__o_reg_alpha_numeric = re.compile('[a-zA-Z0-9]+')  # get alphanumeric
-        self.__o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sTblPrefix = None
+        self.__g_sMode = None
+        self.__g_sCommaSeparatedWords = None
+        self.__g_sStartYyyymmdd = None
+        self.__g_sEndYyyymmdd = None
+        self.__g_dictCountingNouns = {}
+        self.__g_lstCountingNounsSrl = []
+        self.__g_dictRegisteredNouns = {}
+        self.__g_oTwitter = None
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sTblPrefix = None
+        self.__g_sMode = None
+        self.__g_sCommaSeparatedWords = None
+        self.__g_sStartYyyymmdd = None
+        self.__g_sEndYyyymmdd = None
+        self.__g_dictCountingNouns = {}
+        self.__g_lstCountingNounsSrl = []
+        self.__g_dictRegisteredNouns = {}
+        self.__g_oTwitter = None
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_sMode = self._g_dictParam['mode']
         self.__g_sCommaSeparatedWords = self._g_dictParam['words']
         self.__g_sStartYyyymmdd = self._g_dictParam['start_yyyymmdd']
@@ -80,7 +95,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
+        if self.__g_sMode is None:
+            self._printDebug('you should designate mode')
+            self._task_post_proc(self._g_oCallback)
+            return
+
+        import nltk  # this import interrupts the plugin turn into __del__() automatically
+        self.__g_oTwitter = Twitter()
 
         ################################
         # https://www.inflearn.com/questions/158593
@@ -124,6 +147,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug(lst_noun)
         else:
             self._printDebug('weird')
+            self._task_post_proc(self._g_oCallback)
+            return
 
         try:
             n_noun_cnt = len(lst_noun)
@@ -143,8 +168,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 wc.to_file(s_wc_file_path_abs)
         except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
             self._printDebug('Processing has been interrupted abnormally')
+            self._task_post_proc(self._g_oCallback)
+            return
         
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
     
     def __tag_ignore_word(self):
         lst_ignore_word = self.__g_sCommaSeparatedWords.split(',')
@@ -155,11 +182,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             for s_ignore_word in lst_ignore_word:
-                lst_rst = o_sv_mysql.executeQuery('updateIgnoreWord', s_ignore_word)
+                o_sv_mysql.executeQuery('updateIgnoreWord', s_ignore_word)
     
     def __add_custom_noun(self):
         lst_custom_noun = self.__g_sCommaSeparatedWords.split(',')
-
         if len(lst_custom_noun) == 0:
             return
         with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:

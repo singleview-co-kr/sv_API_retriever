@@ -24,7 +24,6 @@
 
 # standard library
 import sys
-# import os
 import base64
 import http.client # https://docs.python.org/3/library/http.client.html
 import urllib.parse
@@ -37,12 +36,15 @@ import json
 import simplejson as json
 
 if __name__ == 'svcommon.sv_http': # for platform running
-    from svcommon import sv_object, sv_cipher
+    from svcommon import sv_object
+    from svcommon import sv_cipher
 elif __name__ == 'sv_http': # for plugin console debugging
-    import sv_object, sv_cipher
+    import sv_object
+    import sv_cipher
 elif __name__ == '__main__': # for class console debugging
     sys.path.append('../svcommon')
-    import sv_object, sv_cipher
+    import sv_object
+    import sv_cipher
 
 
 class svHttpCom(sv_object.ISvObject):
@@ -50,13 +52,9 @@ class svHttpCom(sv_object.ISvObject):
     __g_oHttpConn = None
     #__g_oLogger = None
     __g_oCipher = None
-    # __g_sFullUrl = None
     __g_sSubUrl = None
     __g_sReservedQueryName = '@v'
     __g_dictRet = {'error': -1, 'variables':{'todo':'remove'}} # simulate XE object respond
-    # __g_sSecret = None
-    # __g_sIv = None
-    # __g_sPadding = '{'
     __g_dictMsg = { 
         'OK': 1, # OK
         'FIN': 2, # finish 
@@ -108,7 +106,7 @@ class svHttpCom(sv_object.ISvObject):
         self.__g_oCipher = sv_cipher.svCipherOpenSsl()  # sv_cipher.svCipherMcrypt()
 
     def getSecuredUrl(self, dictParams):
-        oResp = None
+        # oResp = None
         # refer to https://velog.io/@city7310/%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%9C%BC%EB%A1%9C-URL-%EA%B0%80%EC%A7%80%EA%B3%A0-%EB%86%80%EA%B8%B0
         oOriginalParts = urllib.parse.urlparse(self.__g_sSubUrl)
         #oOriginalParts.scheme == 'https'
@@ -120,16 +118,11 @@ class svHttpCom(sv_object.ISvObject):
         if len(oOriginalParts.query) > 0:
             dictQuery = json.dumps(urllib.parse.parse_qs(oOriginalParts.query))
         
-        # self.__g_sSecret = dictParams.pop('secret')
-        # self.__g_sIv = dictParams.pop('iv')
         self.__g_oCipher.setIv(dictParams.pop('iv'))
         self.__g_oCipher.setSecretKey(dictParams.pop('secret'))
-
-        # sJson = self.__encryptString( dictQuery )
         sJson = self.__g_oCipher.encryptString(dictQuery)
         sEncryptedJsonQuery = sJson.decode('utf-8')
         sEncodedEncryptedJsonQuery = urllib.parse.urlencode({self.__g_sReservedQueryName:sEncryptedJsonQuery})
-
         oDecryptedParts = urllib.parse.ParseResult(scheme=oOriginalParts.scheme, netloc=oOriginalParts.netloc, path=oOriginalParts.path, params='', query=sEncodedEncryptedJsonQuery, fragment='')
         sConvertedUrl = urllib.parse.urlunparse(oDecryptedParts) # or oDecryptedParts.geturl()
         try:
@@ -142,11 +135,10 @@ class svHttpCom(sv_object.ISvObject):
             oHttpResp = self.__g_oHttpConn.getresponse()
             if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                 sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
-                #self._printDebug( sResp )
+                #self._printDebug(sResp)
                 if sResp is not 'NULL':
                     sTmp = self.__g_oCipher.decryptString(sResp)
-                    oTmp = json.loads(sTmp )
-
+                    oTmp = json.loads(sTmp)
                 self.__g_dictRet['error'] = 0
                 self.__g_dictRet['variables'] = oTmp
             else:
@@ -154,21 +146,21 @@ class svHttpCom(sv_object.ISvObject):
         except Exception as err:  
             nIdx = 0
             for e in err.args:
-                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str(e))
+                self._printDebug('http generic error raised arg' + str(nIdx) + ': ' + str(e))
                 nIdx += 1
-            oResp = self.__g_dictRet
+            # oResp = self.__g_dictRet
         finally:
             return self.__g_dictRet
         
-    def getUrl( self ):
+    def getUrl(self):
         oResp = None
         try:
             self.__g_oHttpConn.request('GET', self.__g_sSubUrl)
             oHttpResp = self.__g_oHttpConn.getresponse()
             if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                 sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
-                #self._printDebug( sResp )
-                oResp = json.loads(base64.b64decode( sResp)) # php XE::Object will not be received
+                # self._printDebug(sResp)
+                oResp = json.loads(base64.b64decode(sResp)) # php XE::Object will not be received
             else:
                 pass # what if HTTP failed
         except Exception as err:  
@@ -185,21 +177,18 @@ class svHttpCom(sv_object.ISvObject):
             if isinstance(dictParams, dict):
                 self.__g_oCipher.setIv(dictParams.pop('iv'))
                 self.__g_oCipher.setSecretKey(dictParams.pop('secret'))
-
                 sJson = json.dumps(dictParams)
-                #self._printDebug( sJson )
+                #self._printDebug(sJson)
                 sJson = self.__g_oCipher.encryptString(sJson)
-                #self._printDebug( sJson )
-                
+                #self._printDebug(sJson)
                 oHeaders = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'application/json'}
                 sParams = urllib.parse.urlencode({self.__g_sReservedQueryName: sJson})
-                # self._printDebug( self.__g_sSubUrl )
+                # self._printDebug(self.__g_sSubUrl)
                 self.__g_oHttpConn.request('POST', self.__g_sSubUrl, sParams, oHeaders)
-
                 oHttpResp = self.__g_oHttpConn.getresponse()
                 if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                     sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
-                    # self._printDebug( sResp )
+                    # self._printDebug(sResp)
                     if sResp == 'bar1':
                         self._printDebug('invalid brand_id')
                         self.__g_dictRet['error'] = -1
@@ -219,11 +208,9 @@ class svHttpCom(sv_object.ISvObject):
                     elif sResp != 'NULL':
                         sTmp = self.__g_oCipher.decryptString(sResp)
                         oTmp = json.loads(sTmp )
-                        
                         #self._printDebug('' )
                         #self._printDebug(oTmp )
                         #self._printDebug('' )
-                        
                         self.__g_dictRet['error'] = 0
                         self.__g_dictRet['variables'] = oTmp
                     #while not r1.closed:
@@ -236,7 +223,7 @@ class svHttpCom(sv_object.ISvObject):
         except Exception as err:
             nIdx = 0
             for e in err.args:
-                self._printDebug( 'http generic error raised arg' + str(nIdx) + ': ' + str(e))
+                self._printDebug('http generic error raised arg' + str(nIdx) + ': ' + str(e))
                 nIdx += 1
         finally:
             return self.__g_dictRet
@@ -252,9 +239,9 @@ class svHttpCom(sv_object.ISvObject):
 if __name__ == '__main__': # for console debugging
     oSvHttpCom = svHttpCom('localhost')
     dictParams = {'@key': 234, '@type': 'issue', '@action': 'show'}
-    oResp = oSvHttpCom.postUrl( '/devel/api/', dictParams )
+    oResp = oSvHttpCom.postUrl('/devel/api/', dictParams)
     oSvHttpCom.close()
-    #print( oResp )
+    #print(oResp)
 
 # The following example demonstrates reading data in chunks.
 '''oHttpConn.request("GET", "/")

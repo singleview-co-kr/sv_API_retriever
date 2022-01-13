@@ -46,40 +46,42 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oSvCampaignParser = None
-    __g_sTblPrefix = None
-    __g_dictFbRaw = None  # prevent duplication on a web console
-    __g_dictFxCodeByBizAcct = {}
-    __g_dictFxTrendInfo = {}
+    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sVersion = '1.0.3'
-        self._g_sLastModifiedDate = '1st, Dec 2021'
-        self._g_oLogger = logging.getLogger(__name__ + ' v'+self._g_sVersion)
+        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # It is only created once at first, 
+        # whenever you create new objects it will reuse this same dict. 
+        # To create instance variables, you declare them with self in __init__.
+        self.__g_sTblPrefix = None
+        self.__g_dictFbRaw = None  # prevent duplication on a web console
+        self.__g_dictFxCodeByBizAcct = {}
+        self.__g_dictFxTrendInfo = {}
 
-    def __enter__(self):
-        """ grammtical method to use with "with" statement """
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """ unconditionally calling desctructor """
-        pass
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sTblPrefix = None
+        self.__g_dictFbRaw = None  # prevent duplication on a web console
+        self.__g_dictFxCodeByBizAcct = {}
+        self.__g_dictFxTrendInfo = {}
 
     def do_task(self, o_callback):
+        self._g_oCallback = o_callback
         self.__g_dictFbRaw = {}  # prevent duplication on a web console
 
         oResp = self._task_pre_proc(o_callback)
         dict_acct_info = oResp['variables']['acct_info']
         if dict_acct_info is None:
             self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
             return
-
-        self.__g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()        
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        
         with sv_mysql.SvMySql('svplugins.fb_register_db') as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
@@ -87,7 +89,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__arrangeFbRawDataFile(s_sv_acct_id, s_acct_title)
         self.__registerDb()
 
-        self._task_post_proc(o_callback)
+        self._task_post_proc(self._g_oCallback)
 
     def __getFxRate(self, sCheckFxCode, sCheckDate):
         # https://developers.facebook.com/docs/marketing-api/currencies/
