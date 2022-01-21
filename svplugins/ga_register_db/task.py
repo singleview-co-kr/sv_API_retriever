@@ -125,20 +125,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
 
         # try internal search log
-        self.__print_debug('UA internal search log has been started\n')
+        self._printDebug('UA internal search log has been started\n')
         o_internal_search = internal_search.svInternalSearch()
         o_internal_search.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_internal_search.proc_internal_search_log()
         del o_internal_search
-        self.__print_debug('UA internal search log has been finished\n')
+        self._printDebug('UA internal search log has been finished\n')
 
         # try item performance log
-        self.__print_debug('UA item performance log has been started\n')
+        self._printDebug('UA item performance log has been started\n')
         o_item_perf = item_performance.svItemPerformance()
         o_item_perf.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_item_perf.proc_item_perf_log()
         del o_item_perf
-        self.__print_debug('UA item performance log has been finished\n')
+        self._printDebug('UA item performance log has been finished\n')
 
         # try transaction referral log
         self.__proc_transaction_log(sDataPath)

@@ -134,15 +134,11 @@ class SvMySql(sv_object.ISvObject):
         no cache allowed as this is dynamic query
         dict_param은 msg broker를 통과할 수도 있으므로 문자열 변수만 포함해야 함
         """
-        s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[self.__g_nThreadId].get(s_pysql_id, (None,None))
-        if s_query_type is None and s_sql_compiled is None:
-            s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
-            if s_query_type == 'unknown':
-                return []
-            if s_sql_compiled is None:
-                return []
-            # cache compiled sql statement
-            self.__g_dictCompiledSqlStmt[self.__g_nThreadId][s_pysql_id] = [s_query_type, s_sql_compiled]
+        s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
+        if s_query_type == 'unknown':
+            return []
+        if s_sql_compiled is None:
+            return []
         # execute query
         try:
             self.__g_oCursor.execute(s_sql_compiled)
