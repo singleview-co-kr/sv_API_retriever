@@ -47,18 +47,22 @@ from google.ads.googleads.client import GoogleAdsClient
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_object
     import sv_plugin
+    import settings
 else:
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
+
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -93,11 +97,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(self._g_oCallback)
         
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data')
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
         
-        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'conf')
+        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 

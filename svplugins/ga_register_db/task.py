@@ -42,10 +42,12 @@ import codecs
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import settings
     import internal_search
     import item_performance
 else: # for platform running
@@ -53,6 +55,7 @@ else: # for platform running
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
     from svplugins.ga_register_db import internal_search
     from svplugins.ga_register_db import item_performance
 
@@ -106,7 +109,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
         s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'branded_term.conf')
         with sv_mysql.SvMySql('svplugins.ga_register_db') as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
@@ -121,8 +124,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
     def __parseGaDataFile(self, sSvAcctId, sAcctTitle, sGaViewId):
         self._printDebug('-> '+ sGaViewId +' is registering GA data files')
-        sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
-        sConfPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
+        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
+        sConfPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
 
         # try internal search log
         self._printDebug('UA internal search log has been started\n')
@@ -146,11 +149,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__getSourceMediaNameAlias(sConfPath)
         
         # retrieve google ads campaign name alias info
-        sGoogeAdsDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords')
+        sGoogeAdsDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
         self.__g_dictGoogleAdsCampaignNameAlias = self.__getCampaignNameAlias(sGoogeAdsDataPath)
 
         # retrieve naver powerlink campaign name alias info
-        sNaverPowerlinkDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'naver_ad')
+        sNaverPowerlinkDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'naver_ad')
         self.__g_dictNaverPowerlinkCampaignNameAlias = self.__getCampaignNameAlias(sNaverPowerlinkDataPath)
         self.__proc_media_perf_log(sDataPath)
         

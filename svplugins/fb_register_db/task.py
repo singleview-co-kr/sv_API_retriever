@@ -34,15 +34,18 @@ import codecs
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -50,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -128,7 +131,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if sFxCode == 'KRW':
             return True
         
-        sCurrencyTrendPath = os.path.join(self._g_sAbsRootPath, 'files', 'info_fx_' + sFxCode + '.tsv')
+        sCurrencyTrendPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, 'info_fx_' + sFxCode + '.tsv')
         # try:
         if os.path.isfile(sCurrencyTrendPath):
             with open(sCurrencyTrendPath, 'r') as tsvfile:
@@ -158,7 +161,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return sFxCode
 
     def __arrangeFbRawDataFile(self, sSvAcctId, sAcctTitle):
-        sDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
+        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
         # traverse directory and categorize data files
         lstTotalDataset = []
         lstFbBizAid = os.listdir(sDataPath)
@@ -322,7 +325,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nIdx += 1
 
     def __getCampaignNameAlias(self, sSvAcctId, sAcctTitle):
-        sParentDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz')
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
         dictCampaignNameAliasInfo = {}
         s_alias_filename = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
         # try:

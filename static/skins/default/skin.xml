@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<skin version="0.2">
+	<title xml:lang="ko">singleview ROAS by Channel Mgmt Skin</title>
+	<description xml:lang="ko">싱글뷰의 채널별 수익률 관리 스킨입니다.</description>
+	<version>0.1</version>
+	<date>2016-04-09</date>
+	<author email_address="root@singleview.co.kr" link="http://singleview.co.kr/">
+		<name xml:lang="ko">singleview</name>
+	</author>
+	<extra_vars>
+		<var name="facebook_app_id" type="text">
+			<title xml:lang="ko">facebook app id</title>
+			<description xml:lang="ko">facebook 개발자 센터에서 발급받은 app id를 입력하세요.</description>
+		</var>
+	</extra_vars>
+</skin>

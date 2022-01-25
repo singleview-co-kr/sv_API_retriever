@@ -44,15 +44,18 @@ import codecs
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import settings
 else:
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -64,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -105,7 +108,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
 
-        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'branded_term.conf')
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'branded_term.conf')
         if self.__g_sReplaceMonth != None:
             self._printDebug('-> replace aw raw data')
             self.__deleteCertainMonth()
@@ -147,7 +150,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __arrangeAwRawDataFile(self, sSvAcctId, sAcctTitle, lstGoogleads):
         lstMergedDataFiles = []
-        sParentDataPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords')
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
         # retrieve campaign name alias info
         dictCampaignNameAlias = self.__getCampaignNameAlias(sParentDataPath)
 

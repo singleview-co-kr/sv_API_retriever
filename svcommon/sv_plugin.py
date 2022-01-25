@@ -44,7 +44,8 @@ class ISvPlugin(ABC):
     _g_sAbsRootPath = None
     _g_sLastModifiedDate = None
     _g_oLogger = None
-    _g_dictParam = {'analytical_namespace':None, 'config_loc':None}
+    # _g_dictParam = {'analytical_namespace':None, 'config_loc':None}
+    _g_dictParam = {'config_loc':None}
     _g_oThread = None
     _g_oCallback = None  # callback for self desturction
 
@@ -69,7 +70,7 @@ class ISvPlugin(ABC):
             self._g_oThread = threading.currentThread()
 
         self._g_sAbsRootPath = config('ABSOLUTE_PATH_BOT')
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['analytical_namespace'], self._g_dictParam['config_loc'])
+        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['config_loc'])
         return oSvApiConfigParser.getConfig()
 
     def _task_post_proc(self, o_callback):

@@ -38,15 +38,18 @@ import time
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_http
     import sv_mysql
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -59,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
@@ -103,7 +106,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return sMsg
         
     def __getKeyConfig(self, sSvAcctId, sAcctTitle):
-        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
+        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
         try:
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
@@ -153,7 +156,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         ############ begin python thread test ################ 
         # try:
-        #     sLatestFilepath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'test_api_info.ini')
+        #     sLatestFilepath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'test_api_info.ini')
         #     f = open(sLatestFilepath, 'r')
         #     sMaxReportDate = f.readline()
         #     f.close()

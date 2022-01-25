@@ -1,0 +1,338 @@
+<block cond="count($list)">
+	{@$list_keys = array_keys($list)}
+	{@$first_order = $list[$list_keys[0]]}
+	{@$extra_vars = unserialize($first_order->extra_vars)}
+	<block cond="$extra_vars">
+		{@$keys = array_keys($extra_vars)}
+		{@$representative = $keys[0]}
+	</block>
+</block>
+
+<script type="text/javascript">
+function _getUrlParam(sQueryNme)
+{
+    var results = new RegExp('[\?&]' + sQueryNme + '=([^&#]*)').exec(window.location.href);
+    if( results == null )
+       return null;
+    else
+       return results[1] || 0;
+}
+
+jQuery(document).ready(function() {
+	var sStatus = _getUrlParam('status');
+	if( sStatus )
+		jQuery('#'+sStatus).addClass('active');
+	else
+		jQuery('#1').addClass('active');
+
+});
+</script>
+
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
+<button class="btn" onClick="openDialog('ddd')">Middle</button>
+
+<script type="text/javascript">
+jQuery(function(){ 
+	//전체선택 체크박스 클릭 
+	jQuery('#allCheck').click(function() //만약 전체 선택 체크박스가 체크된상태일경우 
+	{ 
+		if( jQuery('#allCheck').prop('checked') ) //해당화면에 전체 checkbox들을 체크해준다 
+			jQuery('input[type=checkbox]').prop('checked',true); // 전체선택 체크박스가 해제된 경우
+		else //해당화면에 모든 checkbox들의 체크를해제시킨다.
+			jQuery('input[type=checkbox]').prop('checked',false); 
+	}) 
+})
+
+//https://stackoverflow.com/questions/3837166/jquery-load-modal-dialog-contents-via-ajax
+function openDialog(title) {
+	//jQuery('<div id="dialog">').html('loading.1..').dialog({
+	jQuery('#registerShippingSerial').dialog({
+		position:  ['center',20],
+		open: function () {
+			//jQuery(this).load(url);
+			// get checked items.
+			var params = new Array();
+			params['mid'] = '{$mid}';
+			params['module_srl'] = '{$module_srl}';
+
+			// get excel upload form.
+			exec_xml(
+				'svestudio',
+				'getSvestudioRegisterShippingInvoice',
+				params,
+				function(ret){
+					var tpl = ret.tpl.replace(/<enter>/g, '\n');
+					$('#ShippingSerialForm').html(tpl);
+				},
+				['error','message','tpl']
+			);
+		},
+		close: function(event, ui) {
+				jQuery(this).remove();
+		},
+		title: title,
+		minWidth: 600            
+	});
+	return false;
+}
+</script>
+<div cond="$XE_VALIDATOR_MESSAGE && $XE_VALIDATOR_ID == ''" class="message {$XE_VALIDATOR_MESSAGE_TYPE}">
+	<p>{$XE_VALIDATOR_MESSAGE}</p>
+</div>
+<div class="page-title">
+	<div class="title_left">
+		<h3>싱글뷰 주문 관리</h3>
+	</div>
+	<div class="title_right">
+		<div class="col-md-5 col-sm-5 col-xs-12 form-group pull-right top_search">
+			<div class="input-group">
+				<input type="text" class="form-control" placeholder="Search for...">
+				<span class="input-group-btn">
+				<button class="btn btn-default" type="button">Go!</button>
+				</span>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="clearfix"></div>
+<div class="row">
+	<div class="col-md-12">
+		<div class="x_panel">
+			<div class="x_title">
+				<h2>주문 관리 </h2>
+				<ul class="nav navbar-right panel_toolbox">
+					<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+					</li>
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+						<ul class="dropdown-menu" role="menu">
+							<li><a href="#">Settings 1</a>
+							</li>
+							<li><a href="#">Settings 2</a>
+							</li>
+						</ul>
+					</li>
+					<li><a class="close-link"><i class="fa fa-close"></i></a>
+					</li>
+				</ul>
+				<div class="clearfix"></div>
+			</div>
+			<div class="x_content">
+				<div class="btn-toolbar">
+					<div class="btn-group">
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status','0')}" cond="0">
+							<button id='0' class="btn btn-info" type="button">{$lang->cmd_cart}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_ON_DEPOSIT)}">
+							<button id='1' class="btn btn-info" type="button">{$lang->wait_deposit}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_PAID)}">
+							<button id='2' class="btn btn-info" type="button">{$lang->deposit_done}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_PREPARE_DELIVERY)}">
+							<button id='3' class="btn btn-info" type="button">{$lang->prepare_delivery}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_ON_DELIVERY)}">
+							<button id='4' class="btn btn-info" type="button">{$lang->on_delivery}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_DELIVERED)}">
+							<button class="btn btn-info" type="button">{$lang->delivery_done}</button>
+						</a>
+					</div>
+					<div class="btn-group">
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_RETURN_REQUESTED)}">
+							<button class="btn btn-success" type="button">{$lang->return_requested}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_RETURNED)}">
+							<button class="btn btn-success" type="button">{$lang->returns}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_EXCHANGE_REQUESTED)}">
+							<button class="btn btn-success" type="button">{$lang->exchange_requested}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_EXCHANGE_REDELIVERY_READY)}">
+							<button class="btn btn-success" type="button">{$lang->exchange_redelivery_ready}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_EXCHANGED)}">
+							<button class="btn btn-success" type="button">{$lang->exchanged}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_CANCEL_REQUESTED)}">
+							<button class="btn btn-success" type="button">{$lang->on_cancelling}</button>
+						</a>
+					</div>
+					<div class="btn-group">
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_CANCELLED)}">
+							<button class="btn btn-warning" type="button">{$lang->cancelled}</button>
+						</a>
+						<a href="{getUrl('','mid',$mid,'act','dispSvestudioOrderManagement','status',svorder::ORDER_STATE_COMPLETED)}">
+							<button class="btn btn-warning" type="button">{$lang->transaction_done}</button>
+						</a>
+					</div>
+				</div>
+				<BR>
+				<form id="searchForm" action="./" method="get" class="x_input-append" >
+					<input type="hidden" name="module" value="{$module}" />
+					<input type="hidden" name="act" value="{$act}" />
+					<input type="hidden" name="status" value="{$status}" />
+					<input type="hidden" name="error_return_url" value="" />
+					<select name="s_year" style="width:80px;">
+						<option loop="$i=(intval(date('Y'))+2);$i>=(intval(date('Y'))-10);$i--" value="{$i}" selected="selected"|cond="$s_year==$i">{$i}</option>
+					</select>
+					<select name="s_month" style="width:54px;">
+						<option value="" selected="selected"|cond="!$s_month">{$lang->all}</option>
+						<option loop="$i=1;$i<=12;$i++" value="{sprintf('%02u', $i)}" selected="selected"|cond="$s_month==$i">{$i}</option>
+					</select>
+					<select name="search_key">
+						<option value="purchaser_name" selected="selected"|cond="$search_key==''">{$lang->purchaser_name}</option>
+						<option value="email_address" selected="selected"|cond="$search_key=='email_address'">{$lang->email_address}</option>
+						<option loop="$usedIdentifiers=>$key,$val" value="{$key}" selected="selected"|cond="$search_key==$key">{Context::getLang($key)}</option>
+						<option value="member_srl" selected="selected"|cond="$search_key=='member_srl'">{$lang->member_srl}</option>
+						<option cond="$representative" value="extra_vars" selected="selected"|cond="$search_key=='extra_vars'">{sprintf($lang->info_purchaser_input, $representative)}</option>
+					</select>
+					<input type="text" name="search_value" value="{$search_value}" />
+					<button class="x_btn x_btn-inverse" type="submit">{$lang->inquiry}</button>
+				</form>
+				
+				<form action="./" method="post" class="x_input-append x_clearfix" id="fo_orderlist">
+				<input type="hidden" name="module" value="{$module}" />
+				<input type="hidden" name="mid" value="{$mid}" />
+				<input type="hidden" name="act" value="procSvestudioUpdateOrderStatus" />
+				<input type="hidden" name="status" value="{$status}"/>
+				<input type="hidden" name="cur_page" value="{$page}"/>
+				
+				<div id="orderlist" class="table even easyList">
+				<table class="table table-striped responsive-utilities jambo_table bulk_action" id="order_table">
+					<caption style="text-align:right; margin-bottom:10px;">
+						<a href="#modifyDataFormat" class="modalAnchor modifyDataFormat">{$lang->data_format_setting} | </a>
+<block cond="$status==2"><a href='#' onClick='downloadAndPrepareShipping();'>{$lang->cmd_prepeare_shipping} | </a></block>
+						<a href='#' onClick='downloadCsv();'>{$lang->cmd_download_by_order} | </a><a href="#" onClick='openDialog("배송번호 일괄등록 ");' class="modalAnchor registerShippingSerial">{$lang->register_shipping_serial}</a>
+					</caption>
+					<thead>
+						<tr class="headings">
+							<th><input type="checkbox" title="Check All" id="allCheck"></th>
+							<th class="column-title">{$lang->order_date}</th>
+							<th class="column-title">{$lang->product_name}</th>
+							<th class="column-title">{$lang->items}</th>
+							<th class="column-title">{$lang->payamount}</th>
+							<th loop="$usedIdentifiers=>$key,$val" class="column-title">{Context::getLang($key)}</th>
+							<th class="column-title">{$lang->purchaser_name}</th>
+							<th class="column-title">{$lang->title_delivery_info}</th>
+							<th cond="$module_config->escrow_yn=='Y'" class="column-title">{$lang->escrow}</th>
+							<th class="column-title">{$lang->order_management}</th>
+							<th class="column-title no-link last"><span class="nobr">{$lang->cmd_print_ordersheet}</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr loop="$list=>$no,$order">
+							{@$order_arr = get_object_vars($order)}
+							<td><input type="hidden" name="order_srls[]" value="{$order->order_srl}" /><input type="checkbox" class="flat" name="cart[]" value="{$order->order_srl}" /></td>
+							<td>
+								<block cond="$order->use_escrow=='Y'"><div><a cond="$status!='0'" href="#" id="escrow_{$order->order_srl}" onclick="window.open('{getUrl('act','dispSvestudioEscrowDelivery','order_srl',$order->order_srl)}', 'popup', 'left=50, top=20, width=700, scrollbars=yes, height=700, toolbars=no'); return false;" data-order-srl="{$order->order_srl}"><font color='red'>에스크로결제</font></a></div></block>
+								<div>{zdate($order->regdate,'Y-m-d')}</div>
+								<div>(<a href="{getUrl('act','dispSvestudioOrderDetail','order_srl',$order->order_srl)}">{$order->order_srl}</a>)</div>
+								<div cond="$config->external_server!=''">{$config->external_server} 주문번호<BR>({$order->thirdparty_order_id})</div>
+							</td>
+							<td><span title="{$order->title}">{cut_str($order->title, 20)}</span></td>
+							<td>{number_format($order->item_count)}</td>
+							<td>{number_format($order->offered_price)}
+		<block cond="$order->pg_tid_canceldate != ''">
+								<DIV>PG취소완료</DIV>
+		</block>
+							</td>
+							<td loop="$usedIdentifiers=>$key,$val"><a href="#popup_menu_area" class="member_{$order->member_srl}" title="{$order_arr[$key]}">{cut_str($order_arr[$key],6)}</a></td>
+							<td>{$order->purchaser_name}</td>
+							<td>
+								<select name="express_id[]" style="width:156px; display:block; margin-bottom:4px;">
+									<option loop="$delivery_companies=>$key,$val" value="{$key}" selected="selected"|cond="$key == $order->express_id || (!$order->express_id && $key == $config->default_delivery_company)">{$val}</option>
+								</select>
+								<input type="text" name="invoice_no[]" style="width:140px;" value="{$order->merged_invoice_no}" placeholder="{$lang->input_invoice_no}" />
+								<a cond="$order->invoice_no" href="{$delivery_inquiry_urls[$order->express_id]}{$order->invoice_no}" target="_blank"><span>{$lang->cmd_trace_delivery}</span></a>
+							</td>
+							<td><a href="{getUrl('act','dispSvestudioOrderDetail','order_srl',$order->order_srl)}">{$lang->order_management}</a></td>
+							<td>
+								<a cond="$status!='0'" href="#" onclick="window.open('{getUrl('act','dispSvestudioOrderSheet','order_srl',$order->order_srl)}', 'addressbook_popup', 'left=50, top=20, width=700, scrollbars=yes, height=700, toolbars=no'); return false;"><span>{$lang->cmd_print_ordersheet}</span></a>
+							</td>
+						</tr>
+						<tr cond="!count($list)">
+							<td colspan="10">{$lang->msg_no_order_list}</td>
+						</tr>
+					</tbody>
+				</table>
+				
+				<div class="x_control-group">
+					<div class="x_controls x_pull-left">
+						<label class="x_control-label x_inline" for="order_status">{$lang->cmd_selected_order}</label>
+						<select name="order_status" id="order_status">
+							<option value="2" selected="selected"|cond="$status=='1'">{$lang->deposit_done}</option>
+							<option value="3" selected="selected"|cond="$status=='2'">{$lang->prepare_delivery}</option>
+							<option value="4" selected="selected"|cond="$status=='3'">{$lang->on_delivery}</option>
+							<option value="5" selected="selected"|cond="$status=='4'">{$lang->delivery_done}</option>
+							<option value="6" selected="selected"|cond="$status=='5'">{$lang->transaction_done}</option>
+							<option value="B" selected="selected"|cond="$status=='B'">{$lang->returns}</option>
+						</select>
+						<button class="x_btn x_btn-inverse" onclick="update_status();return false;">{$lang->cmd_apply}</button>
+					</div><!-- //x_controls -->
+				</div><!-- //x_control-group -->
+				<button type="submit" name="act" value="procSvestudioUpdateDeliveryInfo" class="x_btn x_btn-inverse x_pull-right">{$lang->cmd_save_delivery_info}</button>
+				<div>주문 취소는 개별 [주문관리]를 이용해 주세요.</div>
+				</form>
+				<include target="_page_navigation.html" />
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="x_modal" id="modifyDataFormat">
+	<form action="./" class="fg form" method="post">
+		<div id="CsvFormatForm"></div>
+	</form>
+</div>
+<div class="x_modal" id="registerShippingSerial">
+	<div id="ShippingSerialForm"></div>
+</div>
+
+<!--- hidden form to download CSV begin ----->
+<form action="./" method="post" id='frmCsvDownloadByOrder' name="frmCsvDownloadByOrder">
+<input type='hidden' name='module' id='module' value='svestudio'/>
+<input type='hidden' name='act' id='act' value='procSvestudioCSVDownloadByOrderStatus'/>
+<input type="hidden" name="module_srl" value="{$module_srl}" />
+<input type='hidden' name='status' id='status' value='{$status}'/>
+</form>
+<script type="text/javascript">
+function downloadCsv()
+{
+	document.frmCsvDownloadByOrder.submit();
+}
+</script>
+<!--- hidden form to download CSV end ----->
+
+<!--- hidden form to download CSV and prepare shipping begin ----->
+<form action="./" method="post" id='frmCsvDownloadAndPrepShipping' name="frmCsvDownloadAndPrepShipping">
+<input type='hidden' name='module' id='module' value='svestudio'/>
+<input type='hidden' name='act' id='act' value='procSvestudioCSVDownloadOrderPrepareShipping'/>
+<input type="hidden" name="module_srl" value="{$module_srl}" />
+<input type='hidden' name='status' id='status' value='{$status}'/>
+</form>
+<script src="//code.jquery.com/jquery.min.js"></script>
+<script type="text/javascript">
+function downloadAndPrepareShipping()
+{
+	document.frmCsvDownloadAndPrepShipping.submit();
+	jQuery( '#order_table > tbody').empty();
+}
+</script>
+<!--- hidden form to download CSV and prepare shipping end ----->
+
+<script>
+function update_status() 
+{
+	var order_status = jQuery('select[name=order_status]').val();
+	var $fo = jQuery('#fo_orderlist');
+	$fo.submit();
+}
+
+(function($){
+	//$('.escrow').escrow();
+})(jQuery);
+</script>

@@ -35,8 +35,10 @@ import random
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_object
     import sv_plugin
+    import settings
     from powernad.API.MasterReport import *
     from powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
     from powernad.API.StatReport import *
@@ -44,6 +46,7 @@ if __name__ == '__main__': # for console debugging
 else:
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
     sys.path.append(os.path.join(os.getcwd(),'svcommon'))
     from svcommon.powernad.API.MasterReport import *
     from svcommon.powernad.Object.MasterReport.RequestObject.CreateMasterReportObject import CreateMasterReportObject
@@ -121,10 +124,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         
-        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'conf')
+        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
             os.makedirs(self.__g_sRetrieveInfoPath)
-        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'data')
+        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'data')
         if os.path.isdir(self.__g_sDownloadPathNew) == False:
             os.makedirs(self.__g_sDownloadPathNew)
 

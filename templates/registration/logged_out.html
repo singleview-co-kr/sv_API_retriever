@@ -1,19 +1,22 @@
-{% extends "base.html" %}
+{% extends "layout_dashboard.html" %}
 
-{% block title %}logged_out.html{% endblock %}
+{% block title %}안녕히 가세요! - singleview.co.kr{% endblock %}
 
 {% block content %}
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="x_panel" style="height:600px;">
+            <div id="wrapper">
+                <div id="login" class="animate form">
+                    <section class="logout_content">
+			        <p class="font-italic"><a href="{% url 'login' %}">다시 로그인 하기</a></p>
+                    </section>
+                    <!-- content -->
+                </div>
 
-    <h1>Logged out</h1>
-    <br>
-
-    <div>
-        <i class="fas fa-quote-left"></i>
-        <span class="h6">&ensp;Thanks for spending your quality time with this web site today.&ensp;</span>
-        <i class="fas fa-quote-right"></i>
+            </div>
+        </div>
     </div>
-
-    <p class="font-italic"><a href="{% url 'login' %}">Log in again</a></p>
-
+</div>
 {% endblock %}
 

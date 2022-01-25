@@ -1,0 +1,75 @@
+{% extends "layout_dashboard.html" %}
+
+{% load static %}
+
+{% block title %}그로스해커가 없어도 온라인 브랜딩 감시부터 성과 분석과 시행 개선까지 쉽고 편리하게 시작! - singleview.co.kr{% endblock %}
+
+{% block extra-style %}
+{% endblock %}
+
+{% block content %}
+
+{% if dict_owned_brand|length > 0 %}
+	{% for _, dict_acct in dict_owned_brand.items %}
+ <div class="row">
+     <div class="col-md-12 col-sm-12 col-xs-12">
+         <div class="x_panel" style="height:500px;">
+             <div class="x_title">
+                 <h2>{{dict_acct.s_acct_ttl}}</h2>
+                 <ul class="nav navbar-right panel_toolbox">
+                     <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                 </ul>
+                 <div class="clearfix"></div>
+             </div>
+             <div class="x_content">
+                 <div class="row">
+                     <div class="col-md-12">
+		{% for dict_brand in dict_acct.lst_brand %}
+                         <!-- price element -->
+                         <div class="col-md-3 col-sm-6 col-xs-12">
+                             <div class="pricing">
+                                 <div class="title">
+                                     <h2>{{dict_brand.s_brand_ttl}}</h2>
+                                 </div>
+                                 <div class="x_content">
+                                     <div class="">
+                                         <div class="pricing_features">
+                                             <i class="fa fa-circle text-danger"></i> 데이터 추출
+                                             <ul class="list text-left">
+                                                 <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">데이터 추출</a></li>
+                                             </ul>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         <!-- price element -->
+		{% endfor %}
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </div>
+ </div>
+	{% endfor %}
+{% else %}
+ <div class="row">
+     <div class="col-md-12 col-sm-12 col-xs-12">
+         <div class="x_panel" style="height:500px;">
+             <div class="x_title">
+                 <h2>소유하신 브랜드가 없습니다.</h2>
+                 <ul class="nav navbar-right panel_toolbox">
+                     <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                 </ul>
+                 <div class="clearfix"></div>
+             </div>
+             <div class="x_content"></div>
+         </div>
+     </div>
+ </div>
+{% endif %}
+
+{% endblock content %}
+
+{% block footer %}
+{% endblock %}

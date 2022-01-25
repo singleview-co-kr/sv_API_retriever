@@ -19,6 +19,7 @@ from django.urls import path
 from django.contrib import admin
 
 from .views import IndexView
+from svauth.views import UserCreateView, UserCreateDoneTV
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -26,6 +27,8 @@ urlpatterns = [
     path('', IndexView.as_view(), name='index'),
     
     path('accounts/', include('django.contrib.auth.urls')),  # {% url 'login' %} 등 처리
+    path('accounts/register/', UserCreateView.as_view(), name='register'),
+    path('accounts/register/done', UserCreateDoneTV.as_view(), name='register_done'),
 
     path('extract/', include('svextract.urls')),
 ]

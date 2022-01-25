@@ -45,15 +45,18 @@ import math
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -64,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -121,7 +124,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
         s_cid = dict_nvr_ad_acct['customer_id']
-        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title)
+        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title)
         self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
         self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info[s_sv_acct_id]['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
 

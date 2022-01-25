@@ -1,0 +1,64 @@
+{% extends 'layout_dashboard.html' %}
+
+{% block content %}
+<div class="x_content">
+
+                  <!-- start accordion -->
+                  <div class="accordion" id="accordion" role="tablist" aria-multiselectable="true">
+                    <div class="panel">
+                      <a class="panel-heading" role="tab" id="headingOne" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <h4 class="panel-title">할당된 브랜드</h4>
+                      </a>
+                      <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                        <div class="panel-body">
+                          <table class="table table-bordered">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>광고주</th>
+                                <th>브랜드</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                            {% for dict_brand in lst_owned_brand %}
+                              <tr>
+                                <th scope="row"><a href="{% url 'svacct:brand_conf' dict_brand.n_brand_id %}">{{forloop.counter}}</a></th>
+                                <td>{{dict_brand.s_acct_ttl}}</td>
+                                <td>{{dict_brand.s_brand_ttl}}</td>
+                              </tr>
+                            {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="panel">
+                      <a class="panel-heading collapsed" role="tab" id="headingTwo" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        <h4 class="panel-title">Collapsible Group Items #2</h4>
+                      </a>
+                      <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                        <div class="panel-body">
+                          <p><strong>Collapsible Item 2 data</strong>
+                          </p>
+                          Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor,
+                        </div>
+                      </div>
+                    </div>
+                    <div class="panel">
+                      <a class="panel-heading collapsed" role="tab" id="headingThree" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        <h4 class="panel-title">Collapsible Group Items #3</h4>
+                      </a>
+                      <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingThree">
+                        <div class="panel-body">
+                          <p><strong>Collapsible Item 3 data</strong>
+                          </p>
+                          Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- end of accordion -->
+
+
+                </div>
+{% endblock %}

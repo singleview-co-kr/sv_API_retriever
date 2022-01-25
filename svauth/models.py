@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
+from svacct.models import Brand
 
 # Create your models here.
 # https://dev-yakuza.posstree.com/ko/django/custom-user-model/
@@ -43,6 +44,7 @@ class User(AbstractBaseUser):  # 실제 User Model
     analytical_namespace = models.CharField(max_length=10)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
+    brand_owners = models.ManyToManyField(Brand)
 
     objects = UserManager()
 

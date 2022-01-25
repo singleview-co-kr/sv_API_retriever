@@ -1,0 +1,204 @@
+{% extends 'layout_dashboard.html' %}
+
+{% block content %}
+<div class="" role="main">
+  <div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="x_panel">
+        <div class="x_title">
+          <h2>브랜드 정보 설정 <small></small></h2>
+          <ul class="nav navbar-right panel_toolbox">
+            <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+              <ul class="dropdown-menu" role="menu">
+                <li><a href="#">Settings 1</a>
+                </li>
+                <li><a href="#">Settings 2</a>
+                </li>
+              </ul>
+            </li>
+            <li><a class="close-link"><i class="fa fa-close"></i></a>
+            </li>
+          </ul>
+          <div class="clearfix"></div>
+        </div>
+        <div class="x_content">
+          <br />
+          <form class="form-horizontal form-label-left">
+            <div class="form-group">
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">네이버 광고 API<br>
+                <small class="text-navy">사용자 계정</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="manager_login_id">
+              </div>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" readonly="readonly" placeholder="customer_id" value="123445">
+              </div>
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">api_key</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="password" class="form-control" value="passwordonetwo">
+              </div>
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">secret_key</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="password" class="form-control" value="passwordonetwo">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">네이버 광고 보고서
+                <br>
+                <small class="text-navy">master_report</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> BusinessChannel</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> Campaign</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> CampaignBudget</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> Adgroup</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AdgroupBudget</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> Keyword</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> Ad</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AdExtension</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> Qi</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">네이버 광고 보고서
+                <br>
+                <small class="text-navy">stat_report</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AD</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AD_DETAIL</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AD_CONVERSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> AD_CONVERSION_DETAIL</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> ADEXTENSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> ADEXTENSION_CONVERSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> EXPKEYWORD</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> NAVERPAY_CONVERSION</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">구글 애널리틱스 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="col-md-9 col-sm-9 col-xs-12">
+                  <input type="text" class="form-control" readonly="readonly" placeholder="property_or_view_id" value="156740371">
+                </div>
+                <div class="form-group">
+                  <label class="control-label col-md-3 col-sm-3 col-xs-12">Select</label>
+                  <div class="col-md-9 col-sm-9 col-xs-12">
+                    <select class="form-control">
+                      <option>Choose version</option>
+                      <option>Universal Analytics(old version)</option>
+                      <option>Google Analytics(new version)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> homepage</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> internal_search</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> catalog</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> payment</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">구글 애즈 광고 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> 435-221-6456</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value=""> 708-286-8000</label>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">기타 광고 보고서<br>
+                <small class="text-navy">사용자 계정</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="fb_biz_aid">
+              </div>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="kko_moment_aid">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">브랜드 키워드</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <label for="message">브랜디드 키워드 입력</label>
+                <textarea id="message" required="required" class="form-control" name="message"></textarea>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">암호화 RSETful API<br>
+                <small class="text-navy">사용자 계정</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="sv_secret_key">
+              </div>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="sv_iv">
+              </div>
+            </div>
+
+            <div class="ln_solid"></div>
+            <div class="form-group">
+              <div class="col-md-9 col-sm-9 col-xs-12 col-md-offset-3">
+                <button type="submit" class="btn btn-primary">Cancel</button>
+                <button type="submit" class="btn btn-success">Submit</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

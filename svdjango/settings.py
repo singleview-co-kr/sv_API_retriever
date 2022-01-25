@@ -51,9 +51,15 @@ INSTALLED_APPS = [
     'widget_tweaks',  # for login template
     'svextract.apps.SvextractConfig',
     'svauth',  # for user model customization
+    'svacct',
 ]
 
 AUTH_USER_MODEL = 'svauth.User'
+
+# to prevent WARNINGS on Django >= 3.2
+# Auto-created primary key used when not defining a primary key type, by default 'django.db.models.AutoField'.
+# https://uiandwe.tistory.com/1304
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Channels
 ASGI_APPLICATION = 'svdjango.routing.application'
@@ -144,8 +150,16 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # actual location of static files
-if not DEBUG:
-    STATIC_ROOT = ''
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
+# if not DEBUG:
+#     STATIC_ROOT = ''
+#     STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
+STATIC_ROOT = ''
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # 이 리스트에 STATIC_ROOT에서 정의한 디렉토리가 포함되면 안됨
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
+#STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
+
+SV_STORAGE_ROOT = os.path.join(BASE_DIR, 'storage')
+
+# LOGIN_URL = '/accounts/login' # keep default
+# LOGOUT_REDIRECT_URL = '' # keep default
+LOGIN_REDIRECT_URL = '/'

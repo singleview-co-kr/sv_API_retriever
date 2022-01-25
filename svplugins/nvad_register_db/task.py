@@ -38,15 +38,18 @@ import math
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -60,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -100,7 +103,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         s_cid = dict_nvr_ad_acct['customer_id']
-        self.__g_sNvadPathAbs = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'naver_ad')
+        self.__g_sNvadPathAbs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'naver_ad')
         self.__g_sNvadDataPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'data')
         self.__g_sNvadConfPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'conf')
         with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql:

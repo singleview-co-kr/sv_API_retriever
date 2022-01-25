@@ -48,18 +48,22 @@ from google.ads.googleads.client import GoogleAdsClient
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
+
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v7'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -97,7 +101,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(self._g_oCallback)
         
     def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
         if os.path.isdir(sDownloadPath) is False:
             os.makedirs(sDownloadPath)
         
@@ -108,7 +112,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://github.com/googleads/googleads-python-lib
         # https://github.com/googleads/googleads-python-lib/releases
         # https://www.youtube.com/watch?v=80KOeuCNc0c
-        # s_google_ads_yaml_path = os.path.join(basic_config.ABSOLUTE_PATH_BOT, 'conf', 'google-ads.yaml')
         s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
         o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service('GoogleAdsService')

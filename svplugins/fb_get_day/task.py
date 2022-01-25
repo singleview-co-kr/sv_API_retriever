@@ -40,13 +40,16 @@ from facebook_business.adobjects.adcreative import AdCreative
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_object
     import sv_plugin
+    import settings
     sys.path.append('../../conf') # singleview config
     import fb_biz_config
 else: # for platform running
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
     # singleview config
     from conf import fb_biz_config
 
@@ -55,7 +58,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '25th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
 
     def __del__(self):
@@ -91,10 +94,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(self._g_oCallback)
 
     def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle, sFbBizAid):
-        sDownloadPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
+        sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'data')
         if os.path.isdir(sDownloadPath) == False:
             os.makedirs(sDownloadPath)
-        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'conf')
+        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz', sFbBizAid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 

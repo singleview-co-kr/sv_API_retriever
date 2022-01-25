@@ -1,0 +1,167 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% load ratio_presentation %}  <!-- custom filter 추가 -->
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-2.3.2.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-2.3.2.min.js"></script>
+    {{ script | safe }}
+    {% endblock %}
+<!-- select2 -->
+<link href="/static/skins/default/css/select/select2.min.css" rel="stylesheet">
+<script src="/static/skins/default/js/select/select2.full.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    $("#filter_morpheme").select2({
+      maximumSelectionLength: 5,
+      placeholder: "검색하여 최대 5개 유통 채널 선택",
+      allowClear: true
+    });
+});
+</script>
+<!-- begin - morpheme search -->
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="x_panel">
+            <div class="x_title">
+                <h2>{{s_brand_name}} 단어 검색 <small></small></h2>
+                <ul class="nav navbar-right panel_toolbox">
+                    <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Settings 1</a></li>
+                            <li><a href="#">Settings 2</a></li>
+                        </ul>
+                    </li>
+                    <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                </ul>
+                <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+                <form method="POST" id='frm_budget_update' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
+                <input type="hidden" id="act" name="act" value="search_morpheme" />
+                {% csrf_token %}
+                    <div class="form-group">
+                        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="morpheme_query">단어<span class="required">*</span></label>
+                        <div class="col-md-6 col-sm-6 col-xs-12">
+                            <input type="text" class="form-control col-md-7 col-xs-12" id="morpheme_query" name="morpheme_query" placeholder="여러 단어는 ,로 구분" required="required" value="{{s_morpheme_query}}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-md-3 col-sm-3 col-xs-12">Gender</label>
+                        <div class="col-md-6 col-sm-6 col-xs-12">
+                            <div id="gender" class="btn-group" data-toggle="buttons">
+                                <label class="btn btn-default" data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                                    <input type="radio" name="gender" value="male"> &nbsp; Male &nbsp;
+                                </label>
+                                <label class="btn btn-primary" data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                                    <input type="radio" name="gender" value="female"> Female
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ln_solid"></div>
+                    <div class="form-group">
+                        <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+                            <button type="submit" id='btn_update_budget' class="btn btn-success">검색하기</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end - morpheme search -->
+
+<!-- begin - daily media performance by ua -->
+<div class="row">
+	<div class="col-md-12 col-sm-12 col-xs-12">
+		<div class="x_panel">
+			<div class="x_content">
+                <!----- end - 총유입수 기준 키워드 top 5----->
+                <!----- begin - 총유입수 기준 키워드 top 5----->
+                <div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>사이트내 고객 언급 키워드 요약 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+                    <p>방문 고객 언급 명사 Top {{visitor_noun_n_th_rank}}, 외 <code>{{dict_misc_word_cnt.tm|intcomma}} 개 키워드</code>전월,전년이 MTD가 아님</p>
+                    <table id='searched_morpheme' class="table table-striped responsive-utilities jambo_table bulk_action">
+                       <thead>
+                          <tr class="headings">
+                             <th><input type="checkbox" id="check-all" class="flat"></th>
+                             <th class="column-title">키워드 </th>
+                             <th class="column-title">자세히 보기 </th>
+                             <th class="bulk-actions" colspan="3">
+                                 <a class="lnk_morpheme_chronicle_multi" style="color:#fff; font-weight:500;">지난 추세 조회하기 ( <span class="action-cnt"> </span> ) <i class="fa fa-chevron-down"></i></a>
+                             </th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          <!--- odd pointer --->
+                          {% for dict_row in lst_relevant_morpheme %}
+                          <tr class="even pointer">
+                             <td class="a-center "><input type="checkbox" class="flat" name="table_records" value="{{dict_row.word_srl}}"></td>
+                             <td class=" ">{{dict_row.word}}</td>
+                             <td class=" last"><a class="lnk_morpheme_chronicle_single" morpheme-srl="{{dict_row.word_srl}}"><u>자세히 보기</u></a></td>
+                          </tr>
+                          {% endfor %}
+                       </tbody>
+                    </table>
+                    <img src="{{dict_word_cloud_img_url.tm}}" width="100%">
+				</div>
+				<div class="clearfix"></div>
+                <!----- end - 총유입수 기준 키워드 top 5----->
+			</div>
+		</div>
+	</div>
+</div>
+<!-- end - daily media performance by ua  -->
+
+<script type="text/javascript">
+jQuery('.lnk_morpheme_chronicle_multi').bind('click', function () {
+    if($('input[type="checkbox"]:checked').length > 12)
+    {
+        alert('최대 12개 선택할 수 있습니다.');
+        return;
+    }
+
+    var select_obj = '';
+    $('input[type="checkbox"]:checked').each(function (index) {
+        if(index != 0) {
+            select_obj += ',';
+        }
+        select_obj += $(this).val();
+    });
+
+    var aCurUrl = window.location.href.split('?');
+    sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+    sCurUrlBase = sCurUrlBase + 'chronicle/?morpheme_id=' + select_obj.replace('on,', '');
+    window.location.href = sCurUrlBase;
+});
+
+jQuery('.lnk_morpheme_chronicle_single').bind('click', function () {
+    var aCurUrl = window.location.href.split('?');
+    sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+    sCurUrlBase = sCurUrlBase + 'chronicle/?morpheme_id=' + $(this).attr('morpheme-srl');
+    window.location.href = sCurUrlBase;
+});
+</script>
+{% endblock %}

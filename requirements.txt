@@ -24,7 +24,7 @@ customized-konlpy==0.0.64
 cycler==0.10.0
 daphne==3.0.2
 distlib==0.3.3
-Django==3.1.6
+Django==3.2.5
 django-widget-tweaks==1.4.8
 docutils==0.17.1
 facebook-business==12.0.0

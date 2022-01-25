@@ -5,10 +5,6 @@ from django.urls import reverse_lazy
 from .forms import UserCreationForm
 
 
-AppVersion = '0.0.3'
-LastModifiedDate = '7th, Jul 2021'
-
-
 # Create your views here.
 # begin - account self service related
 class UserCreateView(CreateView):

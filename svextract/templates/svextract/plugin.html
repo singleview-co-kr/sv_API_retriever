@@ -2,14 +2,14 @@
 <html lang="en" >
 <head>
 <meta charset="UTF-8">
-<link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png" />
-<meta name="apple-mobile-web-app-title" content="CodePen">
+<!-- <link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png" />
+<meta name="apple-mobile-web-app-title" content="CodePen"> -->
 <!--link rel="shortcut icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico" />
 <link rel="mask-icon" type="" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-8f3771b1072e3c38bd662872f6b673a722f4b3ca2421637d5596661b4e2132cc.svg" color="#111" /-->
 
 <title>sv plugin console</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+<link rel="stylesheet" href="/static/web_console/5.0.0.normalize.min.css">
   
 <style>
 html,
@@ -145,18 +145,26 @@ if (document.location.search.match(/type=embed/gi)) {
     </div>
 </body>
 
-<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-1b93190375e9ccc259df3a57c1abc0e64599724ae30d7ea4c6877eb615f89387.js"></script>
+<!-- <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-1b93190375e9ccc259df3a57c1abc0e64599724ae30d7ea4c6877eb615f89387.js"></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/markdown-it/8.1.0/markdown-it.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/autosize.js/3.0.18/autosize.min.js'></script>
 <script src='https://unpkg.com/@wmhilton/cli-parser@1.1.0'></script>
 <script src='https://s.codepen.io/assets/libs/modernizr.js'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js'></script> -->
+
+<script src="/static/web_console/stopExecutionOnTimeout.js"></script>
+<script src='/static/web_console/2.2.2.jquery.min.js'></script>
+<script src='/static/web_console/8.1.0.markdown-it.min.js'></script>
+<script src='/static/web_console/3.0.18.autosize.min.js'></script>
+<script src='/static/web_console/cli-parser@1.1.0.browser.js'></script>
+<script src='/static/web_console/2.8.3.modernizr.min.js'></script>
+<script src='/static/web_console/2.0.0.particles.min.js'></script>
 
 <script id="rendered-js" >
 // Output Welcome message
 output('Original console design by Nikolay Debroh https://codepen.io/prespik/pen/mYzBaE');
-// output('Welcome to {{brand_name_json}} plugin console.');
+// output('Welcome to {{brand_name}} plugin console.');
 
 // User Commands
 // function echo(...a) 
@@ -306,12 +314,12 @@ $('.console-input').on('keydown', function (event) {
 });
 
 //ParticlesBG
-particlesJS('particles-js', { 'particles': { 'number': { 'value': 20 }, 'color': { 'value': '#ffffff' }, 'shape': { 'type': 'circle', 'polygon': { 'nb_sides': 5 } }, 'opacity': { 'value': 0.06, 'random': false }, 'size': { 'value': 11, 'random': true }, 'line_linked': { 'enable': true, 'distance': 150, 'color': '#ffffff', 'opacity': 0.4, 'width': 1 }, 'move': { 'enable': true, 'speed': 4, 'direction': 'none', 'random': false, 'straight': false, 'out_mode': 'out', 'bounce': false } }, 'interactivity': { 'detect_on': 'canvas', 'events': { 'onhover': { 'enable': false }, 'onclick': { 'enable': true, 'mode': 'push' }, 'resize': true }, 'modes': { 'push': { 'particles_nb': 4 } } }, 'retina_detect': true }, function () {});
+//particlesJS('particles-js', { 'particles': { 'number': { 'value': 20 }, 'color': { 'value': '#ffffff' }, 'shape': { 'type': 'circle', 'polygon': { 'nb_sides': 5 } }, 'opacity': { 'value': 0.06, 'random': false }, 'size': { 'value': 11, 'random': true }, 'line_linked': { 'enable': true, 'distance': 150, 'color': '#ffffff', 'opacity': 0.4, 'width': 1 }, 'move': { 'enable': true, 'speed': 4, 'direction': 'none', 'random': false, 'straight': false, 'out_mode': 'out', 'bounce': false } }, 'interactivity': { 'detect_on': 'canvas', 'events': { 'onhover': { 'enable': false }, 'onclick': { 'enable': true, 'mode': 'push' }, 'resize': true }, 'modes': { 'push': { 'particles_nb': 4 } } }, 'retina_detect': true }, function () {});
 //# sourceURL=pen.js
 </script>
 
 <!---body>
-    {{brand_name_json}}<BR>
+    {{brand_name}}<BR>
     <textarea id="chat-log" cols="100" rows="20"></textarea><br/>
     <input id="chat-message-input" type="text" size="100" value=""/><br/>
     <input id="chat-message-submit" type="button" value="Send"/>
@@ -331,18 +339,18 @@ function executePlugin(sPluginName, sArgs)
       'command': command
   }));
 }
-var sBrandName = '{{brand_name_json}}';
+var sSvAcctId = '{{sv_acct_id_json}}';
+var sSvBrandId = '{{sv_brand_id_json}}';
 var sWsScheme = window.location.protocol == 'https:' ? 'wss' : 'ws';
-var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/';
+var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sSvAcctId + '/' + sSvBrandId + '/';
 //var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/'; //  + ':8001/'
 console.log(sWsPath);
 
 var chatSocket = new WebSocket(sWsPath);
-//'ws://' + window.location.host + '/ws/extract/' + sBrandName + '/');
 
 chatSocket.onopen = function(e){
   //output('Welcome! socket opened');
-  output('Welcome to {{brand_name_json}} plugin console.');
+  output('Welcome to {{acct_ttl}} - {{brand_name}} plugin console.');
   console.log('socket opened');
 }
 
