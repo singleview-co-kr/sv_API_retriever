@@ -62,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
@@ -221,7 +221,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstColumnHeaderInfo = []
         lstRows = []
         nGrossSizeBytesToSync = 0
-        with sv_mysql.SvMySql('svplugins.client_serve') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.client_serve', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
             # parse respond about retrieval date range
@@ -313,7 +313,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nGrossSizeBytesToSync = 0
         sStartDateRetrieval = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-' + str(lstMonthRange[1])
-        with sv_mysql.SvMySql('svplugins.client_serve') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.client_serve', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
             
@@ -391,4 +391,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] [target_host_url] params are required for console execution.')
+        print('warning! [config_loc] [target_host_url] params are required for console execution.')

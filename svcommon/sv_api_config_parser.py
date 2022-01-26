@@ -24,7 +24,7 @@
 
 # standard library
 import os
-import sys
+# import sys
 import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 

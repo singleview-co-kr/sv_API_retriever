@@ -29,7 +29,6 @@ from datetime import datetime
 import os
 import shutil
 import csv
-# from collections import defaultdict
 
 # singleview library
 if __name__ == 'item_performance': # for console debugging
@@ -40,14 +39,6 @@ else: # for platform running
 
 
 class svItemPerformance():
-    # __continue_iteration = None
-    # __print_debug = None
-    # __print_progress_bar = None
-    # __g_oSvCampaignParser = None
-    # __g_sTblPrefix = None
-    # __g_sDataPath = None
-    # __g_dictGaItemPerfRaw = {}
-    # __g_dictItemSrl = {}
     __g_sSvNull = '$%'
     
     def __init__(self):
@@ -65,6 +56,7 @@ class svItemPerformance():
         self.__g_sDataPath = None
         self.__g_dictGaItemPerfRaw = {}
         self.__g_dictItemSrl = {}
+        self.__g_dictSvAcctInfo = None
         self._g_oLogger = logging.getLogger(__name__)
 
     def __del__(self):
@@ -76,9 +68,11 @@ class svItemPerformance():
         self.__g_sDataPath = None
         self.__g_dictGaItemPerfRaw = {}
         self.__g_dictItemSrl = {}
+        self.__g_dictSvAcctInfo = None
 
-    def init_var(self, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
-        f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
+         f_print_debug, f_print_progress_bar, f_continue_iteration):
+        self.__g_dictSvAcctInfo = dict_sv_acct_onfo
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
         self.__print_progress_bar = f_print_progress_bar
@@ -153,7 +147,7 @@ class svItemPerformance():
         self.__register_item_perf_log()
 
     def __get_item_srl(self):
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self.__g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for s_item_title, dict_item_info in self.__g_dictItemSrl.items():
                 lst_rst = oSvMysql.executeQuery('getItemTitle', s_item_title)
@@ -168,7 +162,7 @@ class svItemPerformance():
     def __register_item_perf_log(self):
         n_idx = 0
         n_sentinel = len(self.__g_dictGaItemPerfRaw)
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self.__g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for s_rpt_id, dict_single_raw in self.__g_dictGaItemPerfRaw.items():
                 if not self.__continue_iteration():

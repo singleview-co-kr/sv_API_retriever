@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -106,7 +106,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvadPathAbs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'naver_ad')
         self.__g_sNvadDataPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'data')
         self.__g_sNvadConfPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'conf')
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
 
@@ -114,7 +114,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('-> register nvad raw data')
             self.__parseNvadDataFile(s_sv_acct_id, s_acct_title, s_cid)
         elif self.__g_sMode == 'recompile':
-            with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+            with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.setTablePrefix(self.__g_sTblPrefix)
                 oSvMysql.truncateTable('nvad_assembled_daily_log')
                 lstStatDate = oSvMysql.executeQuery('getStatDateList')
@@ -130,7 +130,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_lstDatadateToCompile = sorted(set(self.__g_lstDatadateToCompile))
         elif self.__g_sMode == 'clear':
             self._printDebug('-> clear nvad raw data')
-            with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+            with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.setTablePrefix(self.__g_sTblPrefix)
                 for s_tbl in self.__g_lstTblTruncate:
                     oSvMysql.truncateTable(s_tbl)
@@ -163,7 +163,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
         oSvCampaignParser = sv_campaign_parser.svCampaignParser()
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             dictCampaignInfo = {}
             dictAdGrpInfo = {}
@@ -569,7 +569,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__registerStatExpKeywordFile(sAcctTitle, dictExpkeyword)
 
     def __retrieveNvBrspageManualInfoPeriod(self, sSvAcctId, sAcctTitle, cid):
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstLatestBrsLogDate = oSvMysql.executeQuery('getLatestAssembledBrsLogDate', cid)
         
@@ -599,7 +599,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __retrieveNvBrspageManualInfoByDate(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
         lstNvBrsManualInfo = []
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstBrsLogSrlByDate = oSvMysql.executeQuery('getAssembledBrsLogDaily', sCompileDate, cid)
         
@@ -630,7 +630,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -659,7 +659,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -704,7 +704,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -735,7 +735,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -766,7 +766,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -808,7 +808,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 sCurrentFileName = dictMasterDataSorted[sDate]
@@ -862,7 +862,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 if not self._continue_iteration():
@@ -904,7 +904,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictMasterDataSorted:
                 if not self._continue_iteration():
@@ -937,7 +937,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -967,7 +967,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -997,7 +997,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1027,7 +1027,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1057,7 +1057,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1087,7 +1087,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1117,7 +1117,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1151,7 +1151,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #dictStatDataSorted = dict()
         #dictStatDataSorted.update({20180506:'20170203_EXPKEYWORD.tsv'})
         # enforce test data file
-        with sv_mysql.SvMySql('svplugins.nvad_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sDate in dictStatDataSorted:
                 if not self._continue_iteration():
@@ -1210,4 +1210,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

@@ -16,14 +16,12 @@ from decouple import config
 # # pip install -U channels
 
 
-class thread_with_trace(threading.Thread):
+class ThreadWithTrace(threading.Thread):
     # https://www.geeksforgeeks.org/python-different-ways-to-kill-a-thread/
 
     def __init__(self, *args, **keywords):
         threading.Thread.__init__(self, *args, **keywords)
         self.killed = False
-        # self.b_run = None
-        # self.__n_thread_id = None
     
     def start(self):
         self.__run_backup = self.run
@@ -83,9 +81,9 @@ class PluginConsole(WebsocketConsumer):
         """ 클라이언트로부터 메세지를 받을 시 실행 """
         # https://channels.readthedocs.io/en/latest/topics/routing.html
         # s_b1rand_name = 'test_brand'  # self.scope["url_route"]["kwargs"]["brand_name"]
-        sv_acct_id = self.scope["url_route"]["kwargs"]["sv_acct_id"]
-        sv_brand_id = self.scope["url_route"]["kwargs"]["sv_brand_id"]
-        s_plugin_unique_id = sv_acct_id + '_' + sv_brand_id
+        s_sv_acct_id = self.scope["url_route"]["kwargs"]["sv_acct_id"]
+        s_sv_brand_id = self.scope["url_route"]["kwargs"]["sv_brand_id"]
+        s_plugin_unique_id = s_sv_acct_id + '_' + s_sv_brand_id
 
         try:
             User.objects.get(id=self.user.pk)
@@ -119,7 +117,7 @@ class PluginConsole(WebsocketConsumer):
             self.print_msg_socket('invalid plugin')
             return
         
-        lst_command.append('config_loc='+ sv_acct_id + '/' + sv_brand_id)
+        lst_command.append('config_loc='+ s_sv_acct_id + '/' + s_sv_brand_id)
         # prevent duplicated plugin request
         if s_plugin_unique_id in list(self.__g_dictPluginThread.keys()):  
             if s_plugin_name in list(self.__g_dictPluginThread[s_plugin_unique_id].keys()):  # means duplicated request
@@ -134,7 +132,7 @@ class PluginConsole(WebsocketConsumer):
                 oJob.set_websocket_output(self.print_msg_socket)
                 oJob.set_my_name(s_plugin_name)
                 oJob.parse_command(lst_command)
-                o_plugin_thread = thread_with_trace(target=oJob.do_task, args=(self.__cb_thread_done,))
+                o_plugin_thread = ThreadWithTrace(target=oJob.do_task, args=(self.__cb_thread_done,))
                 self.print_msg_socket('begin - ignite')
                 o_plugin_thread.start()
                 self.print_msg_socket('end - ignite')

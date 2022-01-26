@@ -377,4 +377,4 @@ if __name__ == '__main__': # for console debugging and execution
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [config_loc] [config_loc] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] [data_first_date] [data_last_date] params are required for console execution.')

@@ -316,4 +316,4 @@ if __name__ == '__main__': # for console debugging and execution
                 oJob.parse_command(sys.argv)
                 oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params or --noauth_local_webserver is required for console execution.')
+        print('warning! [config_loc] params or --noauth_local_webserver is required for console execution.')

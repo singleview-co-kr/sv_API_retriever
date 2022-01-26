@@ -321,5 +321,5 @@ if __name__ == '__main__': # for console debugging and execution
             oJob.do_task(None)
             pass
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')
  

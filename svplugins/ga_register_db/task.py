@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('task:__init__')
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -110,7 +110,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'branded_term.conf')
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
 
@@ -130,7 +130,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # try internal search log
         self._printDebug('UA internal search log has been started\n')
         o_internal_search = internal_search.svInternalSearch()
-        o_internal_search.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
+        o_internal_search.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_internal_search.proc_internal_search_log()
         del o_internal_search
         self._printDebug('UA internal search log has been finished\n')
@@ -138,7 +138,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # try item performance log
         self._printDebug('UA item performance log has been started\n')
         o_item_perf = item_performance.svItemPerformance()
-        o_item_perf.init_var(self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
+        o_item_perf.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser, self._printDebug, self._printProgressBar, self._continue_iteration)
         o_item_perf.proc_item_perf_log()
         del o_item_perf
         self._printDebug('UA item performance log has been finished\n')
@@ -222,7 +222,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         n_idx = 0
         n_sentinel = len(lst_transaction_log)
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for lst_single_row in lst_transaction_log:
                 if not self._continue_iteration():
@@ -312,7 +312,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerSourceMediumTerm(self):
         nIdx = 0
         nSentinel = len(self.__g_dictGaRaw)
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId, dict_single_raw in self.__g_dictGaRaw.items():
                 if not self._continue_iteration():
@@ -502,4 +502,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

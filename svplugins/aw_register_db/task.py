@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -104,10 +104,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_google_ads = dict_acct_info[s_sv_acct_id]['adw_cid']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         
-        with sv_mysql.SvMySql('svplugins.aw_register_db') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.aw_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
-
+        
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'branded_term.conf')
         if self.__g_sReplaceMonth != None:
             self._printDebug('-> replace aw raw data')
@@ -130,7 +130,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         sStartDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-' + str(lstMonthRange[1])
-        with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.aw_register_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
@@ -283,7 +283,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerDb(self):
         nIdx = 0
         nSentinel = len(self.__g_dictAdwRaw)
-        with sv_mysql.SvMySql('svplugins.aw_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.aw_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId, dict_row in self.__g_dictAdwRaw.items():
                 if not self._continue_iteration():
@@ -340,4 +340,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

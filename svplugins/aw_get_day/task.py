@@ -62,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '26th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -162,7 +162,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         metrics.all_conversions_value, 
                         segments.date 
                     FROM campaign
-                    WHERE campaign.status = 'ENABLED' AND segments.date = """ + sDataDateForMysql
+                    WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
 
                 # Issues a search request using streaming.
                 o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
@@ -243,4 +243,4 @@ if __name__ == '__main__': # for console debugging and execution
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

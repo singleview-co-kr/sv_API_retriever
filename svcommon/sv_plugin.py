@@ -40,14 +40,16 @@ else:
     from svcommon import sv_api_config_parser
 
 class ISvPlugin(ABC):
-    _g_sPluginName = None
     _g_sAbsRootPath = None
-    _g_sLastModifiedDate = None
     _g_oLogger = None
-    # _g_dictParam = {'analytical_namespace':None, 'config_loc':None}
-    _g_dictParam = {'config_loc':None}
-    _g_oThread = None
-    _g_oCallback = None  # callback for self desturction
+    _g_oThread = None  # AttributeError: 'svJobPlugin' object has no attribute '_g_oThread' if move to __init__
+    _g_dictParam = {'config_loc':None}  # can't recognize attr if move to __init__
+    _g_dictSvAcctInfo = {'n_acct_id':None, 'n_brand_id': None}  # can't recognize attr if move to __init__
+
+    def __init__(self):
+        self._g_sPluginName = None
+        self._g_oCallback = None  # callback for self desturction
+        # self._g_sSvBrandId = None
 
     def __enter__(self):
         """ grammtical method to use with "with" statement """
@@ -109,7 +111,11 @@ class ISvPlugin(ABC):
                     if n_pos > -1:
                         lst_param_pair = sArg.split('=')
                         self._g_dictParam[s_param_name] = lst_param_pair[1]
-
+        
+        if 'config_loc' in self._g_dictParam.keys():
+            lst_acct_info = self._g_dictParam['config_loc'].split('/')
+            self._g_dictSvAcctInfo['n_acct_id'] = lst_acct_info[0]
+            self._g_dictSvAcctInfo['n_brand_id'] = lst_acct_info[1]
 
 # if __name__ == '__main__': # for console debugging
 # 	pass

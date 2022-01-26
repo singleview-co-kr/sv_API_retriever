@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -77,7 +77,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()  
 
@@ -87,7 +87,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('new morpheme srl: ' + str(n_morpheme_srl))
         else:
             self._printDebug('-> communication begin')
-            with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+            with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
 
@@ -95,8 +95,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
                 s_morpheme = dict_single_morpheme['morpheme']
                 lst_status_registered = self.__get_keyword_from_twitter(n_morpheme_srl, s_morpheme)
-                self._printDebug(str(len(lst_status_registered)) + ' tweets have been retrieved')
-                # self.__get_keyword_from_svdb(lst_status_registered)
+                self._printDebug(str(len(lst_status_registered)) + ' tweets have been retrieved for ' + s_morpheme)
                 del lst_status_registered
             self._printDebug('-> communication finish')
 
@@ -105,7 +104,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __register_new_morpheme(self):
         if len(self.__g_sMorpheme) == 0:
             return None
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
 
             lst_morpheme = o_sv_mysql.executeQuery('getMorphemeSrl', self.__g_sMorpheme)
@@ -117,7 +116,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __get_keyword_from_twitter(self, n_morpheme_srl, s_morpheme):
         """ retrieve text from twitter API """
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             lst_rst = o_sv_mysql.executeQuery('getLatestStatusId', n_morpheme_srl)
             n_since_id = lst_rst[0]['status_id']
@@ -173,7 +172,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dt_regdate = dict_single_status['dt_created_at']
         n_retweet_cnt = dict_single_status['n_retweet_cnt']
         n_favorite_cnt = dict_single_status['n_favorite_cnt']
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             lst_twt_status = o_sv_mysql.executeQuery('getTwtStatusByMorphemeSrl', n_morpheme_srl, s_status_id)
             if len(lst_twt_status) == 0:  # register new twt status
@@ -191,7 +190,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __register_user(self, s_user_id, n_followers_cnt, n_friends_cn, n_favourites_cnt):
         """ sub method for __getKeywordFromTwitter() """
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             lst_twt_user = o_sv_mysql.executeQuery('getTwtUserInfoById', s_user_id)
             if len(lst_twt_user) == 0:  # register new twt user
@@ -201,7 +200,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __get_keyword_from_svdb(self, lst_status_registered):
         """ debug method; retrieve text from SV DB """
-        with sv_mysql.SvMySql('svplugins.sv_collect_twitter') as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             dict_param = {'s_new_status_ids': ','.join(lst_status_registered)}
             lst_status_id = o_sv_mysql.executeDynamicQuery('getStatusById', dict_param)
@@ -233,13 +232,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 print('')
 
 if __name__ == '__main__': # for console debugging
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct
+    # CLI example -> python3.7 task.py config_loc=1/1
     # sv_collect_twitter
     nCliParams = len(sys.argv)
-    if nCliParams > 2:
+    if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('sv_collect_twitter')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

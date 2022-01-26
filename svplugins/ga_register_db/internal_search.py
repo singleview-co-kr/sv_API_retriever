@@ -40,14 +40,6 @@ else: # for platform running
 
 
 class svInternalSearch():
-    # __continue_iteration = None
-    # __print_debug = None
-    # __print_progress_bar = None
-    # __g_oSvCampaignParser = None
-    # __g_sTblPrefix = None
-    # __g_sDataPath = None
-    # __g_dictGaIntSearchRaw = {}
-    # __g_dictWordSrl = defaultdict(int)
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -64,7 +56,9 @@ class svInternalSearch():
         self.__g_sDataPath = None
         self.__g_dictGaIntSearchRaw = {}
         self.__g_dictWordSrl = defaultdict(int)
+        self.__g_dictSvAcctInfo = None
         self._g_oLogger = logging.getLogger(__name__)
+        
 
     def __del__(self):
         self.__continue_iteration = None
@@ -75,9 +69,11 @@ class svInternalSearch():
         self.__g_sDataPath = None
         self.__g_dictGaIntSearchRaw = {}
         self.__g_dictWordSrl = defaultdict(int)
+        self.__g_dictSvAcctInfo = None
 
-    def init_var(self, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
-        f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
+         f_print_debug, f_print_progress_bar, f_continue_iteration):
+        self.__g_dictSvAcctInfo = dict_sv_acct_onfo
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
         self.__print_progress_bar = f_print_progress_bar
@@ -132,7 +128,7 @@ class svInternalSearch():
         self.__register_int_search_log()
 
     def __get_term_srl(self):
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self.__g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for s_term, _ in self.__g_dictWordSrl.items():
                 lst_rst = oSvMysql.executeQuery('getIntSearchTermInfo', s_term)
@@ -146,7 +142,7 @@ class svInternalSearch():
     def __register_int_search_log(self):
         n_idx = 0
         n_sentinel = len(self.__g_dictGaIntSearchRaw)
-        with sv_mysql.SvMySql('svplugins.ga_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.ga_register_db', self.__g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for s_rpt_id, dict_single_raw in self.__g_dictGaIntSearchRaw.items():
                 if not self.__continue_iteration():

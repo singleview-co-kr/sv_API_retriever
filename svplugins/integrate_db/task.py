@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -128,7 +128,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
         self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info[s_sv_acct_id]['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
 
-        with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.integrate_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize()
 
@@ -188,7 +188,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         sStartDateRetrieval = self.__g_sRetrieveMonth[:4] + '-' + self.__g_sRetrieveMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sRetrieveMonth[:4] + '-' + self.__g_sRetrieveMonth[4:None] + '-' + str(lstMonthRange[1])
-        with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.integrate_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
@@ -265,7 +265,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self.__g_sMode == 'ignore_fb':
             self.__g_bFbProcess = False
 
-        with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.integrate_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             # init rst dictionary
             dictRst = {}
@@ -311,7 +311,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictFbMergedDailyLog = {}
         self.__g_dictOtherMergedDailyLog = {}
         # check non integrated date
-        with sv_mysql.SvMySql('svplugins.integrate_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.integrate_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             lstGaLogDaily = oSvMysql.executeQuery('getGaLogDaily', sTouchingDate)
             #if sTouchingDate == '2019-01-27':
@@ -1403,4 +1403,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

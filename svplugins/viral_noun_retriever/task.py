@@ -33,28 +33,31 @@ from collections import Counter
 # 3rd-party library
 from ckonlpy.tag import Twitter
 from wordcloud import WordCloud
-# import nltk
+# import nltk  # this disturbs plugin deallocation on an web console 
 
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
-
+    from django.conf import settings
+ 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __o_reg_korean = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')  # get Korean unicode
     __o_reg_alpha_numeric = re.compile('[a-zA-Z0-9]+')  # get alphanumeric
-    __o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
+    __o_lambda_is_noun = None  # lambda pos: pos[:2] == 'NN'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -70,6 +73,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_lstCountingNounsSrl = []
         self.__g_dictRegisteredNouns = {}
         self.__g_oTwitter = None
+        self.__o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
 
     def __del__(self):
         """ never place self._task_post_proc() here 
@@ -102,7 +106,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
 
-        import nltk  # this import interrupts the plugin turn into __del__() automatically
+        import nltk  # this import disturbs the plugin turn into __del__() automatically
         self.__g_oTwitter = Twitter()
 
         ################################
@@ -164,7 +168,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     
                 # wc.generate(news)
                 wc.generate_from_frequencies(dict(lst_noun))
-                s_wc_file_path_abs = os.path.join(self._g_sAbsRootPath, 'files', s_sv_acct_id, s_acct_title, 'keyword.png')
+                s_wc_file_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'keyword.png')
                 wc.to_file(s_wc_file_path_abs)
         except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
             self._printDebug('Processing has been interrupted abnormally')
@@ -178,7 +182,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if len(lst_ignore_word) == 0:
             return
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             for s_ignore_word in lst_ignore_word:
@@ -188,7 +192,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_custom_noun = self.__g_sCommaSeparatedWords.split(',')
         if len(lst_custom_noun) == 0:
             return
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             for s_custom_noun in lst_custom_noun:
@@ -198,7 +202,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.executeQuery('updateAllDocNonProced')  # reset all document processed status
 
     def __load_custom_noun(self):
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             lst_rst = o_sv_mysql.executeQuery('getCustomDictionary')
@@ -213,7 +217,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del lst_customized_nouns
     
     def __register_new_word_cnt(self):
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             lst_rst = o_sv_mysql.executeQuery('getRegisteredWords')
@@ -258,6 +262,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # begin - eng + kor combined morpheme
         lst_eng_kor_word = []
         s_phrase = s_phrase.upper()  # upper if contains English
+        import nltk
         lst_eng_tokenized = nltk.word_tokenize(s_phrase)
         lst_eng_temp = [word for (word, pos) in nltk.pos_tag(lst_eng_tokenized) if self.__o_lambda_is_noun(pos)]
         del lst_eng_tokenized
@@ -302,7 +307,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             b_mode = 'partial_period'
 
         n_iter_cnt = 1
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             
@@ -348,4 +353,4 @@ if __name__ == '__main__': # for console debugging and execution
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namesapce] [config_loc] [mode] params are required for console execution.')
+        print('warning! [config_loc] [mode] params are required for console execution.')

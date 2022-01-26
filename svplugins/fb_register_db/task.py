@@ -53,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -85,7 +85,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_sv_acct_id = list(dict_acct_info.keys())[0]
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        with sv_mysql.SvMySql('svplugins.fb_register_db') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.fb_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
         
@@ -296,7 +296,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerDb(self):
         nIdx = 0
         nSentinel = len(self.__g_dictFbRaw)
-        with sv_mysql.SvMySql('svplugins.fb_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.fb_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId, dict_single_raw in self.__g_dictFbRaw.items():
                 if not self._continue_iteration():
@@ -366,5 +366,5 @@ if __name__ == '__main__': # for console debugging ex ) python3.6 task.py http:/
             oJob.do_task(None)
             pass
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')
  

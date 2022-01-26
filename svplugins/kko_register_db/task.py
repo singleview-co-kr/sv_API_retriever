@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -71,7 +71,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
         s_kakao_acct_id = dict_acct_info[s_sv_acct_id]['kko_moment_aid']
         self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        with sv_mysql.SvMySql('svplugins.kko_register_db') as oSvMysql:
+        with sv_mysql.SvMySql('svplugins.kko_register_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize() 
         
@@ -328,7 +328,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerDb(self):
         nIdx = 0
         nSentinel = len(self.__g_dictKkoRaw)
-        with sv_mysql.SvMySql('svplugins.kko_register_db') as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql('svplugins.kko_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             for sReportId, dict_single_row in self.__g_dictKkoRaw.items():
                 aReportType = sReportId.split('|@|')
@@ -374,4 +374,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namespace] [config_loc] params are required for console execution.')
+        print('warning! [config_loc] params are required for console execution.')

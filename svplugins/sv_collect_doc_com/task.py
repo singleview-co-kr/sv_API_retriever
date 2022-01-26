@@ -33,15 +33,18 @@ import sys
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_http
     import sv_mysql
     import sv_object
     import sv_plugin
+    import settings
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -55,7 +58,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
+        self._g_sLastModifiedDate = '28th, Jan 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
@@ -67,7 +70,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTargetUrl = None
         self.__g_sMode = None
         self.__g_dictMsg = {}
-        self.__g_oConfig = None
     
     def __del__(self):
         """ never place self._task_post_proc() here 
@@ -148,7 +150,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('extract whole wc')
             if dict_date_range['dictionary_start_date'] == 'na':
                 self._printDebug('extract whole dictionary')
-            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com') as o_sv_mysql:
+            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.initialize()
                 s_end_start_date = dict_date_range['wc_end_date']
@@ -199,7 +201,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         collect plain text of new docs from SvWebService
         # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
         """
-        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
@@ -235,7 +237,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
             # check already registered doc_srl
             lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
-            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com') as o_sv_mysql:
+            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.initialize()
                 dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
@@ -268,7 +270,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
 
         n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
-        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com') as o_sv_mysql:
+        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
             for dict_single_doc in oResp['variables']['d']:
@@ -299,13 +301,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return sMsg
         
     def __getKeyConfig(self, sSvAcctId, sAcctTitle):
-        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, 'files', sSvAcctId, sAcctTitle, 'key.config.ini')
+        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
         try:
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
             self._printDebug('key.config.ini not exist')
-            raise Exception('stop')
+            return  # raise Exception('stop')
 
         self.__g_oConfig.read(sKeyConfigPath)
 
@@ -315,10 +317,10 @@ if __name__ == '__main__': # for console debugging
     # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=extract target_host_url=http://testserver.co.kr/extract/port/345/345371/
     # sv_collect_doc_com mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
     nCliParams = len(sys.argv)
-    if nCliParams > 2:
+    if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('sv_collect_doc_com')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [analytical_namesapce] [config_loc] [mode] [target_host_url] params are required for console execution.')
+        print('warning! [config_loc] [mode] [target_host_url] params are required for console execution.')

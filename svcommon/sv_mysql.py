@@ -24,37 +24,44 @@
 
 # standard library
 import os
+import sys
 import logging
 import re # https://docs.python.org/3/library/re.html
 import ctypes
 
 # 3rd party library
+import configparser  # https://docs.python.org/3/library/configparser.html
 import pymysql  # http://pythonstudy.xyz/python/article/202-MySQL-%EC%BF%BC%EB%A6%AC
 from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview config
 if __name__ == 'svcommon.sv_mysql': # for platform running
     from svcommon import sv_object
+    from django.conf import settings
 elif __name__ == 'sv_mysql': # for plugin console debugging
+    sys.path.append('../../svdjango')
     import sv_object
+    import settings
 elif __name__ == '__main__': # for class console debugging
     pass
 
 class SvMySql(sv_object.ISvObject):
     """ mysql operation class based on pymysql library """
-    __g_sAppName = None
-    __g_dictConfig = {}
-    __g_oConn = None
-    __g_oCursor = None
-    __g_sAbsolutePath = None
     __g_dictRegExQueryFileClassifier = {}  # SQL 유형 구분을 위한 정규식 저장
     __g_dictRegEx = {}  # SQL 분석을 위한 정규식 저장
-    __g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
-    __g_dictCompiledSqlStmt = {}
-    __g_nThreadId = None
-
-    def __init__(self, sCallingFrom=None):
+    __g_dictConfig = {}
+    
+    def __init__(self, sCallingFrom=None, dict_brand_info=None):
+        # dict_brand_info shoud be streamlined with django_etl in the near futher
         self._g_oLogger = logging.getLogger(__file__)
+        self.__g_sAppName = None
+        # self.__g_sDbMode = 'django'  # depend on django database model by default
+        self.__g_oConn = None
+        self.__g_oCursor = None
+        self.__g_sAbsolutePath = None
+        self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
+        self.__g_dictCompiledSqlStmt = {}
+        self.__g_nThreadId = None
         self.__g_nThreadId = self.__getThreadId()
         # allocate thread memory to cache compiled stmt
         if self.__g_dictCompiledSqlStmt.get(self.__g_nThreadId, None) is None:
@@ -71,12 +78,31 @@ class SvMySql(sv_object.ISvObject):
             for sPath in lstNameSpace:
                 sSubPath += '/' + sPath
             self.__g_sAbsolutePath += sSubPath
-        self.__g_dictConfig['db_hostname'] = config('db_hostname')
-        self.__g_dictConfig['db_port'] = int(config('db_port'))
-        self.__g_dictConfig['db_userid'] = config('db_userid')
-        self.__g_dictConfig['db_password'] = config('db_password')
-        self.__g_dictConfig['db_database'] = config('db_database')
-        self.__g_dictConfig['db_charset'] = config('db_charset')
+        
+        self.__g_oConfig = configparser.ConfigParser()
+        if dict_brand_info:  # set only ext database is requested
+            s_brand_db_config_path = os.path.join(settings.SV_STORAGE_ROOT, str(dict_brand_info['n_acct_id']),
+                                                  str(dict_brand_info['n_brand_id']), 'database.config.ini')
+            if os.path.isfile(s_brand_db_config_path):
+                self.__g_oConfig = configparser.ConfigParser()
+                self.__g_oConfig.read(s_brand_db_config_path)
+                # self.__g_sDbMode = 'pymysql'
+        
+        if 'SERVER' in self.__g_oConfig.keys():  # use account specific DB
+            self.__g_dictConfig['db_hostname'] = self.__g_oConfig['SERVER']['db_hostname']
+            self.__g_dictConfig['db_port'] = int(self.__g_oConfig['SERVER']['db_port'])
+            self.__g_dictConfig['db_userid'] = self.__g_oConfig['SERVER']['db_userid']
+            self.__g_dictConfig['db_password'] = self.__g_oConfig['SERVER']['db_password']
+            self.__g_dictConfig['db_database'] = self.__g_oConfig['SERVER']['db_database']
+            self.__g_dictConfig['db_charset'] = self.__g_oConfig['SERVER']['db_charset']
+        else:  # use django DB
+            self.__g_dictConfig['db_hostname'] = config('db_hostname')
+            self.__g_dictConfig['db_port'] = int(config('db_port'))
+            self.__g_dictConfig['db_userid'] = config('db_userid')
+            self.__g_dictConfig['db_password'] = config('db_password')
+            self.__g_dictConfig['db_database'] = config('db_database')
+            self.__g_dictConfig['db_charset'] = config('db_charset')
+                
         self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
         self.__connect()
 
@@ -89,19 +115,41 @@ class SvMySql(sv_object.ISvObject):
         self.__disconnect()
 
     def __del__(self):
+        self.__g_sAppName = None
+        self.__g_dictConfig = {}
+        self.__g_oConn = None
+        self.__g_oCursor = None
+        self.__g_sAbsolutePath = None
+        self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
+        self.__g_dictCompiledSqlStmt = {}
+        self.__g_nThreadId = None
         self.__disconnect()
         
-    def initialize(self):  # will be moved to somewhere in dbs.py
-        self.__g_dictRegExQueryFileClassifier['select'] = re.compile(r"^[g][e][t]\w+")
-        self.__g_dictRegExQueryFileClassifier['update'] = re.compile(r"^[u][p][d][a][t][e]\w+")
-        self.__g_dictRegExQueryFileClassifier['insert'] = re.compile(r"^[i][n][s][e][r][t]\w+")
-        self.__g_dictRegExQueryFileClassifier['delete'] = re.compile(r"^[d][e][l][e][t][e]\w+")
-        self.__g_dictRegEx['prefix_create_tbl'] = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
-        self.__g_dictRegEx['hint_select_or_delete'] = re.compile(r"(?<=[fF][rR][oO][mM]\s)\w+")
-        self.__g_dictRegEx['hint_update'] = re.compile(r"(?<=[uU][pP][dD][aA][tT][eE]\s)\w+")
-        self.__g_dictRegEx['hint_insert'] = re.compile(r"(?<=[iI][nN][tT][oO]\s)\w+")
-        self.__g_dictRegEx['retrieve_reserved_tag'] = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
-        
+    def initialize(self):
+        lst_qry_file_diff = list(self.__g_dictRegExQueryFileClassifier.keys())
+        if 'select' not in lst_qry_file_diff:
+            print('select added')
+            self.__g_dictRegExQueryFileClassifier['select'] = re.compile(r"^[g][e][t]\w+")
+        if 'update' not in lst_qry_file_diff:
+            self.__g_dictRegExQueryFileClassifier['update'] = re.compile(r"^[u][p][d][a][t][e]\w+")
+        if 'insert' not in lst_qry_file_diff:            
+            self.__g_dictRegExQueryFileClassifier['insert'] = re.compile(r"^[i][n][s][e][r][t]\w+")
+        if 'delete' not in lst_qry_file_diff:
+            self.__g_dictRegExQueryFileClassifier['delete'] = re.compile(r"^[d][e][l][e][t][e]\w+")
+        del lst_qry_file_diff
+        lst_regex = list(self.__g_dictRegEx.keys())
+        if 'prefix_create_tbl' not in lst_regex:
+            self.__g_dictRegEx['prefix_create_tbl'] = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
+        if 'hint_select_or_delete' not in lst_regex:
+            self.__g_dictRegEx['hint_select_or_delete'] = re.compile(r"(?<=[fF][rR][oO][mM]\s)\w+")
+        if 'hint_update' not in lst_regex:
+            self.__g_dictRegEx['hint_update'] = re.compile(r"(?<=[uU][pP][dD][aA][tT][eE]\s)\w+")
+        if 'hint_insert' not in lst_regex:
+            self.__g_dictRegEx['hint_insert'] = re.compile(r"(?<=[iI][nN][tT][oO]\s)\w+")
+        if 'retrieve_reserved_tag' not in lst_regex:
+            self.__g_dictRegEx['retrieve_reserved_tag'] = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
+        del lst_regex
+
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', '')  # to end with '/'
         for _, _, files in os.walk(s_schema_path_abs):
             for filename in files:
