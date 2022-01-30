@@ -385,7 +385,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__': # for console debugging
     # python task.py analytical_namespace=test config_loc=1/ynox target_host_url=http://localhost/devel/modules/svestudio/b2c.php
     nCliParams = len(sys.argv)
-    if nCliParams > 2:
+    if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('client_serve')
             oJob.parse_command(sys.argv)

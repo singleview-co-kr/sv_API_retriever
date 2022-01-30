@@ -314,7 +314,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
-    if nCliParams > 3:
+    if nCliParams > 2:
         if sys.argv[1] == '--noauth_local_webserver':
             print('noauth')
             with svJobPlugin() as oJob: # to enforce to call plugin destructor
@@ -327,7 +327,7 @@ if __name__ == '__main__': # for console debugging and execution
                 oJob.parse_command(sys.argv)
                 oJob.do_task(None)
     else:
-        print('warning! [config_loc] params or --noauth_local_webserver is required for console execution.')
+        print('warning! [config_loc] [data_first_date] [data_last_date] params or --noauth_local_webserver is required for console execution.')
 
 '''
 def __traverseAccountInfo(self, service):

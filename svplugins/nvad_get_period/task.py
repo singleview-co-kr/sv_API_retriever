@@ -371,7 +371,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__': # for console debugging and execution
     # dict_plugin_params = {'analytical_namespace': 'test', 'config_loc':'1/benedef','data_first_date':'20210930', 'data_last_date':'20211124'}
     nCliParams = len(sys.argv)
-    if nCliParams > 3:
+    if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('nvad_get_period')
             oJob.parse_command(sys.argv)

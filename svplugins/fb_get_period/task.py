@@ -362,7 +362,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__': # for console debugging and execution
     # dictPluginParams = {'config_loc':'2/test_acct', 'data_first_date':'20180424', 'data_last_date':'20180223'}
     nCliParams = len(sys.argv)
-    if nCliParams > 3:
+    if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('fb_get_period')
             oJob.parse_command(sys.argv)
