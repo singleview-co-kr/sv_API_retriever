@@ -110,23 +110,32 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
         self.__g_sMode = self._g_dictParam['mode']
         
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-            
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        
-        del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        # del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key']
         s_cid = dict_nvr_ad_acct['customer_id']
-        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title)
+        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id)
         self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
-        self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info[s_sv_acct_id]['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
+        self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
 
         with sv_mysql.SvMySql('svplugins.integrate_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)

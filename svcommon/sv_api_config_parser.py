@@ -48,7 +48,6 @@ class SvApiConfigParser(sv_object.ISvObject):
     __g_lstAcctInfo = []
 
     def __init__(self, sConfigLocation):
-        
         self._g_oLogger = logging.getLogger(__file__)
         self.__g_oConfig = configparser.RawConfigParser() # make python3 config parser parse key case sensitive
         self.__g_oConfig.optionxform = lambda option: option # make python3 config parser parse key case sensitive
@@ -96,11 +95,12 @@ class SvApiConfigParser(sv_object.ISvObject):
         for sSectionTitle in self.__g_oConfig:
             if sSectionTitle == 'naver_searchad':
                 for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if sValueTitle == 'api_key' or sValueTitle == 'secret_key' or sValueTitle == 'manager_login_id':
+                    if sValueTitle == 'api_key' or sValueTitle == 'secret_key' or sValueTitle == 'manager_login_id' or \
+                     sValueTitle == 'customer_id':
                         dictNvrAdAcct[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
-                    elif sValueTitle == 'customer_id':
-                        dictNvrAdAcct[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
-                        dictNvrAdAcct[self.__g_oConfig[sSectionTitle][sValueTitle]] =  None
+                    # elif sValueTitle == 'customer_id':
+                    #     dictNvrAdAcct[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
+                    #     dictNvrAdAcct[self.__g_oConfig[sSectionTitle][sValueTitle]] =  None
             elif sSectionTitle == 'nvr_master_report':
                 for sValueTitle in self.__g_oConfig[sSectionTitle]:
                     if self.__g_oConfig[sSectionTitle][sValueTitle] == '1':
@@ -129,20 +129,24 @@ class SvApiConfigParser(sv_object.ISvObject):
                 for sValueTitle in self.__g_oConfig[sSectionTitle]:
                     dictOtherAdsApiInfo[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
         
-        dictNvrReportGroup = {'nvr_master_report': lstNvrMasterReport, 'nvr_stat_report': lstNvrStatReport}
-        for sNvrAdAcctKey in dictNvrAdAcct:
-            if sNvrAdAcctKey != 'api_key' and sNvrAdAcctKey != 'secret_key' and sNvrAdAcctKey != 'manager_login_id' and sNvrAdAcctKey != 'customer_id':
-                dictNvrAdAcct[sNvrAdAcctKey] = dictNvrReportGroup		
+        dictNvrAdAcct['nvr_master_report'] = lstNvrMasterReport
+        dictNvrAdAcct['nvr_stat_report'] = lstNvrStatReport
+        # dictNvrReportGroup = {'nvr_master_report': lstNvrMasterReport, 'nvr_stat_report': lstNvrStatReport}
+        # for sNvrAdAcctKey in dictNvrAdAcct:
+        #     if sNvrAdAcctKey != 'api_key' and sNvrAdAcctKey != 'secret_key' and sNvrAdAcctKey != 'manager_login_id' and sNvrAdAcctKey != 'customer_id':
+        #         dictNvrAdAcct[sNvrAdAcctKey] = dictNvrReportGroup		
 
         s_tbl_prefix = self.__g_lstAcctInfo[0] + '_' + self.__g_lstAcctInfo[1]
-        dict2ndLayer = {'account_title': self.__g_lstAcctInfo[1], 'tbl_prefix': s_tbl_prefix, 'nvr_ad_acct': dictNvrAdAcct}
+        # dict2ndLayer = {'account_title': self.__g_lstAcctInfo[1], 'tbl_prefix': s_tbl_prefix, 'nvr_ad_acct': dictNvrAdAcct}
+        dict2ndLayer = {'sv_account_id': self.__g_lstAcctInfo[0], 'brand_id': self.__g_lstAcctInfo[1], 
+                        'tbl_prefix': s_tbl_prefix, 'nvr_ad_acct': dictNvrAdAcct}
         for sValueTitle in dictOtherAdsApiInfo:
                 dict2ndLayer[sValueTitle] = dictOtherAdsApiInfo[sValueTitle]
-
-        dict1stLayer = {self.__g_lstAcctInfo[0] : dict2ndLayer}
-        dictVars = {'acct_info': dict1stLayer }
-        dictResp = {'error': 0, 'message': 'success', 'variables': dictVars, 'httpStatusCode': None}
-        return dictResp
+        return dict2ndLayer
+        # dict1stLayer = {self.__g_lstAcctInfo[0] : dict2ndLayer}
+        # dictVars = {'acct_info': dict1stLayer }
+        # dictResp = {'error': 0, 'message': 'success', 'variables': dictVars, 'httpStatusCode': None}
+        # return dictResp
 
 
 # if __name__ == '__main__': # for console debugging

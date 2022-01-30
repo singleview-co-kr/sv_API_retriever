@@ -23,7 +23,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 # standard library
-import logging
+import logging 
 from datetime import datetime
 import sys
 import os
@@ -76,20 +76,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
         self.__g_dictFbRaw = {}  # prevent duplication on a web console
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'fb_biz_aid' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         with sv_mysql.SvMySql('svplugins.fb_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
         
-        self.__arrangeFbRawDataFile(s_sv_acct_id, s_acct_title)
+        self.__arrangeFbRawDataFile(s_sv_acct_id, s_brand_id)
         self.__registerDb()
 
         self._task_post_proc(self._g_oCallback)

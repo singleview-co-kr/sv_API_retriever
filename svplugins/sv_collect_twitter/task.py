@@ -67,16 +67,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sMode = self._g_dictParam['mode']
         self.__g_sMorpheme = self._g_dictParam['morpheme']
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
-            self._printDebug('invalid config_loc')
-            # raise Exception('stop')
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('invalid config_loc')
+        #     # raise Exception('stop')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
+            self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-            
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         with sv_mysql.SvMySql('svplugins.sv_collect_twitter', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()  

@@ -60,23 +60,33 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # s_kakao_acct_id = dict_acct_info[s_sv_acct_id]['kko_moment_aid']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'kko_moment_aid' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        s_kakao_acct_id = dict_acct_info[s_sv_acct_id]['kko_moment_aid']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        s_kakao_acct_id = dict_acct_info['kko_moment_aid']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         with sv_mysql.SvMySql('svplugins.kko_register_db', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.initialize() 
         
         self._printDebug('-> register kko raw data')
-        self.__arrangeKkoRawDataFile(s_sv_acct_id, s_acct_title, s_kakao_acct_id)
+        self.__arrangeKkoRawDataFile(s_sv_acct_id, s_brand_id, s_kakao_acct_id)
         self.__registerDb()
 
         self._task_post_proc(self._g_oCallback)

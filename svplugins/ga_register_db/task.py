@@ -97,26 +97,37 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
         self.__g_dictGaRaw = {}  # prevent duplication on a web console
         
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
+        # s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'google_analytics' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-        
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
-        s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'branded_term.conf')
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        s_version = dict_acct_info['google_analytics']['s_version']
+        s_property_or_view_id = dict_acct_info['google_analytics']['s_property_or_view_id']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
         with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.initialize()
 
         self._printDebug('-> register ga raw data')
         if s_version == 'ua':  # universal analytics
-            self.__parseGaDataFile(s_sv_acct_id, s_acct_title, s_property_or_view_id)
+            self.__parseGaDataFile(s_sv_acct_id, s_brand_id, s_property_or_view_id)
         elif s_version == 'ga4':
             self._printDebug('plugin is developing')
 

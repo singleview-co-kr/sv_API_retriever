@@ -32,6 +32,7 @@
 # standard library
 import logging
 from datetime import datetime, timedelta
+import re
 import time
 import os
 import csv
@@ -50,10 +51,12 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svdjango')
     import sv_object
     import sv_plugin
+    import sv_file
     import settings
 else:
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svcommon import sv_file
     from django.conf import settings
 
 
@@ -77,19 +80,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'adw_cid' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
         
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        lst_google_ads = dict_acct_info[s_sv_acct_id]['adw_cid']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        lst_google_ads = dict_acct_info['adw_cid']
         try:
             for s_googleads_cid in lst_google_ads:
-                self.__getAdwordsRaw(s_sv_acct_id, s_acct_title, s_googleads_cid)
+                self.__getAdwordsRaw(s_sv_acct_id, s_brand_id, s_googleads_cid)
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))

@@ -91,19 +91,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
         self.__g_sMode = self._g_dictParam['mode']
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        # s_cid = dict_nvr_ad_acct['customer_id']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-            
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         s_cid = dict_nvr_ad_acct['customer_id']
-        self.__g_sNvadPathAbs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'naver_ad')
+        self.__g_sNvadPathAbs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad')
         self.__g_sNvadDataPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'data')
         self.__g_sNvadConfPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'conf')
         with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql:
@@ -112,7 +123,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if self.__g_sMode == None:
             self._printDebug('-> register nvad raw data')
-            self.__parseNvadDataFile(s_sv_acct_id, s_acct_title, s_cid)
+            self.__parseNvadDataFile(s_sv_acct_id, s_brand_id, s_cid)
         elif self.__g_sMode == 'recompile':
             with sv_mysql.SvMySql('svplugins.nvad_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.setTablePrefix(self.__g_sTblPrefix)
@@ -123,7 +134,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self.__g_lstDatadateToCompile.append(int(sCompileDate))
 
                 # retrieve manual BRS info if exists
-                lstBrsManualDateRange = self.__retrieveNvBrspageManualInfoPeriod(s_sv_acct_id, s_acct_title, s_cid )
+                lstBrsManualDateRange = self.__retrieveNvBrspageManualInfoPeriod(s_sv_acct_id, s_brand_id, s_cid )
                 for nManualDatadate in lstBrsManualDateRange:
                     self.__g_lstDatadateToCompile.append(nManualDatadate)
 
@@ -144,7 +155,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if not self._continue_iteration():
                 break
 
-            b_rst = self.__compileDailyRecord(s_sv_acct_id, s_acct_title, s_cid, str(nDate))
+            b_rst = self.__compileDailyRecord(s_sv_acct_id, s_brand_id, s_cid, str(nDate))
             if not b_rst:
                 self._printDebug('warning! denying assemble stat data & register!')
                 break

@@ -89,21 +89,33 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        # self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
+        # self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
+        # self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
+        # s_customer_id = dict_nvr_ad_acct['customer_id']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
         self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
         self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
         self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
-        # self.__g_sCustomerId = dict_nvr_ad_acct['customer_id']
         s_customer_id = dict_nvr_ad_acct['customer_id']
-        del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
+        # del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
 
         o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
         # delete master report
@@ -119,10 +131,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #     print(o_single_rpt.status)
         #     print(o_single_rpt.downloadUrl)
             
-        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'conf')
+        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad', s_customer_id, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
             os.makedirs(self.__g_sRetrieveInfoPath)
-        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'data')
+        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad', s_customer_id, 'data')
         if os.path.isdir(self.__g_sDownloadPathNew) == False:
             os.makedirs(self.__g_sDownloadPathNew)
 
@@ -135,10 +147,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
             
-        self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_master_report'] )
+        self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct['nvr_master_report'] )
         del o_master_report
         o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
-        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_stat_report']) #statdate arg should be defined
+        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct['nvr_stat_report']) #statdate arg should be defined
         del o_stat_report
 
         self._task_post_proc(self._g_oCallback)

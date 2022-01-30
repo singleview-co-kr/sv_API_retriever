@@ -96,16 +96,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
         
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # s_fb_biz_aid = dict_acct_info[s_sv_acct_id]['fb_biz_aid']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'fb_biz_aid' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-        
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        s_fb_biz_aid = dict_acct_info[s_sv_acct_id]['fb_biz_aid']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        s_fb_biz_aid = dict_acct_info['fb_biz_aid']
         if s_fb_biz_aid == '':
             self._printDebug('stop -> no business account id')
             self._task_post_proc(self._g_oCallback)
@@ -113,7 +122,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
         try:
-            self.__getFbBusinessRaw(s_sv_acct_id, s_acct_title, s_fb_biz_aid)
+            self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id, s_fb_biz_aid)
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))

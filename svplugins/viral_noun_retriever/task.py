@@ -95,10 +95,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sStartYyyymmdd = self._g_dictParam['start_yyyymmdd']
         self.__g_sEndYyyymmdd = self._g_dictParam['end_yyyymmdd']
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
-            self._printDebug('invalid config_loc')
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
+            self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
         if self.__g_sMode is None:
@@ -115,9 +122,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nltk.download('averaged_perceptron_tagger')
         ################################
 
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         lst_noun = []
         if self.__g_sMode == 'tag_ignore_word':
             self._printDebug('tag_ignore_word')
@@ -168,7 +178,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     
                 # wc.generate(news)
                 wc.generate_from_frequencies(dict(lst_noun))
-                s_wc_file_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'keyword.png')
+                s_wc_file_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'keyword.png')
                 wc.to_file(s_wc_file_path_abs)
         except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
             self._printDebug('Processing has been interrupted abnormally')

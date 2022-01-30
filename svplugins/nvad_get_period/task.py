@@ -99,20 +99,33 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sDataFirstDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataLastDate = self._g_dictParam['data_last_date'].replace('-','')
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        # self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
+        # self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
+        # self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
+        # s_customer_id = dict_nvr_ad_acct['customer_id']
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
         self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
         self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
         self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
         s_customer_id = dict_nvr_ad_acct['customer_id']
-        del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
+        # del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
         
         # delete master report
         o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
@@ -124,15 +137,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         
-        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'conf')
+        self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad', s_customer_id, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
             os.makedirs(self.__g_sRetrieveInfoPath)
-        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, dict_acct_info[s_sv_acct_id]['account_title'], 'naver_ad', s_customer_id, 'data')
+        self.__g_sDownloadPathNew = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad', s_customer_id, 'data')
         if os.path.isdir(self.__g_sDownloadPathNew) == False:
             os.makedirs(self.__g_sDownloadPathNew)
 
         o_stat_report = StatReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
-        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct[s_customer_id]['nvr_stat_report'])  # statdate arg should be defined
+        self.__retrieveNvStatReport(o_stat_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct['nvr_stat_report'])  # statdate arg should be defined
 
         self._task_post_proc(self._g_oCallback)
 

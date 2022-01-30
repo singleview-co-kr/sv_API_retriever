@@ -96,12 +96,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
-            self._printDebug('stop -> invalid config_loc')
-            self._task_post_proc(self._g_oCallback)
-            return
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('stop -> invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
 
         """ Authenticate and construct service. """
         sClientSecretsJson = os.path.join(self._g_sAbsRootPath, 'conf', 'google_client_secrets.json')
@@ -112,14 +114,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         service = self.__getService('analytics', 'v3', scope, sClientSecretsJson)
         # Try to make a request to the API. Print the results or handle errors.
         
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
-        s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
-        self.__g_lstAccessLevel = dict_acct_info[s_sv_acct_id]['google_analytics']['lst_access_level']
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
+        # s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
+        # self.__g_lstAccessLevel = dict_acct_info[s_sv_acct_id]['google_analytics']['lst_access_level']
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'google_analytics' not in lst_conf_keys:
+            self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
+            return
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        s_version = dict_acct_info['google_analytics']['s_version']
+        s_property_or_view_id = dict_acct_info['google_analytics']['s_property_or_view_id']
+        self.__g_lstAccessLevel = dict_acct_info['google_analytics']['lst_access_level']
         if s_version == 'ua':  # universal analytics
             try:
-                self.__getInsiteRaw(service, s_sv_acct_id, s_acct_title, s_property_or_view_id)
+                self.__getInsiteRaw(service, s_sv_acct_id, s_brand_id, s_property_or_view_id)
             except TypeError as error:
                 # Handle errors in constructing a query.
                 self._printDebug(('There was an error in constructing your query : %s' % error))

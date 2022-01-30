@@ -92,23 +92,33 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del oSvHttp
         # end - get Protocol message dictionary
 
-        oResp = self._task_pre_proc(o_callback)
-        dict_acct_info = oResp['variables']['acct_info']
-        if dict_acct_info is None:
-            self._printDebug('invalid config_loc')
+        # oResp = self._task_pre_proc(o_callback)
+        # dict_acct_info = oResp['variables']['acct_info']
+        # if dict_acct_info is None:
+        #     self._printDebug('invalid config_loc')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
+        #    # raise Exception('stop')
+        dict_acct_info = self._task_pre_proc(o_callback)
+        lst_conf_keys = list(dict_acct_info.keys())
+        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
+          'nvr_ad_acct' not in lst_conf_keys:
+            self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
-            # raise Exception('stop')
+
         if self.__g_sMode is None:
             self._printDebug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
             return
-            
-        s_sv_acct_id = list(dict_acct_info.keys())[0]
-        s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        self.__getKeyConfig(s_sv_acct_id, s_acct_title)
-
+        # s_sv_acct_id = list(dict_acct_info.keys())[0]
+        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
+        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
+        # self.__getKeyConfig(s_sv_acct_id, s_acct_title)
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        self.__getKeyConfig(s_sv_acct_id, s_brand_id)
         if self.__g_sTargetUrl is None:
             if 'server' in list(self.__g_oConfig.keys()):
                 self.__g_sTargetUrl = self.__g_oConfig['server']['sv_doc_host_url']

@@ -30,6 +30,7 @@ from slack_cleaner2.predicates import match
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_object
     import sv_slack
     import sv_plugin
@@ -55,13 +56,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        o_rsp = self._task_pre_proc(o_callback)
-        del o_rsp
         if self._g_dictParam['slack_ch_ttl'] is None:
             self._printDebug('execution denied! -> you need to define slack_ch_ttl')
             self._task_post_proc(self._g_oCallback)
             return
-
         s_slack_ch_title = self._g_dictParam['slack_ch_ttl']
         o_sv_slack = sv_slack.svSlack(sCallingBot='dbs')
         
