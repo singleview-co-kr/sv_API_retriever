@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '26th, Jan 2022'
+        self._g_sLastModifiedDate = '1st, Feb 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -162,106 +162,93 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
                 sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
                 self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
-                try:
-                    sTsvFilename = sDataDateForMysql + '_general.tsv'
-                    """sDuringStatement = sDataDateForMysql+','+sDataDateForMysql # example .During('20180628,20180628') or 'YESTERDAY' or 'LAST_7_DAYS'
-                    report_query = (adwords.ReportQueryBuilder() # https://developers.google.com/adwords/api/docs/appendix/reports/criteria-performance-report
-                        .Select('CampaignName', 'AdGroupName', 'Criteria', 'Impressions', 'Clicks',  # Criteria means keyword in this context
-                              'Cost', 'Device', 'Conversions', 'ConversionValue', 'Date')  # https://developers.google.com/adwords/api/docs/appendix/selectorfields
-                        .From('CRITERIA_PERFORMANCE_REPORT')
-                        .Where('Status').In('ENABLED' )
-                        .During(sDuringStatement)
-                        .Build())
-
-                    # http://googleads.github.io/googleads-python-lib/googleads.adwords.ReportDownloader-class.html#DownloadReportAsStreamWithAwql
-                    # https://developers.google.com/adwords/api/docs/samples/python/reporting
-                    strRst = report_downloader.DownloadReportAsStringWithAwql(
-                        report_query, 'TSV', skip_report_header=False, # https://developers.google.com/adwords/api/docs/guides/reporting-concepts
-                        skip_column_header=False, skip_report_summary=False, include_zero_impressions=False)
-                    
-                    # write data stream to file.
-                    with open(sDownloadPath+'/'+sTsvFilename, 'w', encoding='utf-8' ) as out:
-                        out.write( strRst )"""
-
-                    s_disp_campaign_query = """
-                        SELECT
-                            campaign.id,
-                            campaign.name,
-                            metrics.impressions, 
-                            metrics.clicks, 
-                            metrics.cost_micros, 
-                            segments.device, 
-                            metrics.all_conversions, 
-                            metrics.all_conversions_value, 
-                            segments.date 
-                        FROM campaign
-                        WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
-
-                    # Issues a search request using streaming.
-                    o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
-                    
-                    lst_logs = []
-                    for disp_campaign_batch in o_disp_campaign_resp:
-                        for o_disp_campaign_row in disp_campaign_batch.results:
-                            dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
-                                                  'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
-                            lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
-                            if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
-                                s_text_campaign_query = """
-                                    SELECT
-                                        campaign.name,
-                                        ad_group_criterion.keyword.text
-                                        metrics.clicks, 
-                                        metrics.cost_micros, 
-                                        metrics.all_conversions, 
-                                        metrics.all_conversions_value, 
-                                        segments.date 
-                                    FROM search_term_view
-                                    WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
-                                        'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
-                                o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
-                                for txt_campaign_batch in o_txt_campaign_resp:
-                                    for o_txt_campaign_row in txt_campaign_batch.results:
-                                        dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
-                                        dict_disp_campaign['AdGroupName'] = 'n/a'
-                                        dict_disp_campaign['Criteria'] = o_txt_campaign_row.ad_group_criterion.keyword.text
-                                        dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions  # refer to o_disp_campaign_row because [search_term_view] does not provide 
-                                        dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
-                                        dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
-                                        dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]  # refer to o_disp_campaign_row because [search_term_view] does not provide 
-                                        dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
-                                        dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
-                                        dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
-                                        lst_logs.append(dict_disp_campaign)
-                                del o_txt_campaign_resp
-                            else:  # display campaign
-                                dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
-                                dict_disp_campaign['AdGroupName'] = 'n/a'
-                                dict_disp_campaign['Criteria'] = 'AutomaticContent'
-                                dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
-                                dict_disp_campaign['Clicks'] = o_disp_campaign_row.metrics.clicks
-                                dict_disp_campaign['Cost'] = o_disp_campaign_row.metrics.cost_micros
-                                dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]
-                                dict_disp_campaign['Conversions'] = o_disp_campaign_row.metrics.all_conversions
-                                dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
-                                dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
-                                lst_logs.append(dict_disp_campaign)
-                    
-                    # write data stream to file.
-                    with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
-                        wr = csv.writer(out, delimiter='\t')
-                        wr.writerow(lst_report_header_1)
-                        wr.writerow(lst_report_header_2)
-                        for dict_rows in lst_logs:
-                            wr.writerow(list(dict_rows.values()))
-                    
-                    dictDateQueue[dtRetrieval] = 1
-                    time.sleep(3)
-                except:
-                    self._printDebug('exception occured')
-                
             except ValueError:
                 break
+            
+            sTsvFilename = sDataDateForMysql + '_general.tsv'
+            s_disp_campaign_query = """
+                    SELECT
+                        campaign.id,
+                        campaign.name,
+                        metrics.impressions, 
+                        metrics.clicks, 
+                        metrics.cost_micros, 
+                        segments.device, 
+                        metrics.all_conversions, 
+                        metrics.all_conversions_value, 
+                        segments.date 
+                    FROM campaign
+                    WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
+            try:  # Issues a search request using streaming.
+                o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
+            except Exception as e:
+                self._printDebug('unknown exception occured while access googleads API')
+                self._printDebug(e)
+                return
+            
+            lst_logs = []
+            for disp_campaign_batch in o_disp_campaign_resp:
+                for o_disp_campaign_row in disp_campaign_batch.results:
+                    dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
+                                            'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
+                    lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
+                    if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
+                        s_text_campaign_query = """
+                            SELECT
+                                campaign.name,
+                                ad_group_criterion.keyword.text
+                                metrics.clicks, 
+                                metrics.cost_micros, 
+                                metrics.all_conversions, 
+                                metrics.all_conversions_value, 
+                                segments.date 
+                            FROM search_term_view
+                            WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
+                                'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
+                        try:  # Issues a search request using streaming.
+                            o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
+                        except Exception as e:
+                            self._printDebug('unknown exception occured while access googleads API')
+                            self._printDebug(e)
+                            return
+                        for txt_campaign_batch in o_txt_campaign_resp:
+                            for o_txt_campaign_row in txt_campaign_batch.results:
+                                dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
+                                dict_disp_campaign['AdGroupName'] = 'n/a'
+                                dict_disp_campaign['Criteria'] = o_txt_campaign_row.ad_group_criterion.keyword.text
+                                dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions  # refer to o_disp_campaign_row because [search_term_view] does not provide 
+                                dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
+                                dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
+                                dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]  # refer to o_disp_campaign_row because [search_term_view] does not provide 
+                                dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
+                                dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
+                                dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
+                                lst_logs.append(dict_disp_campaign)
+                        del o_txt_campaign_resp
+                    else:  # display campaign
+                        dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
+                        dict_disp_campaign['AdGroupName'] = 'n/a'
+                        dict_disp_campaign['Criteria'] = 'AutomaticContent'
+                        dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
+                        dict_disp_campaign['Clicks'] = o_disp_campaign_row.metrics.clicks
+                        dict_disp_campaign['Cost'] = o_disp_campaign_row.metrics.cost_micros
+                        dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]
+                        dict_disp_campaign['Conversions'] = o_disp_campaign_row.metrics.all_conversions
+                        dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
+                        dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
+                        lst_logs.append(dict_disp_campaign)
+            
+            # write data stream to file.
+            with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
+                wr = csv.writer(out, delimiter='\t')
+                wr.writerow(lst_report_header_1)
+                wr.writerow(lst_report_header_2)
+                for dict_rows in lst_logs:
+                    wr.writerow(list(dict_rows.values()))
+            
+            dictDateQueue[dtRetrieval] = 1
+            time.sleep(3)
+            
 	
 if __name__ == '__main__': # for console debugging and execution
     # python task.py analytical_namespace=test config_loc=1/ynox yyyymm=202109

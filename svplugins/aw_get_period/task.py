@@ -61,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '26th, Jan 2022'
+        self._g_sLastModifiedDate = '1st, Feb 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -132,29 +132,38 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://github.com/googleads/googleads-python-lib
         # https://github.com/googleads/googleads-python-lib/releases
         # https://www.youtube.com/watch?v=80KOeuCNc0c
-        """sClientId = googleads_config.CLIENT_ID
-        sClientSecret = googleads_config.CLIENT_SECRET
-        sRefreshToken = googleads_config.REFRESH_TOKEN
-        sDeveloperToken = googleads_config.DEVELOPER_TOKEN
-        sUserAgent = googleads_config.USER_AGENT
-        sClientCustomerId = sAdwordsCid
+        # """sClientId = googleads_config.CLIENT_ID
+        # sClientSecret = googleads_config.CLIENT_SECRET
+        # sRefreshToken = googleads_config.REFRESH_TOKEN
+        # sDeveloperToken = googleads_config.DEVELOPER_TOKEN
+        # sUserAgent = googleads_config.USER_AGENT
+        # sClientCustomerId = sAdwordsCid
 
-        oauth2_client = oauth2.GoogleRefreshTokenClient(sClientId, sClientSecret, sRefreshToken)
-        adwords_client = adwords.AdWordsClient(sDeveloperToken, oauth2_client, sUserAgent,client_customer_id=sClientCustomerId)
-        customer_service = adwords_client.GetService('CustomerService',version='v201809')
-        customers = customer_service.getCustomers()
-        report_downloader = adwords_client.GetReportDownloader(version='v201809')"""
+        # oauth2_client = oauth2.GoogleRefreshTokenClient(sClientId, sClientSecret, sRefreshToken)
+        # adwords_client = adwords.AdWordsClient(sDeveloperToken, oauth2_client, sUserAgent,client_customer_id=sClientCustomerId)
+        # customer_service = adwords_client.GetService('CustomerService',version='v201809')
+        # customers = customer_service.getCustomers()
+        # report_downloader = adwords_client.GetReportDownloader(version='v201809')"""
         s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
         o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
-        try:
-            sEarliestFilepath = os.path.join(s_conf_path_abs, 'general.earliest')
+        
+        sEarliestFilepath = os.path.join(s_conf_path_abs, 'general.latest')
+        if os.path.isfile(sEarliestFilepath):
             f = open(sEarliestFilepath, 'r')
             sMinReportDate = f.readline()
             dtDateDataRetrieval = datetime.strptime(sMinReportDate, '%Y%m%d') - timedelta(days=1)
             f.close()
-        except FileNotFoundError:
+        else:
             dtDateDataRetrieval = datetime.strptime(self.__g_sDataLastDate, '%Y%m%d')
+        # try:
+        #     sEarliestFilepath = os.path.join(s_conf_path_abs, 'general.earliest')
+        #     f = open(sEarliestFilepath, 'r')
+        #     sMinReportDate = f.readline()
+        #     dtDateDataRetrieval = datetime.strptime(sMinReportDate, '%Y%m%d') - timedelta(days=1)
+        #     f.close()
+        # except FileNotFoundError:
+        #     dtDateDataRetrieval = datetime.strptime(self.__g_sDataLastDate, '%Y%m%d')
         
         # if requested date is earlier than first date
         if dtDateDataRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0): 
@@ -169,84 +178,94 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # set report header rows
         lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device', 'Conversions', 'Total conv. value', 'Day']
+        
+        sTsvFilename = sDataDateForMysql + '_general.tsv'
+        # self._printDebug(sTsvFilename)
+        f = open(sEarliestFilepath, 'w')
+        f.write(sDataDateForMysql)
+        f.close()
+        s_disp_campaign_query = """
+                    SELECT
+                        campaign.id,
+                        campaign.name,
+                        metrics.impressions, 
+                        metrics.clicks, 
+                        metrics.cost_micros, 
+                        segments.device, 
+                        metrics.all_conversions, 
+                        metrics.all_conversions_value, 
+                        segments.date 
+                    FROM campaign
+                    WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
+        # Issues a search request using streaming.
         try:
-            sTsvFilename = sDataDateForMysql + '_general.tsv'
-            # self._printDebug(sTsvFilename)
-            f = open(sEarliestFilepath, 'w')
-            f.write(sDataDateForMysql)
-            f.close()
-            s_disp_campaign_query = """
+            o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
+        except Exception as e:
+            self._printDebug('unknown exception occured while access googleads API')
+            self._printDebug(e)
+            return    
+        lst_logs = []
+        for disp_campaign_batch in o_disp_campaign_resp:
+            for o_disp_campaign_row in disp_campaign_batch.results:
+                dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
+                                        'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
+                lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
+                if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
+                    s_text_campaign_query = """
                         SELECT
-                            campaign.id,
                             campaign.name,
-                            metrics.impressions, 
+                            ad_group_criterion.keyword.text
                             metrics.clicks, 
                             metrics.cost_micros, 
-                            segments.device, 
                             metrics.all_conversions, 
                             metrics.all_conversions_value, 
                             segments.date 
-                        FROM campaign
-                        WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
-            # Issues a search request using streaming.
-            o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
-            lst_logs = []
-            for disp_campaign_batch in o_disp_campaign_resp:
-                for o_disp_campaign_row in disp_campaign_batch.results:
-                    dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
-                                          'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
-                    lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
-                    if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
-                        s_text_campaign_query = """
-                            SELECT
-                                campaign.name,
-                                ad_group_criterion.keyword.text
-                                metrics.clicks, 
-                                metrics.cost_micros, 
-                                metrics.all_conversions, 
-                                metrics.all_conversions_value, 
-                                segments.date 
-                            FROM search_term_view
-                            WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
-                                'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
+                        FROM search_term_view
+                        WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
+                            'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
+                    try:
                         o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
-                        for txt_campaign_batch in o_txt_campaign_resp:
-                            for o_txt_campaign_row in txt_campaign_batch.results:
-                                dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
-                                dict_disp_campaign['AdGroupName'] = 'n/a'
-                                dict_disp_campaign['Criteria'] = o_txt_campaign_row.ad_group_criterion.keyword.text
-                                dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions  # refer to o_disp_campaign_row because [search_term_view] does not provide 
-                                dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
-                                dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
-                                dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]  # refer to o_disp_campaign_row because [search_term_view] does not provide 
-                                dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
-                                dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
-                                dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
-                                lst_logs.append(dict_disp_campaign)
-                        del o_txt_campaign_resp
-                    else:  # display campaign
-                        dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
-                        dict_disp_campaign['AdGroupName'] = 'n/a'
-                        dict_disp_campaign['Criteria'] = 'AutomaticContent'
-                        dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
-                        dict_disp_campaign['Clicks'] = o_disp_campaign_row.metrics.clicks
-                        dict_disp_campaign['Cost'] = o_disp_campaign_row.metrics.cost_micros
-                        dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]
-                        dict_disp_campaign['Conversions'] = o_disp_campaign_row.metrics.all_conversions
-                        dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
-                        dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
-                        lst_logs.append(dict_disp_campaign)
-            # write data stream to file.
-            with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
-                wr = csv.writer(out, delimiter='\t')
-                wr.writerow(lst_report_header_1)
-                wr.writerow(lst_report_header_2)
-                for dict_rows in lst_logs:
-                    wr.writerow(list(dict_rows.values()))
-        except:
-            self._printDebug('ADWORDS api has reported weird error while processing sv account id: ' + sSvAcctId)
-            # raise Exception('remove' )
-            return
+                    except Exception as e:
+                        self._printDebug('unknown exception occured while access googleads API')
+                        self._printDebug(e)
+                        return    
+                    for txt_campaign_batch in o_txt_campaign_resp:
+                        for o_txt_campaign_row in txt_campaign_batch.results:
+                            dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
+                            dict_disp_campaign['AdGroupName'] = 'n/a'
+                            dict_disp_campaign['Criteria'] = o_txt_campaign_row.ad_group_criterion.keyword.text
+                            dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions  # refer to o_disp_campaign_row because [search_term_view] does not provide 
+                            dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
+                            dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
+                            dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]  # refer to o_disp_campaign_row because [search_term_view] does not provide 
+                            dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
+                            dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
+                            dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
+                            lst_logs.append(dict_disp_campaign)
+                    del o_txt_campaign_resp
+                else:  # display campaign
+                    dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
+                    dict_disp_campaign['AdGroupName'] = 'n/a'
+                    dict_disp_campaign['Criteria'] = 'AutomaticContent'
+                    dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
+                    dict_disp_campaign['Clicks'] = o_disp_campaign_row.metrics.clicks
+                    dict_disp_campaign['Cost'] = o_disp_campaign_row.metrics.cost_micros
+                    dict_disp_campaign['Device'] = dict_googleads_v6_device[o_disp_campaign_row.segments.device]
+                    dict_disp_campaign['Conversions'] = o_disp_campaign_row.metrics.all_conversions
+                    dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
+                    dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
+                    lst_logs.append(dict_disp_campaign)
+        # write data stream to file.
+        with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
+            wr = csv.writer(out, delimiter='\t')
+            wr.writerow(lst_report_header_1)
+            wr.writerow(lst_report_header_2)
+            for dict_rows in lst_logs:
+                wr.writerow(list(dict_rows.values()))
+        # except:
+        #     self._printDebug('ADWORDS api has reported weird error while processing sv account id: ' + sSvAcctId)
+        #     # raise Exception('remove' )
+        #     return
 
 if __name__ == '__main__': # for console debugging and execution
     # dictPluginParams = {'config_loc':'2/test_acct', 'data_last_date':'20180903','data_first_date':'20180406'}

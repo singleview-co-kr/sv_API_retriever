@@ -24,7 +24,7 @@
 
 # standard library
 import os
-# import sys
+import sys
 import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 
@@ -33,9 +33,10 @@ from decouple import config
 
 # singleview config
 if __name__ == 'svcommon.sv_api_config_parser' : # for websocket running
-    from django.conf import settings
     from svcommon import sv_object
+    from django.conf import settings
 elif __name__ == 'sv_api_config_parser': # for plugin console debugging
+    sys.path.append('../../svdjango')
     import sv_object
     import settings
 
