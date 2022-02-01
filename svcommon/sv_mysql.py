@@ -128,7 +128,6 @@ class SvMySql(sv_object.ISvObject):
     def initialize(self):
         lst_qry_file_diff = list(self.__g_dictRegExQueryFileClassifier.keys())
         if 'select' not in lst_qry_file_diff:
-            print('select added')
             self.__g_dictRegExQueryFileClassifier['select'] = re.compile(r"^[g][e][t]\w+")
         if 'update' not in lst_qry_file_diff:
             self.__g_dictRegExQueryFileClassifier['update'] = re.compile(r"^[u][p][d][a][t][e]\w+")

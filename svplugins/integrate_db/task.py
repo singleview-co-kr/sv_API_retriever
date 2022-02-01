@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '28th, Jan 2022'
+        self._g_sLastModifiedDate = '1st, Feb 2022'
         self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -183,12 +183,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return dictRst
         
         try:
+            lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'adwords'))
+            self.__g_bGoogleAdsProcess = True
+        except FileNotFoundError:
+            pass
+
+        try:
             lstDirectory = os.listdir(os.path.join(self.__g_sDataPath, 'fb_biz'))
             for sCid in lstDirectory:
                 if sCid == 'alias_info_campaign.tsv':
                     continue
                 try:
-                    open(os.path.join(self.__g_sDataPath, 'fb_biz', sCid, 'conf', 'general.latest', 'r'))
+                    open(os.path.join(self.__g_sDataPath, 'fb_biz', sCid, 'conf', 'general.latest'))
                     self.__g_bFbProcess = True
                 except FileNotFoundError:
                     pass
