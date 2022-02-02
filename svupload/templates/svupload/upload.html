@@ -1,0 +1,103 @@
+{% extends "layout_dashboard.html" %}
+
+{% block content %}
+    {% block content_header %}
+        <h2>EDI 업로드 목록</h2>
+    {% endblock %}
+    <table class="table mb-8">
+        <thead>
+            <tr>
+                <th>업로드할 파일</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <form method="post" enctype="multipart/form-data" id="fileupload" action="{% url 'svupload:index' n_brand_id %}" accept-charset="utf-8" class="fill-up">
+                        {% csrf_token %}
+                        <input type="file" name="myfile" id="myfile" />
+                        <button type="submit" class="btn btn-primary">upload file</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table mb-8">
+        <thead>
+            <tr>
+                <th>업로드한 파일명</th>
+                <th>등록 일</th>
+                <th>상태</th>
+                <th>자세히 보기</th>
+                <th>다운로드</th>
+                <th>삭제</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dict_single_file in lst_files %}
+                <tr>
+                    <td title="{{dict_single_file.source_filename}}">{{dict_single_file.source_filename}}.{{dict_single_file.file_ext}}</td>
+                    <td>{{dict_single_file.regdt|date:"Y-m-d h:i"}}</td>
+                    <td>{{dict_single_file.status}}</td>
+                    <td><a href="{% url 'svupload:index' dict_single_file.id %}" class="btn btn-primary btn-sm">Detail</a></td>
+                    <td><a href="{% url 'svupload:extract' n_brand_id dict_single_file.id %}" class="btn btn-secondary btn-sm" target="_blank">Download</a></td>
+                    <td>
+                        <a href="#" upload_file_id="{{dict_single_file.id}}" class="btn btn-danger btn-sm">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if is_paginated %}
+    <div>
+        <span>
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">PreviousPage</a>
+            {% endif %}
+
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">NextPage</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+<script type="text/javascript">
+  $(".btn.btn-danger.btn-sm").click(function(){
+    var bAns = window.confirm("정말 삭제하시겠습니까?");
+    if(!bAns)
+        return;
+
+    var nPkUploadfile = $(this).attr('upload_file_id')
+    console.log(nPkUploadfile);
+    var sReqMode = 'delete'
+    $.ajax({  // 서버로 데이터 전송시 옵션
+      type: "POST",
+      url: "{% url 'svupload:ajax_handling' %}",
+      data: {
+            'csrfmiddlewaretoken': '{{csrf_token}}',
+            'id_upload_file': nPkUploadfile,
+            'id_brand': '{{n_brand_id}}',
+            'req_mode': sReqMode,
+            },
+      dataType: "json",
+      success: function(response){ // 통신 성공시
+        console.log(response.b_success);
+        if( response.b_success == 0 ) // transmission succeed, but failed to order
+            alert(response.message);
+        else if( response.b_success == 1 )
+            console.log('deleted');
+            var aParam = [];
+            aParam['act'] = 'reload_page';
+            actuator(aParam);
+      },
+      error: function(request, status, error){ // 통신 실패시 - 로그인 페이지 리다이렉트
+        alert("로그인이 필요합니다.")
+        // window.location.replace("/accounts/login/")
+        //  alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+      },
+    });
+  })
+</script>
+{% endblock %}

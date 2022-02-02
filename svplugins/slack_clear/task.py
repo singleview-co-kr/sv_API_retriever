@@ -44,8 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 15th, Jan 2022')
         self._g_dictParam.update({'slack_ch_ttl':None})
 
     def __del__(self):
@@ -78,8 +77,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug(str(n_cnt) + ' slack msgs have been deleted')
         self._task_post_proc(self._g_oCallback)
 
+
 if __name__ == '__main__': # for console debugging and execution
-    # python task.py analytical_namespace=test config_loc=1/ynox slack_ch_ttl=dbs_bot
+    # python task.py config_loc=1/1 slack_ch_ttl=dbs_bot
     # slack_clear slack_ch_ttl=yuhen_web
     nCliParams = len(sys.argv)
     if nCliParams > 2:

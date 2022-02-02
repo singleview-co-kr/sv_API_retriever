@@ -58,8 +58,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '28th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -92,13 +91,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del oSvHttp
         # end - get Protocol message dictionary
 
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        #    # raise Exception('stop')
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -111,10 +103,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
             return
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        # self.__getKeyConfig(s_sv_acct_id, s_acct_title)
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
@@ -160,9 +148,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('extract whole wc')
             if dict_date_range['dictionary_start_date'] == 'na':
                 self._printDebug('extract whole dictionary')
-            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
+            with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.initialize()
+                o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 s_end_start_date = dict_date_range['wc_end_date']
                 s_wc_end_date = (datetime.strptime(s_end_start_date, '%Y%m%d') + timedelta(days=1)).strftime('%Y-%m-%d')
 
@@ -211,9 +200,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         collect plain text of new docs from SvWebService
         # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
         """
-        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
         if not self._continue_iteration():
             return
@@ -244,23 +234,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self.__translateMsgCode(nMsgKey) == 'ALD':
             #self._printDebug( 'in resp of add latest data' ) 
             dictRetrieveStuff = oResp['variables']['d']
-            
-            # check already registered doc_srl
-            lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
-            with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.initialize()
-                dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
-                lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
-            del dict_param
-            for dict_rec in lst_duplicated_doc_srls:
-                dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
+            if dictRetrieveStuff['aDocSrls'] != 'na':
+                # check already registered doc_srl
+                lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
+                with sv_mysql.SvMySql() as o_sv_mysql:
+                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                    o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+                    o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+                    dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
+                    lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
+                del dict_param
+                for dict_rec in lst_duplicated_doc_srls:
+                    dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
 
-            if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
-                self._printDebug('begin - doc sync')
-                dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
-            
+                if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
+                    self._printDebug('begin - doc sync')
+                    dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
+                    oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
             #if type(dictRetrieveStuff['aComSrls']) == list and len(dictRetrieveStuff['aComSrls']):
             #    self._printDebug('begin - comment sync')
             #    dictParams = {'c': [self.__g_dictMsg['GMCL']], 'd': dictRetrieveStuff['aComSrls']} #  give me comment list  -> data: com_srls
@@ -280,9 +270,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
 
         n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
-        with sv_mysql.SvMySql('svplugins.sv_collect_doc_com', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for dict_single_doc in oResp['variables']['d']:
                 n_sv_doc_srl = dict_single_doc['document_srl']
                 s_title = dict_single_doc['title'].replace(u'\xa0', u'')
@@ -323,8 +314,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=extract target_host_url=http://testserver.co.kr/extract/port/345/345371/
+    # CLI example -> python3.7 task.py config_loc=1/1 mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
+    # CLI example -> python3.7 task.py config_loc=1/1 mode=extract target_host_url=http://testserver.co.kr/extract/port/345/345371/
     # sv_collect_doc_com mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:

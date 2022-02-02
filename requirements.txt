@@ -26,6 +26,8 @@ daphne==3.0.2
 distlib==0.3.3
 Django==3.2.5
 django-widget-tweaks==1.4.8
+django-crispy-forms==1.14.0
+django-widget-tweaks==1.4.8
 docutils==0.17.1
 facebook-business==12.0.0
 filelock==3.3.0

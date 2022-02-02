@@ -28,6 +28,7 @@ import sys
 import logging
 import re # https://docs.python.org/3/library/re.html
 import ctypes
+# from pathlib import Path
 
 # 3rd party library
 import configparser  # https://docs.python.org/3/library/configparser.html
@@ -51,7 +52,7 @@ class SvMySql(sv_object.ISvObject):
     __g_dictRegEx = {}  # SQL 분석을 위한 정규식 저장
     __g_dictConfig = {}
     
-    def __init__(self, sCallingFrom=None, dict_brand_info=None):
+    def __init__(self):  #, sCallingFrom=None , dict_brand_info=None):
         # dict_brand_info shoud be streamlined with django_etl in the near futher
         self._g_oLogger = logging.getLogger(__file__)
         self.__g_sAppName = None
@@ -68,17 +69,71 @@ class SvMySql(sv_object.ISvObject):
             self.__g_dictCompiledSqlStmt[self.__g_nThreadId] = {}
 
         self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')
-        if sCallingFrom is not None:
-            if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
-                self.__g_sAppName = sCallingFrom + '.queries.'
-            elif __name__ == 'sv_mysql':  # console execution
-                self.__g_sAppName = 'queries.'
-            lstNameSpace = sCallingFrom.split('.')
-            sSubPath = ''
-            for sPath in lstNameSpace:
-                sSubPath += '/' + sPath
-            self.__g_sAbsolutePath += sSubPath
+        # if sCallingFrom is not None:
+        #     if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
+        #         self.__g_sAppName = sCallingFrom + '.queries.'
+        #     elif __name__ == 'sv_mysql':  # console execution
+        #         self.__g_sAppName = 'queries.'
+        #     lstNameSpace = sCallingFrom.split('.')
+        #     sSubPath = ''
+        #     for sPath in lstNameSpace:
+        #         sSubPath += '/' + sPath
+        #     self.__g_sAbsolutePath += sSubPath
+
+    def __enter__(self):
+        """ grammtical method to use with "with" statement """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """ unconditionally calling desctructor """
+        self.__disconnect()
+
+    def __del__(self):
+        self.__g_sAppName = None
+        self.__g_dictConfig = {}
+        self.__g_oConn = None
+        self.__g_oCursor = None
+        self.__g_sAbsolutePath = None
+        self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
+        self.__g_dictCompiledSqlStmt = {}
+        self.__g_nThreadId = None
+        self.__disconnect()
+
+    def set_app_name(self, s_app_name=None):
+        """
+        this method is for django only
+        :param s_app_name:
+        :return:
+        """
+        # print('-----------------')
+        # print(s_app_name)
+        sSubPath = ''
+        if s_app_name is None:
+            print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
+            return
+        if s_app_name.find('.') != -1:  # eg., transform.view
+            self.__g_sAppName = s_app_name.split('.')[0]
+            # print(self.__g_sAppName)
+            if self.__g_sAppName == 'svplugins':
+                #  print(__name__)
+                if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
+                    self.__g_sAppName = s_app_name + '.queries.'
+                elif __name__ == 'sv_mysql':  # console execution
+                    self.__g_sAppName = 'queries.'
+                lstNameSpace = s_app_name.split('.')
+                for sPath in lstNameSpace:
+                    sSubPath += '/' + sPath
+            else:
+                sSubPath += '/' + self.__g_sAppName
+        else:
+            print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
         
+        # print(self.__g_sAppName)
+        self.__g_sAbsolutePath += sSubPath
+        # print(self.__g_sAbsolutePath)
+        # print('-----------------')
+
+    def initialize(self, dict_brand_info=None):
         self.__g_oConfig = configparser.ConfigParser()
         if dict_brand_info:  # set only ext database is requested
             s_brand_db_config_path = os.path.join(settings.SV_STORAGE_ROOT, str(dict_brand_info['n_acct_id']),
@@ -102,30 +157,15 @@ class SvMySql(sv_object.ISvObject):
             self.__g_dictConfig['db_password'] = config('db_password')
             self.__g_dictConfig['db_database'] = config('db_database')
             self.__g_dictConfig['db_charset'] = config('db_charset')
-                
-        self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
+        # self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
         self.__connect()
 
-    def __enter__(self):
-        """ grammtical method to use with "with" statement """
-        return self
+        # if self.__g_sAppName:  # for django app mode
+        #     s_project_path = str(Path(__file__).resolve().parent.parent)
+        #     self.__g_sAppAbsPath = os.path.join(s_project_path, self.__g_sAppName)
+        # else:  # for sv extraction bot mode
+        #     self.__g_sAppAbsPath = str(Path(__file__).resolve().parent)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        """ unconditionally calling desctructor """
-        self.__disconnect()
-
-    def __del__(self):
-        self.__g_sAppName = None
-        self.__g_dictConfig = {}
-        self.__g_oConn = None
-        self.__g_oCursor = None
-        self.__g_sAbsolutePath = None
-        self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
-        self.__g_dictCompiledSqlStmt = {}
-        self.__g_nThreadId = None
-        self.__disconnect()
-        
-    def initialize(self):
         lst_qry_file_diff = list(self.__g_dictRegExQueryFileClassifier.keys())
         if 'select' not in lst_qry_file_diff:
             self.__g_dictRegExQueryFileClassifier['select'] = re.compile(r"^[g][e][t]\w+")
@@ -182,6 +222,8 @@ class SvMySql(sv_object.ISvObject):
         dict_param은 msg broker를 통과할 수도 있으므로 문자열 변수만 포함해야 함
         """
         s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
+        print(s_query_type)
+        print(s_sql_compiled)
         if s_query_type == 'unknown':
             return []
         if s_sql_compiled is None:

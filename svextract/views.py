@@ -58,10 +58,6 @@ class SvPluginWebConsole(LoginRequiredMixin, TemplateView):
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svextract/extract_deny.html", context=dict_context)
-        if not self.request.user.is_authenticated:
-            dict_context = {'err_msg': '권한이 없는 사용자'}
-            return render(request, "svextract/extract_deny.html", context=dict_context)
-
         s_acct_id = dict_rst['dict_ret']['s_acct_id']
         s_acct_ttl = dict_rst['dict_ret']['s_acct_ttl']
         s_brand_name = dict_rst['dict_ret']['s_brand_name']

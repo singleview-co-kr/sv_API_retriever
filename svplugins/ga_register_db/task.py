@@ -66,9 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        # print('task:__init__')
-        self._g_sLastModifiedDate = '28th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -97,17 +95,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
         self.__g_dictGaRaw = {}  # prevent duplication on a web console
         
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
-        # s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
-        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -121,9 +108,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_property_or_view_id = dict_acct_info['google_analytics']['s_property_or_view_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
-        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.ga_register_db')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
         self._printDebug('-> register ga raw data')
         if s_version == 'ua':  # universal analytics
@@ -233,8 +221,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         n_idx = 0
         n_sentinel = len(lst_transaction_log)
-        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_app_name('svplugins.ga_register_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
             for lst_single_row in lst_transaction_log:
                 if not self._continue_iteration():
                     break
@@ -323,8 +313,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerSourceMediumTerm(self):
         nIdx = 0
         nSentinel = len(self.__g_dictGaRaw)
-        with sv_mysql.SvMySql('svplugins.ga_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_app_name('svplugins.ga_register_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sReportId, dict_single_raw in self.__g_dictGaRaw.items():
                 if not self._continue_iteration():
                     break

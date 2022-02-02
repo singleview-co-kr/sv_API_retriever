@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'widget_tweaks',  # for login template
+    'crispy_forms',  # for bundle upload form
     'svextract.apps.SvextractConfig',
+    'svupload.apps.SvuploadConfig',  # for template
     'svauth',  # for user model customization
     'svacct',
 ]
@@ -158,7 +160,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
 # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # 이 리스트에 STATIC_ROOT에서 정의한 디렉토리가 포함되면 안됨
 #STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
 
-SV_STORAGE_ROOT = os.path.join(BASE_DIR, 'storage')
+SV_STORAGE_ROOT = os.path.join(BASE_DIR, 'storage')  # forbid http download
 
 # LOGIN_URL = '/accounts/login' # keep default
 # LOGOUT_REDIRECT_URL = '' # keep default

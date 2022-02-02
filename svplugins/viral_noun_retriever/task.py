@@ -57,8 +57,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '28th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -95,12 +94,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sStartYyyymmdd = self._g_dictParam['start_yyyymmdd']
         self.__g_sEndYyyymmdd = self._g_dictParam['end_yyyymmdd']
 
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -168,7 +161,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_noun_cnt = len(lst_noun)
             if n_noun_cnt:
                 s_font_file_path_abs = os.path.join(self._g_sAbsRootPath, 'svplugins', 'viral_noun_retriever', 'fonts', 'godoMaum.ttf')
-                # wc = WordCloud(font_path='C:\\Windows\\Fonts\\08SeoulNamsanB_0.ttf', \
                 wc = WordCloud(font_path=s_font_file_path_abs, \
                     background_color="white", \
                     width=1000, \
@@ -192,9 +184,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if len(lst_ignore_word) == 0:
             return
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.viral_noun_retriever')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for s_ignore_word in lst_ignore_word:
                 o_sv_mysql.executeQuery('updateIgnoreWord', s_ignore_word)
     
@@ -202,9 +195,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_custom_noun = self.__g_sCommaSeparatedWords.split(',')
         if len(lst_custom_noun) == 0:
             return
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.viral_noun_retriever')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for s_custom_noun in lst_custom_noun:
                 o_sv_mysql.executeQuery('insertCustomNoun', s_custom_noun)
         
@@ -212,9 +206,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.executeQuery('updateAllDocNonProced')  # reset all document processed status
 
     def __load_custom_noun(self):
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.viral_noun_retriever')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_rst = o_sv_mysql.executeQuery('getCustomDictionary')
             
         lst_customized_nouns = []
@@ -227,9 +222,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del lst_customized_nouns
     
     def __register_new_word_cnt(self):
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
+            o_sv_mysql.set_app_name('svplugins.viral_noun_retriever')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_rst = o_sv_mysql.executeQuery('getRegisteredWords')
             for dict_row in lst_rst:
                 self.__g_dictRegisteredNouns[dict_row['word']] = {'word_srl': dict_row['word_srl'], 'b_ignore': dict_row['b_ignore']}
@@ -317,10 +313,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             b_mode = 'partial_period'
 
         n_iter_cnt = 1
-        with sv_mysql.SvMySql('svplugins.viral_noun_retriever', self._g_dictSvAcctInfo) as o_sv_mysql:
+        with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.initialize()
-            
+            o_sv_mysql.set_app_name('svplugins.viral_noun_retriever')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+                        
             lst_counting_words_rst = o_sv_mysql.executeQuery('getCollectedDictionary')
             for dict_row in lst_counting_words_rst:
                 self.__g_dictCountingNouns[dict_row['word_srl']] = dict_row['word']
@@ -352,10 +349,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return lst_noun
 
 if __name__ == '__main__': # for console debugging and execution  
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=analyze_new
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=tag_ignore_word words=
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=1/test_acct mode=add_custom_noun words=
-    # CLI example -> python3.7 task.py analytical_namespace=test config_loc=2/test_acct mode=get_period start_yyyymmdd=20210708 end_yyyymmdd=20210711
+    # CLI example -> python3.7 task.py config_loc=1/1 mode=analyze_new
+    # CLI example -> python3.7 task.py config_loc=1/1 mode=tag_ignore_word words=
+    # CLI example -> python3.7 task.py config_loc=1/1 mode=add_custom_noun words=
+    # CLI example -> python3.7 task.py config_loc=2/1 mode=get_period start_yyyymmdd=20210708 end_yyyymmdd=20210711
     nCliParams = len(sys.argv)
     if nCliParams >= 3:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

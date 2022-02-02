@@ -36,7 +36,8 @@
                                          <div class="pricing_features">
                                              <i class="fa fa-circle text-danger"></i> 데이터 추출
                                              <ul class="list text-left">
-                                                 <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">데이터 추출</a></li>
+                                                 <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">API 추출</a></li>
+                                                 <li><a href="{% url 'svupload:index' dict_brand.n_brand_id %}">파일 목록</a></li>
                                              </ul>
                                          </div>
                                      </div>

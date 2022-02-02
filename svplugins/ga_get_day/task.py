@@ -64,8 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '25th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Jan 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -96,12 +95,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
 
@@ -112,13 +105,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         scope = ['https://www.googleapis.com/auth/analytics.readonly']
         # Authenticate and construct service.
         service = self.__getService('analytics', 'v3', scope, sClientSecretsJson)
-        # Try to make a request to the API. Print the results or handle errors.
-        
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # s_version = dict_acct_info[s_sv_acct_id]['google_analytics']['s_version']
-        # s_property_or_view_id = dict_acct_info[s_sv_acct_id]['google_analytics']['s_property_or_view_id']
-        # self.__g_lstAccessLevel = dict_acct_info[s_sv_acct_id]['google_analytics']['lst_access_level']
+        # Try to make a request to the API. Print the results or handle errors.        
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
           'google_analytics' not in lst_conf_keys:
             self._printDebug('stop -> invalid config_loc')
@@ -314,6 +301,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # Build the service object.
         service = build(api_name, api_version, http=http)
         return service
+
 
 if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)

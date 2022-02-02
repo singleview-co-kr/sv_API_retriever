@@ -31,4 +31,5 @@ urlpatterns = [
     path('accounts/register/done', UserCreateDoneTV.as_view(), name='register_done'),
 
     path('extract/', include('svextract.urls')),
+    path('upload/', include('svupload.urls')),
 ]

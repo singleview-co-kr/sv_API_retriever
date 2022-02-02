@@ -4,7 +4,7 @@ from svacct.models import Account
 
 def get_owned_brand_list(request, kwargs=None):
     if kwargs:
-        n_cur_brand_id = kwargs['sv_brand_id']
+        n_cur_brand_id = int(kwargs['sv_brand_id'])
     else:
         n_cur_brand_id = -1234  # sentinel value
 

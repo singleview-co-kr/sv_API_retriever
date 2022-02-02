@@ -31,9 +31,8 @@ import configparser # https://docs.python.org/3/library/configparser.html
 import calendar
 import sys
 import gc
-
-import ctypes
-import time
+# import ctypes
+# import time
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -62,8 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '28th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -143,17 +141,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self._printDebug('-> send new data')
         
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-            
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
-        # self.__getKeyConfig(s_sv_acct_id, s_acct_title)
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys:
@@ -232,9 +219,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstColumnHeaderInfo = []
         lstRows = []
         nGrossSizeBytesToSync = 0
-        with sv_mysql.SvMySql('svplugins.client_serve', self._g_dictSvAcctInfo) as oSvMysql:
+        with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            oSvMysql.initialize()
+            oSvMysql.set_app_name('svplugins.client_serve')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
             # parse respond about retrieval date range
             try:
                 sStartDate = dictRetrievalDateRange['start_date']
@@ -326,7 +314,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sEndDateRetrieval = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-' + str(lstMonthRange[1])
         with sv_mysql.SvMySql('svplugins.client_serve', self._g_dictSvAcctInfo) as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            oSvMysql.initialize()
+            oSvMysql.set_app_name('svplugins.client_serve')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
             
             lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
             nRecCount = len(lstRetrievedCompiledLog )
@@ -394,7 +383,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    # python task.py analytical_namespace=test config_loc=1/ynox target_host_url=http://localhost/devel/modules/svestudio/b2c.php
+    # python task.py config_loc=1/1 target_host_url=http://localhost/devel/modules/svestudio/b2c.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

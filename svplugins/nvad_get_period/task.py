@@ -60,8 +60,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '15th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 15th, Jan 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -99,18 +98,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sDataFirstDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataLastDate = self._g_dictParam['data_last_date'].replace('-','')
 
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # dict_nvr_ad_acct = dict_acct_info[s_sv_acct_id]['nvr_ad_acct']
-        # self.__g_sNvrAdManagerLoginId = dict_nvr_ad_acct['manager_login_id']
-        # self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
-        # self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
-        # s_customer_id = dict_nvr_ad_acct['customer_id']
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -125,7 +112,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sEncodedApiKey = dict_nvr_ad_acct['api_key']
         self.__g_sEncodedSecretKey = dict_nvr_ad_acct['secret_key']
         s_customer_id = dict_nvr_ad_acct['customer_id']
-        # del dict_nvr_ad_acct['manager_login_id'], dict_nvr_ad_acct['api_key'], dict_nvr_ad_acct['secret_key'], dict_nvr_ad_acct['customer_id']
         
         # delete master report
         o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
@@ -381,8 +367,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # call random.choices() string module to find the string in Uppercase + numeric data.  
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k = n_length))    
 
+
 if __name__ == '__main__': # for console debugging and execution
-    # dict_plugin_params = {'analytical_namespace': 'test', 'config_loc':'1/benedef','data_first_date':'20210930', 'data_last_date':'20211124'}
+    # dict_plugin_params = {'config_loc':'1/1','data_first_date':'20210930', 'data_last_date':'20211124'}
     nCliParams = len(sys.argv)
     if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

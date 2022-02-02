@@ -63,8 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '1st, Feb 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Feb 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -81,16 +80,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
 
         self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # lst_google_ads = dict_acct_info[s_sv_acct_id]['adw_cid']
+
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -237,7 +227,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
                         dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
                         lst_logs.append(dict_disp_campaign)
-            
             # write data stream to file.
             with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
                 wr = csv.writer(out, delimiter='\t')
@@ -245,13 +234,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 wr.writerow(lst_report_header_2)
                 for dict_rows in lst_logs:
                     wr.writerow(list(dict_rows.values()))
-            
             dictDateQueue[dtRetrieval] = 1
             time.sleep(3)
             
 	
 if __name__ == '__main__': # for console debugging and execution
-    # python task.py analytical_namespace=test config_loc=1/ynox yyyymm=202109
+    # python task.py config_loc=1/1 yyyymm=202109
     nCliParams = len(sys.argv)
     if nCliParams > 2:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

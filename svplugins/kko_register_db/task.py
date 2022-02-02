@@ -44,8 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '28th, Jan 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -60,16 +59,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        # oResp = self._task_pre_proc(o_callback)
-        # dict_acct_info = oResp['variables']['acct_info']
-        # if dict_acct_info is None:
-        #     self._printDebug('stop -> invalid config_loc')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # s_kakao_acct_id = dict_acct_info[s_sv_acct_id]['kko_moment_aid']
-        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         dict_acct_info = self._task_pre_proc(o_callback)
         lst_conf_keys = list(dict_acct_info.keys())
         if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
@@ -81,9 +70,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_brand_id = dict_acct_info['brand_id']
         s_kakao_acct_id = dict_acct_info['kko_moment_aid']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        with sv_mysql.SvMySql('svplugins.kko_register_db', self._g_dictSvAcctInfo) as oSvMysql:
+        with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            oSvMysql.initialize() 
+            oSvMysql.set_app_name('svplugins.kko_register_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
         
         self._printDebug('-> register kko raw data')
         self.__arrangeKkoRawDataFile(s_sv_acct_id, s_brand_id, s_kakao_acct_id)
@@ -338,8 +328,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __registerDb(self):
         nIdx = 0
         nSentinel = len(self.__g_dictKkoRaw)
-        with sv_mysql.SvMySql('svplugins.kko_register_db', self._g_dictSvAcctInfo) as oSvMysql: # to enforce follow strict mysql connection mgmt
+        with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_app_name('svplugins.kko_register_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
+
             for sReportId, dict_single_row in self.__g_dictKkoRaw.items():
                 aReportType = sReportId.split('|@|')
                 sKkoCid = aReportType[0]
@@ -376,7 +369,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    # python task.py analytical_namespace=test config_loc=1/ynox
+    # python task.py config_loc=1/1
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

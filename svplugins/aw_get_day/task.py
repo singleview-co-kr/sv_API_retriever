@@ -32,7 +32,6 @@
 # standard library
 import logging
 from datetime import datetime, timedelta
-import re
 import time
 import os
 import csv
@@ -63,8 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_sLastModifiedDate = '1st, Feb 2022'
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at '+self._g_sLastModifiedDate)
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -119,14 +117,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             f.close()
         else:
             dtStartRetrieval = datetime.now() - timedelta(days=1)
-        # try:		
-        #     sLatestFilepath = os.path.join(s_conf_path_abs, 'general.latest')
-        #     f = open(sLatestFilepath, 'r')
-        #     sMaxReportDate = f.readline()
-        #     dtStartRetrieval = datetime.strptime(sMaxReportDate, '%Y%m%d') + timedelta(days=1)
-        #     f.close()
-        # except FileNotFoundError:
-        #     dtStartRetrieval = datetime.now() - timedelta(days=1)
         self._printDebug('start date :'+dtStartRetrieval.strftime('%Y-%m-%d'))
 
         # requested report date should not be later than today
@@ -245,14 +235,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
             dictDateQueue[dtRetrieval] = 1
             time.sleep(1)
-            # except Exception as e:
-            #     self._printDebug('unknown exception occured')
-            #     self._printDebug(e)
-            #     return
 
 
 if __name__ == '__main__': # for console debugging and execution
-    # python task.py analytical_namespace=test config_loc=1/ynox
+    # python task.py config_loc=1/1
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
