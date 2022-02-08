@@ -78,7 +78,7 @@ class PluginConsole(WebsocketConsumer):
         }))
 
     def receive(self, text_data):
-        """ 클라이언트로부터 메세지를 받을 시 실행 """
+        """ run when text_data has been received from a client """
         # https://channels.readthedocs.io/en/latest/topics/routing.html
         # s_b1rand_name = 'test_brand'  # self.scope["url_route"]["kwargs"]["brand_name"]
         s_sv_acct_id = self.scope["url_route"]["kwargs"]["sv_acct_id"]
@@ -93,7 +93,7 @@ class PluginConsole(WebsocketConsumer):
         text_data_json = json.loads(text_data)
         s_command = text_data_json['command'].strip()
 
-        # 클라이언트로부터 받은 명령어를 다시 클라이언트로 보내준다.
+        # loop back the msg from the client
         self.print_msg_socket('$ ' + s_command)
         if len(s_command) == 0:
             self.print_msg_socket('invalid command')
@@ -111,12 +111,12 @@ class PluginConsole(WebsocketConsumer):
             except KeyError:
                 self.print_msg_socket(s_interrupt_plugin_name + ' is unable to be interrupted - not running')
             return
-
+        
         self.__g_sPluginPathAbs = os.path.join(self.__g_sAbsPathBot, 'svplugins', s_plugin_name)
         if not self.__validate_plugin():
             self.print_msg_socket('invalid plugin')
             return
-        
+
         lst_command.append('config_loc='+ s_sv_acct_id + '/' + s_sv_brand_id)
         # prevent duplicated plugin request
         if s_plugin_unique_id in list(self.__g_dictPluginThread.keys()):  

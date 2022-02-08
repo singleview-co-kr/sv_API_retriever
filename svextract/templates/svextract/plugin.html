@@ -199,10 +199,10 @@ function {{s_plugin}}(...a)
   // aw_get_day 11=22 33=44
   console.log(a);
   sArgs = a.join('');
-  executePlugin('pluging_{{s_plugin}}', sArgs);
+  executePlugin('{{s_plugin}}', sArgs);
 }
 {{s_plugin}}.usage = "{{s_plugin}}";
-{{s_plugin}}.doc = "{{s_plugin}} the terminal screen";
+{{s_plugin}}.doc = "execute {{s_plugin}} on the terminal screen";
 {% endfor %}
 
 function help(cmd) 
@@ -329,13 +329,12 @@ $('.console-input').on('keydown', function (event) {
 function executePlugin(sPluginName, sArgs)
 {
   // aw_get_day 11=22 33=44
-  sPluginName = sPluginName.replace('pluging_', '');
   console.log(sPluginName + sArgs);
   var command = sPluginName + sArgs;
   if(command === null || command === undefined || command.length == 0)
       return
 
-  chatSocket.send(JSON.stringify({
+  consoleSocket.send(JSON.stringify({
       'command': command
   }));
 }
@@ -346,29 +345,29 @@ var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sSvAcc
 //var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sBrandName + '/'; //  + ':8001/'
 console.log(sWsPath);
 
-var chatSocket = new WebSocket(sWsPath);
+var consoleSocket = new WebSocket(sWsPath);
 
-chatSocket.onopen = function(e){
+consoleSocket.onopen = function(e){
   //output('Welcome! socket opened');
   output('Welcome to {{acct_ttl}} - {{brand_name}} plugin console.');
   console.log('socket opened');
 }
 
-chatSocket.onerror = function(e){
+consoleSocket.onerror = function(e){
   output('Warning!!! unexpected socket error!!!');
   console.error('error', e);
 }
 
-chatSocket.onmessage = function(e) {
+consoleSocket.onmessage = function(e) {
     var data = JSON.parse(e.data);
     var message = data['message'];
     output(message);
     //document.querySelector('#chat-log').value += (message + '\n');
 };
 
-chatSocket.onclose = function(e) {
-  output('Warning!!! socket closed unexpectedly!!!');
-  console.error('Warning!!! socket closed unexpectedly!!!');
+consoleSocket.onclose = function(e) {
+  output('socket has been closed!');
+  console.error('socket has been closed');
 };
 
 // document.querySelector('#chat-message-input').focus();
@@ -384,7 +383,7 @@ chatSocket.onclose = function(e) {
 //     if(command === null || command === undefined || command.length == 0)
 //         return
 
-//     chatSocket.send(JSON.stringify({
+//     consoleSocket.send(JSON.stringify({
 //         'command': command
 //     }));
 

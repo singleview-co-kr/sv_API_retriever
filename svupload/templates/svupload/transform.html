@@ -1,0 +1,175 @@
+{% extends "layout_dashboard.html" %}
+
+{% block content %}
+    {% block content_header %}
+        <h1>Uploaded file detail</h1>
+        <h3>{{s_filename_full}}</h3>
+        <p>
+            <input type="hidden" name="sv_file_id" id="sv_file_id" value="{{n_sv_file_id}}" />
+            <button type="button" id='btn_transform' class="btn btn-primary" sv_file_id="{{n_sv_file_id}}">이 목록을 전처리하기</button>
+        </p>
+        <select id="lst_plugin">
+            <option value="">
+                파일을 처리할 플러그인을 선택하세요.
+            </option>
+            {% for s_plugin_cmd in lst_plugin %}
+            <option value="{{s_plugin_cmd}}">
+                {{s_plugin_cmd}}
+            </option>
+            {% endfor %}
+        </select>
+    {% endblock %}
+<form method="POST" id='frm_edi_file_update' enctype="multipart/form-data">
+    {% csrf_token %}
+	<input type="hidden" name="upload_file_id" id="upload_file_id" value="{{pk_upload_file}}" />
+    <input type="hidden" name="n_brand_id" id="n_brand_id" value="{{n_brand_id}}" />
+    <table class="table mb-8">
+        <thead>
+            <tr>
+                <th>압축된 파일명</th>
+                <th>데이터 종류</th>
+                <th>마트 종류</th>
+                <th>데이터 연도</th>
+                <th>데이터 타입</th>
+                <th>상태</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dict_single_file in lst_zipped_file_list %}
+                <tr>
+                    <input type="hidden" name="lst_edifile_id" value="{{dict_single_file.pk}}" />
+                    <td>{{dict_single_file.filename}}</td>
+                    <td>
+                        <select name="lst_hyper_mart_title">
+                        {% for hyper in hyper_mart_type %}
+                            <option value="{{hyper.value}}" {% if UploadFile.hyper_mart == hyper.value %}selected="selected"{% endif %}>
+                                {{hyper.name}}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="lst_edi_data_year">
+                            <option value="" {% if UploadFile.edi_data_year == 0 %}selected="selected"{% endif %}>
+                                NOT SURE
+                            </option>
+                        {% for data_year in edi_data_year %}
+                            <option value="{{data_year}}" {% if UploadFile.edi_data_year == data_year %}selected="selected"{% endif %}>
+                                {{data_year}}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="lst_edi_data_year">
+                            <option value="" {% if UploadFile.edi_data_year == 0 %}selected="selected"{% endif %}>
+                                NOT SURE
+                            </option>
+                        {% for data_year in edi_data_year %}
+                            <option value="{{data_year}}" {% if UploadFile.edi_data_year == data_year %}selected="selected"{% endif %}>
+                                {{data_year}}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="lst_edi_data_type">
+                        {% for data_type in edi_data_type %}
+                            <option value="{{data_type.value}}" {% if UploadFile.edi_data_type == data_type.value %}selected="selected"{% endif %}>
+                                {{data_type.name}}
+                            </option>
+                        {% endfor %}
+                        </select>
+                    </td>
+                    <td>{{UploadFile.get_status_display}}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="button" id='btn_update_edi' class="btn btn-primary">수정하기</button>
+</form>
+    {% if is_paginated %}
+    <div>
+        <span>
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">PreviousPage</a>
+            {% endif %}
+
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">NextPage</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+<script type="text/javascript">
+var sSvAcctId = '{{s_sv_acct_id}}';
+var sSvBrandId = '{{n_brand_id}}';
+var sWsScheme = window.location.protocol == 'https:' ? 'wss' : 'ws';
+var sWsPath = sWsScheme + '://' + window.location.host + '/ws/extract/' + sSvAcctId + '/' + sSvBrandId + '/';
+console.log(sWsPath);
+
+var consoleSocket = new WebSocket(sWsPath);
+
+consoleSocket.onopen = function(e){
+  //output('Welcome! socket opened');
+//   output('Welcome to {{acct_ttl}} - {{brand_name}} plugin console.');
+  console.log('socket opened');
+}
+
+consoleSocket.onerror = function(e){
+//   output('Warning!!! unexpected socket error!!!');
+  console.error('error', e);
+}
+
+consoleSocket.onmessage = function(e) {
+    var data = JSON.parse(e.data);
+    var message = data['message'];
+    console.log(message)
+    // output(message);
+    //document.querySelector('#chat-log').value += (message + '\n');
+};
+
+consoleSocket.onclose = function(e) {
+//   output('socket has been closed!');
+  console.error('socket has been closed');
+};
+
+{% for s_plugin in lst_plugin %}
+function {{s_plugin}}(...a) 
+{
+  // aw_get_day 11=22 33=44
+  console.log(a);
+  sArgs = a.join('');
+  executePlugin('{{s_plugin}}', sArgs);
+}
+{{s_plugin}}.usage = "{{s_plugin}}";
+{{s_plugin}}.doc = "execute {{s_plugin}} on the terminal screen";
+{% endfor %}
+
+function executePlugin(sPluginName, sArgs)
+{
+  // aw_get_day 11=22 33=44
+  console.log(sPluginName + sArgs);
+  var command = sPluginName + sArgs;
+  if(command === null || command === undefined || command.length == 0)
+      return
+
+  consoleSocket.send(JSON.stringify({
+      'command': command
+  }));
+}
+
+  $("#btn_transform").click(function(){
+    var nSvFileId = $(this).attr('sv_file_id')
+    var sSelectedPlugin = $("#lst_plugin option:selected").val();
+    console.log(nSvFileId)
+    //console.log(sSelectedPlugin)
+
+    sParam = ' sv_file_id=' + nSvFileId;
+    console.log(sParam)
+    cafe24_register_db(sParam);
+  })
+</script>
+{% endblock %}

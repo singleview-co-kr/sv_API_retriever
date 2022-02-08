@@ -2,6 +2,8 @@ import json
 import urllib.parse
 import mimetypes
 import os.path  # do not import os
+import zipfile
+
 # from django.conf import settings
 from django.shortcuts import render
 from django.shortcuts import redirect
@@ -11,8 +13,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 # singleview library
 from svacct.ownership import get_owned_brand_list
-from svcommon import sv_storage
+from svstorage import sv_storage
 from svcommon import sv_mysql
+
+# singleview config
+from decouple import config
 
 # Create your views here.
 class UploadFileListView(LoginRequiredMixin, TemplateView):
@@ -26,7 +31,7 @@ class UploadFileListView(LoginRequiredMixin, TemplateView):
         dict_rst = get_brand_info(request, kwargs, self.__g_oSvStorage, self.__g_oSvMysql)
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
-            return render(request, "svupload/upload_deny.html", context=dict_context)
+            return render(request, "svupload/deny.html", context=dict_context)
         # s_acct_id = dict_rst['dict_ret']['s_acct_id']
         # s_acct_ttl = dict_rst['dict_ret']['s_acct_ttl']
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
@@ -34,7 +39,7 @@ class UploadFileListView(LoginRequiredMixin, TemplateView):
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']
         del dict_rst
 
-        lst_files = self.__g_oSvMysql.executeQuery('getUploadedFileAll')
+        lst_files = self.__g_oSvStorage.get_uploaded_file_all()
         dict_context = {'s_brand_name': s_brand_name, 'n_brand_id': s_brand_id,
                         'lst_owned_brand': lst_owned_brand, 'lst_files': lst_files}
         return render(request, 'svupload/upload.html', context=dict_context)
@@ -43,7 +48,7 @@ class UploadFileListView(LoginRequiredMixin, TemplateView):
         dict_rst = get_brand_info(request, kwargs, self.__g_oSvStorage, self.__g_oSvMysql)
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
-            return render(request, "svupload/upload_deny.html", context=dict_context)
+            return render(request, "svupload/deny.html", context=dict_context)
         # s_acct_id = dict_rst['dict_ret']['s_acct_id']
         # s_acct_ttl = dict_rst['dict_ret']['s_acct_ttl']
         # s_brand_name = dict_rst['dict_ret']['s_brand_name']
@@ -52,20 +57,14 @@ class UploadFileListView(LoginRequiredMixin, TemplateView):
 
         if request.FILES.get('myfile', None) is None:
             dict_context = {'err_msg': 'no file attached'}
-            return render(request, "svupload/upload_deny.html", context=dict_context)
+            return render(request, "svupload/deny.html", context=dict_context)
 
         s_uploaded_filename = request.FILES['myfile'].name
         o_file = request.FILES['myfile']
-        dict_rst = self.__g_oSvStorage.register_uploaded_file('upload', s_uploaded_filename, o_file)
+        dict_rst = self.__g_oSvStorage.register_uploaded_file(request.user.id, s_uploaded_filename, o_file)
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
-            return render(request, "svupload/upload_deny.html", context=dict_context)
-        # begin - file registration into db
-        self.__g_oSvMysql.executeQuery('insertUploadedFile', request.user.id, 
-                                        dict_rst['dict_val']['s_original_file_name'],
-                                        dict_rst['dict_val']['s_file_ext'],
-                                        dict_rst['dict_val']['s_secured_file_name'], '')
-        # end - file registration into db
+            return render(request, "svupload/deny.html", context=dict_context)
         del dict_rst
         return redirect('svupload:index', int(s_brand_id))
 
@@ -80,17 +79,16 @@ class DownloadFileView(LoginRequiredMixin, TemplateView):
         dict_rst = get_brand_info(request, kwargs, self.__g_oSvStorage, self.__g_oSvMysql)
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
-            return render(request, "svupload/download_deny.html", context=dict_context)
+            return render(request, "svupload/deny.html", context=dict_context)
         del dict_rst
-        lst_single_file = self.__g_oSvMysql.executeQuery('getUploadedFileById', kwargs['n_file_id'])
-        dict_rst = self.__g_oSvStorage.get_file('upload', lst_single_file[0]['secured_filename'])
+
+        dict_rst = self.__g_oSvStorage.get_uploaded_file(kwargs['n_file_id'])  # request.user.id, request.user.is_admin,
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
-            return render(request, "svupload/download_deny.html", context=dict_context)
+            return render(request, "svupload/deny.html", context=dict_context)
         s_filepath_abs = dict_rst['dict_val']['s_storage_path_abs']
-        s_original_filename = lst_single_file[0]['source_filename'] + '.' +  lst_single_file[0]['file_ext']
+        s_original_filename = dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext']
         del dict_rst
-        del lst_single_file
         # https://haandol.wordpress.com/2013/09/10/%ED%95%9C%EA%B8%80%EB%AA%85-%EC%B2%A8%EB%B6%80%ED%8C%8C%EC%9D%BC%EC%9D%84-%EA%B0%95%EC%A0%9C-%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C%EC%8B%9C%ED%82%A4%EA%B8%B0/
         with open(s_filepath_abs, 'rb') as fp:
             response = HttpResponse(fp.read())
@@ -112,6 +110,63 @@ class DownloadFileView(LoginRequiredMixin, TemplateView):
         return response
 
 
+class TransformFileView(LoginRequiredMixin, TemplateView):
+    # template_name = 'analyze/index.html'
+    def __init__(self):
+        self.__g_oSvStorage = sv_storage.SvStorage()
+        self.__g_oSvMysql = sv_mysql.SvMySql()
+        self.__g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
+        return
+
+    def get(self, request, *args, **kwargs):
+        dict_rst = get_brand_info(request, kwargs, self.__g_oSvStorage, self.__g_oSvMysql)
+        if dict_rst['b_err']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svupload/deny.html", context=dict_context)
+        s_sv_acct_id = dict_rst['dict_ret']['s_acct_id']
+        # s_acct_ttl = dict_rst['dict_ret']['s_acct_ttl']
+        s_brand_name = dict_rst['dict_ret']['s_brand_name']
+        s_brand_id = dict_rst['dict_ret']['s_brand_id']
+        lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']
+        del dict_rst
+        # begin - retrieve a relevant plugin list
+        lst_plugin = self.__get_plugin_lst()
+        # end - retrieve a relevant plugin list
+        
+        # begin - retrieve uploaded file info
+        dict_rst = self.__g_oSvStorage.get_uploaded_file(kwargs['n_file_id'])  # request.user.id, request.user.is_admin,
+        if dict_rst['b_err']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svupload/deny.html", context=dict_context)
+        # https://code.tutsplus.com/ko/tutorials/compressing-and-extracting-files-in-python--cms-26816
+        lst_zipped_file_list = []
+        if dict_rst['dict_val']['s_original_file_ext'] == 'zip':
+            o_zip_file = zipfile.ZipFile(dict_rst['dict_val']['s_storage_path_abs'])
+            for o_single_file in o_zip_file.namelist():
+                lst_zipped_file_list.append({
+                    'filename': o_zip_file.getinfo(o_single_file).filename,
+                    'file_size': o_zip_file.getinfo(o_single_file).file_size})
+                    # o_zip_file.extract(o_single_file, 'C:\\Stories\\Short\\Funny')
+            o_zip_file.close()
+            del o_zip_file
+        # end - retrieve uploaded file info
+        dict_context = {'s_sv_acct_id': s_sv_acct_id,
+                        's_brand_name': s_brand_name, 'n_brand_id': s_brand_id,
+                        'lst_owned_brand': lst_owned_brand, 
+                        'lst_plugin': lst_plugin,
+                        'n_sv_file_id': kwargs['n_file_id'],
+                        's_filename_full': dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext'],
+                        'lst_zipped_file_list': lst_zipped_file_list}
+        return render(request, 'svupload/transform.html', context=dict_context)
+
+    def __get_plugin_lst(self):
+        """ get modules in /svplugins directory """
+        s_plugin_path_abs = os.path.join(self.__g_sAbsPathBot, 'svplugins')
+        lst_plugin = [f for f in os.listdir(s_plugin_path_abs) if not f.startswith('_')]
+        # lst_plugin.append('stop')
+        return lst_plugin
+
+
 class AjaxHandling(LoginRequiredMixin, TemplateView):
     # context_object_name = 'UnzippedFiles'
     template_name = None
@@ -124,11 +179,11 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
     def post(self, request):
         # template에서 ajax.POST로 전달
         n_id_brand = request.POST.get('id_brand', None)
-        n_id_upload_file = request.POST.get('id_upload_file', None)
+        n_upload_file_id = request.POST.get('id_upload_file', None)
         s_req_mode = request.POST.get('req_mode', None)
 
         print(n_id_brand)
-        print(n_id_upload_file)
+        print(n_upload_file_id)
         print(s_req_mode)
         
         # context를 json 타입으로
@@ -141,12 +196,6 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
             dict_context['message'] = dict_rst['s_msg']
             return HttpResponse(json.dumps(dict_context), content_type="application/json")
         del dict_rst
-
-        lst_single_file = self.__g_oSvMysql.executeQuery('getUploadedFileById', n_id_upload_file)
-        if lst_single_file[0]['owner_id'] == request.user.id:
-            if not request.user.is_admin:
-                dict_context['message'] = 'you don\'t own the file you request.'
-                return HttpResponse(json.dumps(dict_context), content_type="application/json")
 
         # # basically, check an upload file level progress status
         # if o_uploaded_file.status != ProgressStatus.UPLOADED and o_uploaded_file.status != ProgressStatus.DENIED:
@@ -169,11 +218,11 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
 
         # # finally, check an each edi file data type and req_mode
         if s_req_mode == 'delete':
-            dict_rst = self.__g_oSvStorage.withdraw_file('upload', lst_single_file[0]['secured_filename'])
+            dict_rst = self.__g_oSvStorage.withdraw_uploaded_file(request.user.id, request.user.is_admin, n_upload_file_id)  #lst_single_file[0]['secured_filename'])
             if dict_rst['b_err']:
                 dict_context['message'] = dict_rst['s_msg']
                 return HttpResponse(json.dumps(dict_context), content_type="application/json")
-            self.__g_oSvMysql.executeQuery('updateUploadedFileDeletedById', n_id_upload_file)
+
         #     for o_edi_file in qs_edi_file:
         #         if o_edi_file.edi_data_type == EdiDataType.ESTIMATION:
         #             if not request.user.is_admin:
@@ -205,7 +254,6 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
         #     self.__transform_edi_file(request, dict_acct_rst, o_uploaded_file)
         #     context['message'] = 'transforming launched!'
         #     context['href'] = resolve_url('svtransform:on_transforming', sv_brand_id=n_sv_brand_id, pk=n_pk_upload_file)
-        del lst_single_file
         dict_context['b_success'] = 1  # true
         return HttpResponse(json.dumps(dict_context), content_type="application/json")
 
@@ -231,7 +279,7 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
         s_tbl_prefix = dict_acct_rst['dict_ret']['s_tbl_prefix']
         if not s_tbl_prefix:
             dict_context = {'err_msg': 'your analytical context is not defined. plz contact system admin'}
-            return render(request, "svtransform/transform_deny.html", context=dict_context)
+            return render(request, "svtransform/deny.html", context=dict_context)
         # transfer status to ProgressStatus.ON_TRANSFORMING
         o_uploaded_file.status = ProgressStatus.ON_TRANSFORMING
         o_uploaded_file.save()
@@ -284,13 +332,12 @@ def get_brand_info(request, kwargs, o_sv_storage, o_sv_db=None):
         return dict_rst
 
     o_sv_storage.init(s_acct_id, s_brand_id)
-    dict_rst_storage = o_sv_storage.validate('upload')
+    dict_rst_storage = o_sv_storage.validate(sv_storage.SV_STORAGE_UPLOAD)
     if dict_rst_storage['b_err']:
         dict_rst['b_err'] = True
         dict_rst['s_msg'] = dict_rst_storage['s_msg']
         del dict_rst_storage
         return dict_rst
-    # s_storage_path_abs = dict_rst_storage['dict_val']['s_storage_path_abs']
     del dict_rst_storage
 
     if o_sv_db is not None: 

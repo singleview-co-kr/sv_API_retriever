@@ -39,8 +39,8 @@
                     <td title="{{dict_single_file.source_filename}}">{{dict_single_file.source_filename}}.{{dict_single_file.file_ext}}</td>
                     <td>{{dict_single_file.regdt|date:"Y-m-d h:i"}}</td>
                     <td>{{dict_single_file.status}}</td>
-                    <td><a href="{% url 'svupload:index' dict_single_file.id %}" class="btn btn-primary btn-sm">Detail</a></td>
-                    <td><a href="{% url 'svupload:extract' n_brand_id dict_single_file.id %}" class="btn btn-secondary btn-sm" target="_blank">Download</a></td>
+                    <td><a href="{% url 'svupload:transform' n_brand_id dict_single_file.id %}" class="btn btn-primary btn-sm">Transform</a></td>
+                    <td><a href="{% url 'svupload:download' n_brand_id dict_single_file.id %}" class="btn btn-secondary btn-sm" target="_blank">Download</a></td>
                     <td>
                         <a href="#" upload_file_id="{{dict_single_file.id}}" class="btn btn-danger btn-sm">Delete</a>
                     </td>
