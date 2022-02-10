@@ -66,7 +66,7 @@ class SvStorage():
     def init(self, s_sv_acct_id, s_brand_id):
         self.__g_dictSvAcctInfo = {'s_sv_acct_id': s_sv_acct_id, 's_brand_id': s_brand_id}  # can't recognize attr if move to __init__
         self.__g_oSvMysql.setTablePrefix(s_sv_acct_id+'_'+s_brand_id)
-        self.__g_oSvMysql.set_app_name(__name__)
+        self.__g_oSvMysql.set_app_name('svstorage.sv_storage')
         self.__g_oSvMysql.initialize({'n_acct_id':int(s_sv_acct_id), 'n_brand_id': int(s_brand_id)})
 
     def validate(self, s_type):

@@ -25,6 +25,7 @@ urlpatterns = [
     # path('admin/', admin.site.urls),
     url(r'^admin/', admin.site.urls),
     path('', IndexView.as_view(), name='index'),
+    path('login/login.cgi', IndexView.as_view(), name='index_alt'),  # iptime DDNS disallow access to /
     
     path('accounts/', include('django.contrib.auth.urls')),  # {% url 'login' %} 등 처리
     path('accounts/register/', UserCreateView.as_view(), name='register'),
