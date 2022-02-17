@@ -31,8 +31,6 @@ import configparser # https://docs.python.org/3/library/configparser.html
 import calendar
 import sys
 import gc
-# import ctypes
-# import time
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -61,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 17th, Feb 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -228,11 +226,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sStartDate = dictRetrievalDateRange['start_date']
                 sStartDate = datetime.datetime.strptime(sStartDate, '%Y%m%d').strftime('%Y-%m-%d')
                 self._printDebug('get from ' + sStartDate)
-                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledLogFrom', sStartDate)
+                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogFrom', sStartDate)
             except ValueError: # if sStartDate == 'na'
                 self._printDebug('get whole')
                 sEndDate = dictRetrievalDateRange['end_date']
-                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledLogGross')
+                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogGross')
 
             nRecCount = len(lstRetrievedCompiledLog)
             if nRecCount == 0:
@@ -317,7 +315,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_app_name('svplugins.client_serve')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             
-            lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
+            lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
             nRecCount = len(lstRetrievedCompiledLog )
             if nRecCount == 0:
                 self._printDebug( 'stop communication - no more data to update' )

@@ -1,3 +1,3 @@
 DELETE
-FROM `gross_compiled_daily_log`
+FROM `compiled_ga_media_daily_log`
 WHERE `logdate` >= %s AND `logdate` <= %s
