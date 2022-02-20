@@ -2,7 +2,6 @@ import json
 import urllib.parse
 import mimetypes
 import os.path  # do not import os
-import zipfile
 
 # from django.conf import settings
 from django.shortcuts import render
@@ -138,18 +137,12 @@ class TransformFileView(LoginRequiredMixin, TemplateView):
         if dict_rst['b_err']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svupload/deny.html", context=dict_context)
-        # https://code.tutsplus.com/ko/tutorials/compressing-and-extracting-files-in-python--cms-26816
-        lst_zipped_file_list = []
+        
         if dict_rst['dict_val']['s_original_file_ext'] == 'zip':
-            o_zip_file = zipfile.ZipFile(dict_rst['dict_val']['s_storage_path_abs'])
-            for o_single_file in o_zip_file.namelist():
-                lst_zipped_file_list.append({
-                    'filename': o_zip_file.getinfo(o_single_file).filename,
-                    'file_size': o_zip_file.getinfo(o_single_file).file_size})
-                    # o_zip_file.extract(o_single_file, 'C:\\Stories\\Short\\Funny')
-            o_zip_file.close()
-            del o_zip_file
-        # end - retrieve uploaded file info
+            lst_zipped_file_list = dict_rst['dict_val']['lst_zipped_files']
+        else:
+            lst_zipped_file_list = []
+        
         dict_context = {'s_sv_acct_id': s_sv_acct_id,
                         's_brand_name': s_brand_name, 'n_brand_id': s_brand_id,
                         'lst_owned_brand': lst_owned_brand, 
