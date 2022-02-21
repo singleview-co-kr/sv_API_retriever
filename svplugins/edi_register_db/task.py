@@ -58,7 +58,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 18th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -82,9 +82,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sMode = self._g_dictParam['mode']
         
         dict_acct_info = self._task_pre_proc(o_callback)
-
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -133,16 +131,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'register_db':
             self._printDebug('-> register into DB')
             self.__register_db(dict_rst)
+        else:
+            self._printDebug('error -> invalid mode')
         self.__oEdiTransformer.clear()
         self.__oSvMysql = None
         self._task_post_proc(self._g_oCallback)
         return
 
     def __register_db(self, dict_rst):
-        if 's_path_abs_unzip' not in dict_rst['dict_val'].keys():
+        if 's_path_abs_unzip' not in dict_rst['dict_val']:
             self._printDebug('error! csv data not ready')
             return
-
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
         self.__oEdiTransformer.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiTransformer.transform_csv_to_db()
@@ -151,6 +150,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # self.__g_oSvStorage.register_uploaded_file_config(n_sv_file_id, lst_edi_file_info)
 
     def __register_new_sku(self, dict_rst):
+        if 's_path_abs_unzip' not in dict_rst['dict_val']:
+            self._printDebug('error! csv data not ready')
+            return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
         self.__oEdiTransformer.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiTransformer.add_new_sku_info(self._g_dictParam['new_sku_id'])

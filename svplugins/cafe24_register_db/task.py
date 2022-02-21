@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 8th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         
         self.__g_oSvStorage = sv_storage.SvStorage()
         self._g_dictParam.update({'sv_file_id':None})
@@ -82,9 +82,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
         
         dict_acct_info = self._task_pre_proc(o_callback)
-
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return

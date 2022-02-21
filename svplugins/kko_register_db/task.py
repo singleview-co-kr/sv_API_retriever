@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -60,9 +60,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'kko_moment_aid' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'kko_moment_aid' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -214,7 +213,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+ str(bBrd)+'|@|'+\
                     sCampaign1st+'|@|'+	sCampaign2nd+'|@|'+	sCampaign3rd # +'|@|'+ str(sTerm)
 
-                if sReportId in self.__g_dictKkoRaw.keys():  # if designated log already created
+                if sReportId in self.__g_dictKkoRaw:  #.keys():  # if designated log already created
                     self.__g_dictKkoRaw[sReportId]['imp'] += nImpression
                     self.__g_dictKkoRaw[sReportId]['clk'] += nClick
                     self.__g_dictKkoRaw[sReportId]['cost_inc_vat'] += nCost
@@ -310,7 +309,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+ str(bBrd)+'|@|'+\
                     sCampaign1st+'|@|'+	sCampaign2nd+'|@|'+	sCampaign3rd # +'|@|'+ str(sTerm)
 
-                if sReportId in self.__g_dictKkoRaw.keys():
+                if sReportId in self.__g_dictKkoRaw:  #.keys():
                     self.__g_dictKkoRaw[sReportId]['imp'] += nImpression
                     self.__g_dictKkoRaw[sReportId]['clk'] += nClick
                     self.__g_dictKkoRaw[sReportId]['cost_inc_vat'] += nCost

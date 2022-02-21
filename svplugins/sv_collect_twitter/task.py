@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -67,9 +67,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sMorpheme = self._g_dictParam['morpheme']
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'nvr_ad_acct' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -161,14 +160,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __register_status(self, n_morpheme_srl, dict_single_status, n_full_text_srl=None):
         """ sub method for __getKeywordFromTwitter() """
-        lst_keys = list(dict_single_status.keys())
+        # lst_keys = list(dict_single_status.keys())
         s_rtweet_status_id = 0
         s_qtweet_status_id = 0
-        if 'dict_rtwit' in lst_keys and dict_single_status['dict_rtwit']:
+        if 'dict_rtwit' in dict_single_status and dict_single_status['dict_rtwit']:
             s_rtweet_status_id = dict_single_status['dict_rtwit']['s_status_id']
-        if 'dict_qtwit' in lst_keys and dict_single_status['dict_qtwit']:
+        if 'dict_qtwit' in dict_single_status and dict_single_status['dict_qtwit']:
             s_qtweet_status_id = dict_single_status['dict_qtwit']['s_status_id']
-        del lst_keys
+        # del lst_keys
 
         s_status_id = dict_single_status['s_status_id']
         s_user_id = dict_single_status['s_user_id']

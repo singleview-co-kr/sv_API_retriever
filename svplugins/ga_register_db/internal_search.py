@@ -89,7 +89,7 @@ class svInternalSearch():
         n_idx = 0
         n_sentinel = len(lst_data_file)
         dict_query = {'searchUniques.tsv': 'search_term'}
-        lst_analyzing_filename = dict_query.keys()
+        # lst_analyzing_filename = dict_query.keys()
         for s_filename in lst_data_file:
             s_data_file_fullname = os.path.join(self.__g_sDataPath, s_filename)
             if s_filename == 'archive':
@@ -98,7 +98,7 @@ class svInternalSearch():
             s_data_date = lst_file_info[0]
             s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
             s_specifier = lst_file_info[2]
-            if s_specifier in lst_analyzing_filename:
+            if s_specifier in dict_query:  #lst_analyzing_filename:
                 s_attr_name = dict_query[s_specifier]
             else:
                 continue
@@ -112,7 +112,7 @@ class svInternalSearch():
                         s_search_term = row[0].lower()
                         s_rpt_id = s_data_date+'|@|'+s_ua_type+'|@|'+s_search_term  # row[0] is search_term
                         lst_search_term.append(s_search_term)
-                        if s_rpt_id not in self.__g_dictGaIntSearchRaw.keys():  # if designated log already created
+                        if s_rpt_id not in self.__g_dictGaIntSearchRaw:  #.keys():  # if designated log already created
                             self.__g_dictGaIntSearchRaw[s_rpt_id] = {'search_term': 0}
                         self.__g_dictGaIntSearchRaw[s_rpt_id][s_attr_name] = row[1]
                 self.__archive_ga_data_file(s_filename)

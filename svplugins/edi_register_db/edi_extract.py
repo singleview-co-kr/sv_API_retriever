@@ -265,8 +265,6 @@ class TransformEdiExcel:
         :return:
         """
         s_emart_id = str(edi_model.HyperMartType.EMART)
-        lst_branch_id = self.__g_dictBranchInfo.keys()
-        lst_sku_id = self.__g_dictSkuInfo.keys()
         f = open(s_csv_file, 'r')
         reader = csv.reader(f, delimiter=",")
         for i, line in enumerate(reader):
@@ -274,16 +272,16 @@ class TransformEdiExcel:
                 continue
 
             # get sku info
-            if s_emart_id + '_' + line[0] in lst_sku_id:
-                n_sku_id = self.__g_dictSkuInfo[s_emart_id + '_' + line[0]]
+            s_unique_sku_id = s_emart_id + '_' + line[0]
+            if s_unique_sku_id in self.__g_dictSkuInfo:
+                n_sku_id = self.__g_dictSkuInfo[s_unique_sku_id]
             else:
                 continue  # ignore other SKU
-                # print('new sku detected ' + line[0] + ' ' + line[1])
-                # raise Exception('new sku detected ' + line[0] + ' ' + line[1])  # need user define Exception
 
             # get branch info
-            if s_emart_id + '_' + line[2] in lst_branch_id:
-                n_branch_id = self.__g_dictBranchInfo[s_emart_id + '_' + line[2]]
+            s_unique_branch_id = s_emart_id + '_' + line[2]
+            if s_unique_branch_id in self.__g_dictBranchInfo:
+                n_branch_id = self.__g_dictBranchInfo[s_unique_branch_id]
             else:
                 s_branch_name = line[3].replace(' ', '')
                 print('new branch detected ' + line[2] + ' ' + s_branch_name)
@@ -334,8 +332,6 @@ class TransformEdiExcel:
         :return:
         """
         s_ltmart_id = str(edi_model.HyperMartType.LOTTEMART)
-        lst_branch_id = self.__g_dictBranchInfo.keys()
-        lst_sku_id = self.__g_dictSkuInfo.keys()
         f = open(s_csv_file, 'r')
         reader = csv.reader(f, delimiter=",")
         for i, line in enumerate(reader):
@@ -343,16 +339,16 @@ class TransformEdiExcel:
                 continue
             
             # get sku info
-            if s_ltmart_id + '_' + line[4] in lst_sku_id:
-                n_sku_id = self.__g_dictSkuInfo[s_ltmart_id + '_' + line[4]]
+            s_unique_sku_id = s_ltmart_id + '_' + line[4]
+            if s_unique_sku_id in self.__g_dictSkuInfo:
+                n_sku_id = self.__g_dictSkuInfo[s_unique_sku_id]
             else:
                 continue  # ignore other SKU
-                # print('new sku detected ' + line[4] + ' ' + line[3])
-                # raise Exception('new sku detected ' + line[4] + ' ' + line[3])  # need user define Exception
 
             # check new branch info
-            if s_ltmart_id + '_' + line[1] in lst_branch_id:
-                n_branch_id = self.__g_dictBranchInfo[s_ltmart_id + '_' + line[1]]
+            s_unique_branch_id = s_ltmart_id + '_' + line[1]
+            if s_unique_branch_id in self.__g_dictBranchInfo:
+                n_branch_id = self.__g_dictBranchInfo[s_unique_branch_id]
             else:
                 s_branch_name = line[0].replace(' ', '')
                 print('new branch detected ' + line[1] + ' ' + s_branch_name)
@@ -416,8 +412,6 @@ class TransformEdiExcel:
         :return:
         """
         s_ltmart_id = str(edi_model.HyperMartType.LOTTEMART)
-        lst_branch_id = self.__g_dictBranchInfo.keys()
-        lst_sku_id = self.__g_dictSkuInfo.keys()
         dict_new_branch = {}
         dict_new_sku = {}
         f = open(s_csv_file, 'r')
@@ -426,15 +420,15 @@ class TransformEdiExcel:
             if int(line[5]) == 0 and int(line[6]) == 0:  # qty and amnt is not 0; refund is minus
                 continue
             # check new branch info
-            if s_ltmart_id + '_' + line[1] not in lst_branch_id:
+            if s_ltmart_id + '_' + line[1] not in self.__g_dictBranchInfo:
                 s_unique_branch_id = s_ltmart_id + '||' + line[1]
-                if s_unique_branch_id not in dict_new_branch.keys():
+                if s_unique_branch_id not in dict_new_branch:
                     s_branch_name = line[1].replace(' ', '')
                     dict_new_branch[s_unique_branch_id] = s_branch_name
             # check new sku info
-            if s_ltmart_id + '_' + line[4] not in lst_sku_id:
+            if s_ltmart_id + '_' + line[4] not in self.__g_dictSkuInfo:
                 s_unique_sku_id = s_ltmart_id + '||' + line[4] + '||' + line[3]
-                if s_unique_sku_id in dict_new_sku.keys():
+                if s_unique_sku_id in dict_new_sku:
                     if dict_new_sku[s_unique_sku_id] > line[7]:
                         dict_new_sku[s_unique_sku_id] = line[7]
                 else:
@@ -455,8 +449,6 @@ class TransformEdiExcel:
         :return:
         """
         s_emart_id = str(edi_model.HyperMartType.EMART)
-        lst_branch_id = self.__g_dictBranchInfo.keys()
-        lst_sku_id = self.__g_dictSkuInfo.keys()
         dict_new_branch = {}
         dict_new_sku = {}
         f = open(s_csv_file, 'r')
@@ -465,15 +457,15 @@ class TransformEdiExcel:
             if int(line[4]) == 0:  # qty or amnt is not 0; refund is minus
                 continue
             # check new branch info
-            if s_emart_id + '_' + line[2] not in lst_branch_id:
+            if s_emart_id + '_' + line[2] not in self.__g_dictBranchInfo:
                 s_unique_branch_id = s_emart_id + '||' + line[2]
-                if s_unique_branch_id not in dict_new_branch.keys():
+                if s_unique_branch_id not in dict_new_branch:
                     s_branch_name = line[3].replace(' ', '')
                     dict_new_branch[s_unique_branch_id] = s_branch_name
             # check new sku info
-            if s_emart_id + '_' + line[0] not in lst_sku_id:
+            if s_emart_id + '_' + line[0] not in self.__g_dictSkuInfo:
                 s_unique_sku_id = s_emart_id + '||' + line[0] + '||' + line[1]
-                if s_unique_sku_id in dict_new_sku.keys():
+                if s_unique_sku_id in dict_new_sku:
                     if dict_new_sku[s_unique_sku_id] > line[5]:
                         dict_new_sku[s_unique_sku_id] = line[5]
                 else:

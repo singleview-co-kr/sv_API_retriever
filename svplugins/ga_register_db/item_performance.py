@@ -99,7 +99,7 @@ class svItemPerformance():
             'productCheckouts.tsv': 'freq_cko',  # Number of times the product was included in the check-out process (Enhanced Ecommerce).
             'quantityCheckedOut.tsv': 'qty_cko'  # Number of product units included in check out (Enhanced Ecommerce).
         }
-        lst_analyzing_filename = dict_query.keys()
+        # lst_analyzing_filename = dict_query.keys()
         for s_filename in lst_data_file:
             s_data_file_fullname = os.path.join(self.__g_sDataPath, s_filename)
             if s_filename == 'archive':
@@ -109,7 +109,7 @@ class svItemPerformance():
             n_first_detected_date = int(s_data_date)
             s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
             s_specifier = lst_file_info[2]
-            if s_specifier in lst_analyzing_filename:
+            if s_specifier in dict_query:  # lst_analyzing_filename:
                 s_attr_name = dict_query[s_specifier]
             else:
                 continue

@@ -53,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -76,9 +76,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictFbRaw = {}  # prevent duplication on a web console
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'fb_biz_aid' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'fb_biz_aid' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -269,8 +268,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         except IndexError:
                             nConvAmnt = 0
                     
-                        # try: # if designated log already created
-                        # if sReportId in self.__g_dictFbRaw.keys():  # if designated log already created
                         if self.__g_dictFbRaw.get(sReportId, 0):  # returns 0 if sRowId does not exist
                             # self.__g_dictFbRaw[sReportId]
                             self.__g_dictFbRaw[sReportId]['reach'] += nReach
@@ -280,7 +277,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             self.__g_dictFbRaw[sReportId]['cost'] += nCost
                             self.__g_dictFbRaw[sReportId]['conv_cnt'] += nConvCnt
                             self.__g_dictFbRaw[sReportId]['conv_amnt'] += nConvAmnt
-                        # except KeyError: # if new log requested
                         else:  # if new log requested
                             self.__g_dictFbRaw[sReportId] = {
                                 'reach':nReach, 'imp':nImpression, 'u_clk':nUniqueClick, 'clk':nClick,

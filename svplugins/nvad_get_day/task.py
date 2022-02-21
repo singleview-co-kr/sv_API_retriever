@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Jan 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -89,9 +89,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'nvr_ad_acct' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -106,7 +105,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_master_report = MasterReport(self.__g_sNaveradApiBaseUrl, self.__g_sEncodedApiKey, self.__g_sEncodedSecretKey, s_customer_id)
         # delete master report
         dict_rst = o_master_report.delete_master_report_all()
-        if 'transaction_id' not in list(dict_rst.keys()):
+        # if 'transaction_id' not in list(dict_rst.keys()):
+        if 'transaction_id' not in dict_rst:
             self._printDebug('communication failed - stop')
             self._task_post_proc(self._g_oCallback)
             return

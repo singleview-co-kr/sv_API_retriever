@@ -96,9 +96,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictGaRaw = {}  # prevent duplication on a web console
         
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'google_analytics' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'google_analytics' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -187,7 +186,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_idx = 0
         n_sentinel = len(lst_data_file)
         dict_query = {'transactionRevenueByTrId.tsv': 'rev'}
-        lst_analyzing_filename = dict_query.keys()
+        # lst_analyzing_filename = dict_query.keys()
         for s_filename in lst_data_file:
             s_data_file_fullname = os.path.join(s_data_path, s_filename)
             if s_filename == 'archive':
@@ -196,7 +195,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_data_date = lst_file_info[0]
             s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
             s_specifier = lst_file_info[2]
-            if s_specifier in lst_analyzing_filename:
+            if s_specifier in dict_query:  #lst_analyzing_filename:
                 s_attr_name = dict_query[s_specifier]
             else:
                 continue
@@ -252,7 +251,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
             'transactions.tsv':'trs', 'transactionRevenueByTrId.tsv':'rev'}
 
-        lst_analyzing_filename = dictQuery.keys()
+        # lst_analyzing_filename = dictQuery.keys()
         for sFilename in lstDataFiles:
             sDataFileFullname = os.path.join(sDataPath, sFilename)
             if sFilename == 'archive':
@@ -262,7 +261,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDataDate = aFile[0]
             sUaType = self.__g_oSvCampaignParser.getUa(aFile[1])
             sSpecifier = aFile[2]
-            if sSpecifier in lst_analyzing_filename:
+            if sSpecifier in dictQuery:  #lst_analyzing_filename:
                 sIdxName = dictQuery[sSpecifier]
             else:
                 continue

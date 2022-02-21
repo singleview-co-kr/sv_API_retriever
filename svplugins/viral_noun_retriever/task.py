@@ -57,7 +57,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 2nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -95,9 +95,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sEndYyyymmdd = self._g_dictParam['end_yyyymmdd']
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        lst_conf_keys = list(dict_acct_info.keys())
-        if 'sv_account_id' not in lst_conf_keys and 'brand_id' not in lst_conf_keys and \
-          'nvr_ad_acct' not in lst_conf_keys:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
+          'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
@@ -114,10 +113,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nltk.download('punkt')
         nltk.download('averaged_perceptron_tagger')
         ################################
-
-        # s_sv_acct_id = list(dict_acct_info.keys())[0]
-        # s_acct_title = dict_acct_info[s_sv_acct_id]['account_title']
-        # self.__g_sTblPrefix = dict_acct_info[s_sv_acct_id]['tbl_prefix']
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
@@ -323,7 +318,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_dictCountingNouns[dict_row['word_srl']] = dict_row['word']
             del lst_counting_words_rst
             
-            lst_counting_words_srls = list(self.__g_dictCountingNouns.keys())
+            # lst_counting_words_srls = list(self.__g_dictCountingNouns.keys())
             if  b_mode == 'partial_period':
                 lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriod', dict_period['dt_start'], dict_period['dt_end'])
             elif b_mode == 'full_period':
@@ -332,7 +327,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug(str(len(lst_rst)) + ' documents')
             for dict_row in lst_rst:
                 n_word_srl = dict_row['word_srl']
-                if n_word_srl in lst_counting_words_srls:
+                # if n_word_srl in lst_counting_words_srls:
+                if n_word_srl in self.__g_dictCountingNouns:
                     s_translate_word = self.__g_dictCountingNouns[n_word_srl]
                     for n_dummy in range(0, dict_row['cnt']):
                         if not self._continue_iteration():

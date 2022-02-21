@@ -142,11 +142,7 @@ class SvEdiExcel:
 
 
 class LotteMartEdiExcel:
-    __g_oActiveSheet = None
-    __g_nDataYear = None
-    __g_lstLogDate = None  # ['from yyyy-mm-dd', 'to yyyy-mm-dd']
-    __g_nDataRowIdx = None
-    __g_lstDefaultDataColumn = ['점포명', '점포코드', '상품코드', '상품명', '판매코드', '매출수량', '매출금액']  # , '']
+    __g_lstDefaultDataColumn = ['점포명', '점포코드', '상품코드', '상품명', '판매코드', '매출수량', '매출금액']
     __g_fAssumedAvgHyperMarginRate = 0.38  # 할인점 평균 마진율이 38%라고 가정
 
     def __new__(cls):
@@ -155,6 +151,10 @@ class LotteMartEdiExcel:
 
     def __init__(self):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
+        self.__g_oActiveSheet = None
+        self.__g_nDataYear = None
+        self.__g_lstLogDate = None  # ['from yyyy-mm-dd', 'to yyyy-mm-dd']
+        self.__g_nDataRowIdx = None
         super().__init__()
 
     def __enter__(self):
@@ -268,20 +268,14 @@ class LotteMartEdiExcel:
                 writer = csv.writer(f)
                 for lst_row in lst_edi_data_body:
                     writer.writerow(lst_row)
-
         except Exception as e:
             print(e)
-
         del lst_edi_data_body
         return
 
 
 class EmartEdiExcel:
     __g_dictDataType = {EdiDataType.QTY: 'qty', EdiDataType.AMNT: 'amnt'}
-    __g_sDeterminedDataType = None
-    __g_nDataYear = None
-    __g_bCsvHeaderPrinted = False
-    __g_oActiveSheet = None
     __g_dictColTitleTranslation = {'상품코드': 'item_code', '상품명': 'item_name', '점포코드': 'shop_code', '점포명': 'shop_name'}
 
     def __new__(cls):
@@ -290,6 +284,10 @@ class EmartEdiExcel:
 
     def __init__(self):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
+        self.__g_sDeterminedDataType = None
+        self.__g_nDataYear = None
+        self.__g_bCsvHeaderPrinted = False
+        self.__g_oActiveSheet = None
         super().__init__()
 
     def __enter__(self):
@@ -405,8 +403,8 @@ class EmartEdiExcel:
         if not self.__g_bCsvHeaderPrinted:
             self.__g_bCsvHeaderPrinted = True
 
-        lst_default_col_key = list(dict_default_col_info.keys())
-        lst_data_col_key =  list(dict_data_col_info.keys())
+        # lst_default_col_key = list(dict_default_col_info.keys())
+        # lst_data_col_key =  list(dict_data_col_info.keys())
         # 데이터 한줄씩 읽기;
         for n_data_row_idx in range(n_header_row_idx + 1, self.__g_oActiveSheet.nrows):
             lst_col_info = self.__g_oActiveSheet.row_values(n_data_row_idx)
@@ -414,7 +412,7 @@ class EmartEdiExcel:
             lst_single_row = []
             # set default column
             for s_col in lst_col_info:
-                if n_col_seq in lst_default_col_key:
+                if n_col_seq in dict_default_col_info:  # lst_default_col_key:
                     lst_single_row.append(s_col)
                 else:
                     break
@@ -422,7 +420,7 @@ class EmartEdiExcel:
             # set data column
             n_col_seq = 0
             for sCol in lst_col_info:
-                if n_col_seq in lst_data_col_key:
+                if n_col_seq in dict_data_col_info:  # lst_data_col_key:
                     # 필수 기본 컬럼에 날짜와 수량 컬럼 추가
                     s_log_date = str(self.__g_nDataYear) + dict_data_col_info[n_col_seq]
                     n_perf_val = int(sCol)
