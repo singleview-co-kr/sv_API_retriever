@@ -50,10 +50,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'widget_tweaks',  # for login template
     'crispy_forms',  # for bundle upload form
+    'svload.apps.SvloadConfig',
     'svextract.apps.SvextractConfig',
     'svupload.apps.SvuploadConfig',  # for template
     'svauth',  # for user model customization
     'svacct',
+    'django.contrib.humanize',  # for number formatter on template
 ]
 
 AUTH_USER_MODEL = 'svauth.User'
@@ -161,6 +163,11 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static/'),]
 #STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # activate for [python manage.py collectstatic] only
 
 SV_STORAGE_ROOT = os.path.join(BASE_DIR, 'storage')  # forbid http download
+
+# To access the MEDIA_URL in template you must add django.template.context_processors.media to your context_processeors inside the TEMPLATES config.
+# this will be deprecated
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # LOGIN_URL = '/accounts/login' # keep default
 # LOGOUT_REDIRECT_URL = '' # keep default

@@ -1,0 +1,1081 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-{{s_bokeh_version}}.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-{{s_bokeh_version}}.min.js"></script>
+    {{ script | safe }}
+    {% endblock %}
+<!-- begin - tab daily cost performance -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 매체비, 전월 vs 당월 vs 전년 <small>매체사</small></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#cost_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#cost_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#cost_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="cost_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_cost" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_gross_cost_inc_vat_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                                <th>마감 예상<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="cost_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_gross_cost_inc_vat_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                                <th>마감 예상<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="cost_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_gross_cost_inc_vat_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                                <th>마감 예상<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 노출수, 전월 vs 당월 vs 전년 <small>매체사</small></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#impression_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#impression_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#impression_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="impression_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_imp" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_imp_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_imp|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_imp_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="impression_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_imp_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_imp|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_imp_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="impression_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_imp_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_imp|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_imp_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 클릭수, 전월 vs 당월 vs 전년 <small>매체사</small></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#click_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#click_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#click_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="click_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_click" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_click_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_click|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_click_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="click_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_click_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_click|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_click_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="click_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.media_click_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.media_click|floatformat:0|intcomma}}</td>
+                                                <td>{{row.media_click_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 총CPC, 전월 vs 당월 vs 전년 <small>매체사</small></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#gross_cpc_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#gross_cpc_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#gross_cpc_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="gross_cpc_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_gross_cpc" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_cpc_inc_vat_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_cpc_inc_vat|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="gross_cpc_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_cpc_inc_vat_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_cpc_inc_vat|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="gross_cpc_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_cpc_inc_vat_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>원</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_cpc_inc_vat|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 총CTR, 전월 vs 당월 vs 전년 <small>매체사</small></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#gross_ctr_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#gross_ctr_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#gross_ctr_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="gross_ctr_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_gross_ctr" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_ctr_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_ctr|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="gross_ctr_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_ctr_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_ctr|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="gross_ctr_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.gross_ctr_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.gross_ctr|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 총 세션, 전월 vs 당월 vs 전년 <small>GA</smal></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#in_site_tot_session_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#in_site_tot_session_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#in_site_tot_session_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="in_site_tot_session_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_in_site_tot_session" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_session_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_session|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_session_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="in_site_tot_session_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_session_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_session|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_session_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="in_site_tot_session_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_session_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_session|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_session_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 총 신규 세션, 전월 vs 당월 vs 전년 <small>GA</smal></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#in_site_tot_new_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#in_site_tot_new_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#in_site_tot_new_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="in_site_tot_new_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_in_site_tot_new" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_new_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_new|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_new_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="in_site_tot_new_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_new_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_new|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_new_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane" id="in_site_tot_new_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_new_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_new|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_new_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 총 이탈 세션, 전월 vs 당월 vs 전년 <small>GA</smal></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#in_site_tot_bounce_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#in_site_tot_bounce_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#in_site_tot_bounce_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="in_site_tot_bounce_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_in_site_tot_bounce_new" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_bounce_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_bounce|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_bounce_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="in_site_tot_bounce_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_bounce_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_bounce|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_bounce_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="in_site_tot_bounce_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.in_site_tot_bounce_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>회</th>
+                                                <th>마감 예상<BR>회</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.in_site_tot_bounce|floatformat:0|intcomma}}</td>
+                                                <td>{{row.in_site_tot_bounce_ttl|floatformat:0|intcomma}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 평균 체류시간, 전월 vs 당월 vs 전년 <small>GA</smal></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#avg_dur_sec_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#avg_dur_sec_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#avg_dur_sec_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="avg_dur_sec_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_avg_dur_sec" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_dur_sec_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>초</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_dur_sec|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="avg_dur_sec_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_dur_sec_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>초</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_dur_sec|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="avg_dur_sec_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_dur_sec_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>초</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_dur_sec|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+
+                <div class="row x_title">
+                    <div class="col-md-6">
+                        <h3>{{s_brand_name}} 평균 PV, 전월 vs 당월 vs 전년 <small>GA</smal></h3>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-xs-1">
+<!-- required for floating -->
+<!-- Nav tabs -->
+                        <ul class="nav nav-tabs tabs-left">
+                            <li class="active"><a href="#avg_pvs_tm" data-toggle="tab">당월</a></li>
+                            <li><a href="#avg_pvs_lm" data-toggle="tab">전월</a></li>
+                            <li><a href="#avg_pvs_ly" data-toggle="tab">전년</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-11">
+<!-- Tab panes -->
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="avg_pvs_tm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_avg_pvs" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_pvs_tm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>PV</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_tm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_pvs|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="avg_pvs_lm">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder_ec_conv" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_pvs_lm | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>PV</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_lm.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_pvs|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane" id="avg_pvs_ly">
+                                <div class="col-md-9 col-sm-9 col-xs-12">
+                                    <div id="placeholder33" style="height: 260px; display: none" class="demo-placeholder"></div>
+                                    <div style="height: 500px; width: 100%;">
+                                        {{ graph.avg_pvs_ly | safe }}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3 col-xs-12 bg-white">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>소스_매체</th>
+                                                <th>실제 누적<BR>PV</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+{% for source_medium, row in dict_gross_ly.items %}
+                                            <tr>
+                                                <td>{{source_medium}}</td>
+                                                <td>{{row.avg_pvs|floatformat:2}}</td>
+                                            </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- end - tab daily cost performance -->
+</div>
+
+{% endblock %}

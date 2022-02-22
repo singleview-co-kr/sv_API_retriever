@@ -44,6 +44,7 @@ if __name__ == '__main__': # for console debugging
     import sv_object
     import sv_plugin
     import sv_storage
+    import sv_hypermart_model
     import edi_model
     import edi_extract
     # import edi_transform
@@ -112,7 +113,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
         
-        # print(edi_model.EdiDataType.QTY_AMNT.label)
+        # print(sv_hypermart_model.EdiDataType.QTY_AMNT.label)
         if self.__g_sMode is None:
             self.__oSvMysql = None
             self._printDebug('you should designate mode')

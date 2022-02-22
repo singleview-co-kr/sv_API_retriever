@@ -1,0 +1,626 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% load ratio_presentation %}  <!-- custom filter 추가 -->
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-{{s_bokeh_version}}.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-{{s_bokeh_version}}.min.js"></script>
+    {{ script | safe }}
+    {% endblock %}
+    <div class="row tile_count">
+        <div class="animated flipInY col-md-3 col-sm-3 col-xs-6 tile_stats_count">
+            <div class="left"></div>
+            <div class="right">
+                <span class="count_top"><i class="fa fa-krw"></i> 당기 MTD 매체비</span>
+                <div class="count" title="{{dict_mtd_tm.media_gross_cost_inc_vat|floatformat:0|intcomma}} 원">
+{% if dict_mtd_tm.media_gross_cost_inc_vat > 999999 %}
+				{{dict_mtd_tm.media_gross_cost_inc_vat|intword}}
+{% else %}
+				{{dict_mtd_tm.media_gross_cost_inc_vat|floatformat:0|intcomma}}원
+{% endif %}
+				</div>
+                <span class="count_bottom" title="{{n_target_budget|floatformat:0|intcomma}} 원"><i class="green">{{ dict_mtd_tm.media_gross_cost_inc_vat | growth_rate:n_target_budget|floatformat:1 }}% </i> 당기 MTD 목표 대비</span>
+            </div>
+        </div>
+        <div class="animated flipInY col-md-3 col-sm-3 col-xs-6 tile_stats_count">
+            <div class="left"></div>
+            <div class="right">
+                <span class="count_top"><i class="fa fa-krw"></i> 당기 MTD CPC</span>
+                <div class="count">{{dict_mtd_tm.gross_cpc_inc_vat|floatformat:0|intcomma}}</div>
+                <span class="count_bottom">
+{% if dict_mtd_tm.gross_cpc_inc_vat|growth_rate:dict_mtd_lm.gross_cpc_inc_vat > 0 %}
+                    <i class="green">
+                        <i class="fa fa-sort-asc"></i>
+{% else %}
+                    <i class="red">
+                        <i class="fa fa-sort-desc"></i>
+{% endif %}
+                        {{ dict_mtd_tm.gross_cpc_inc_vat | growth_rate:dict_mtd_lm.gross_cpc_inc_vat|floatformat:1 }}%
+                    </i> 전기 MTD 대비
+                </span>
+            </div>
+        </div>
+        <div class="animated flipInY col-md-3 col-sm-3 col-xs-6 tile_stats_count">
+            <div class="left"></div>
+            <div class="right">
+                <span class="count_top"><i class="fa fa-user"></i> 당기 MTD 세션수</span>
+                <div class="count">{{dict_mtd_tm.in_site_tot_session|floatformat:0|intcomma}}</div>
+{% if dict_mtd_tm.in_site_tot_session|growth_rate:dict_mtd_lm.in_site_tot_session > 0 %}
+                    <i class="green">
+                        <i class="fa fa-sort-asc"></i>
+{% else %}
+                    <i class="red">
+                        <i class="fa fa-sort-desc"></i>
+{% endif %}
+                        {{ dict_mtd_tm.in_site_tot_session | growth_rate:dict_mtd_lm.in_site_tot_session|floatformat:1 }}%
+                    </i> 전기MTD 대비</span>
+            </div>
+        </div>
+        <div class="animated flipInY col-md-3 col-sm-3 col-xs-6 tile_stats_count">
+            <div class="left"></div>
+            <div class="right">
+                <span class="count_top"><i class="fa fa-krw"></i> 당기 MTD 총매출</span>
+                <div class="count">{{0|intword}}</div>
+                <span class="count_bottom"><i class="green"><i class="fa fa-sort-asc"></i>?% </i> 당기 MTD 목표 대비</span>
+            </div>
+        </div>
+    </div>
+<!-- begin - daily revenue performance -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="dashboard_graph x_panel">
+                <div class="row x_title">
+                    <div class="col-md-6">
+                    <h3>{{s_brand_name}} 매출 결과, 당기 <small>EDI</small></h3>
+                    </div>
+                    <div class="col-md-6"></div>
+                </div>
+                <div class="x_content">
+                    <div class="demo-container" style="height:250px">
+                        <div id="placeholder3xx3" class="demo-placeholder" style="width: 100%; height:250px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - daily revenue performance -->
+<!-- begin - daily revenue performance -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="dashboard_graph x_panel">
+                <div class="row x_title">
+                    <div class="col-md-6">
+                    <h3>{{s_brand_name}} 매체 비용, 당기 <small>매체사 수집 <a class="lnk_go_source_medium_detail"><u>자세히 보기</u></a></small></h3>
+                    </div>
+                    <div class="col-md-6"></div>
+                </div>
+                <div class="x_content">
+                    <div class="demo-container" style="height:410px">
+                        <div style="height: 380px; width: 100%;">
+                            {{ div.media_gross_cost_inc_vat_tm | safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - daily revenue performance -->
+<!-- begin - media performance table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>소스 매체별 당기 비용 현황 <small>매체사 수집</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <table class="table table-striped responsive-utilities jambo_table bulk_action">
+                        <thead>
+                        <tr class="headings">
+                            <th class="column-title">Source_Medium</th>
+                            <th class="column-title">비용 목표</th>
+                            <th class="column-title">비용 MTD</th>
+                            <th class="column-title">비용 예상</th>
+                            <th class="column-title">대행 수수료 MTD</th>
+                            <th class="column-title no-link last">대행 수수료 예상</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                          <!--- odd pointer --->
+                          {% for s_source_medium, dict_row in dict_gross_tm.items %}
+                          <tr class="even pointer">
+                              <td class="">{{s_source_medium}}</td>
+                              <td class="">{{dict_row.n_budget_tgt_amnt_inc_vat|intcomma}}</td>
+                              <td class="">{{dict_row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                              <td class="">{{dict_row.media_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
+                              <td class="">{{dict_row.n_agency_fee_inc_vat|floatformat:0|intcomma}}</td>
+                              <td class=" last">{{dict_row.n_agency_fee_inc_vat_est|floatformat:0|intcomma}}</td>
+                          </tr>
+                            {% if dict_row.b_campaign_level %}
+                                {% for s_campaign, dict_camp_row in dict_row.dict_campaign.items %}
+                          <tr class="even pointer">
+                              <td class=""> &#10136; {{s_campaign}} </td>
+                              <td class="">{{dict_camp_row.n_budget_tgt_amnt_inc_vat|intcomma}}</td>
+                              <td class="">{{dict_camp_row.campaign_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                              <td class="">{{dict_camp_row.campaign_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
+                              <td class=""></td>
+                              <td class=" last"></td>
+                          </tr>
+                                {% endfor %}
+                            {% endif %}
+                          {% endfor %}
+                       </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - media performance table -->
+<!-- begin - daily media performance by ua -->
+<div class="row">
+	<div class="col-md-12 col-sm-12 col-xs-12">
+		<div class="x_panel">
+			<div class="row x_title">
+				<div class="col-md-6">
+					<h3>{{s_brand_name}} 당기 현황 요약 <small>더보기 클릭</small></h3>
+				</div>
+			</div>
+			<div class="x_content">
+				<div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>MOB 요약 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>매체비(Media) (원)</span>
+						<h2 title="{{dict_mtd_by_mob.gross.media_gross_cost_inc_vat|floatformat:0|intcomma}}">
+{% if dict_mtd_by_mob.gross.media_gross_cost_inc_vat > 999999 %}
+	{{dict_mtd_by_mob.gross.media_gross_cost_inc_vat|intword}}
+{% else %}
+	{{dict_mtd_by_mob.gross.media_gross_cost_inc_vat|floatformat:0|intcomma}}원
+{% endif %}
+						</h2>
+						<span class="media_tot_cost_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+                    <div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>노출수(Media) (회)</span>
+						<h2 title="{{dict_mtd_by_mob.gross.media_imp|floatformat:0|intcomma}}">
+{% if dict_mtd_by_mob.gross.media_imp > 999999 %}
+	{{dict_mtd_by_mob.gross.media_imp|intword}}
+{% else %}
+	{{dict_mtd_by_mob.gross.media_imp|floatformat:0|intcomma}}
+{% endif %}						
+						</h2>
+						<span class="media_tot_imp_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>클릭수(Media) (회)</span>
+						<h2>{{dict_mtd_by_mob.gross.media_click|floatformat:0|intcomma}}</h2>
+						<span class="media_tot_clk_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>총 세션수(Media) (회)</span>
+						<h2>{{dict_mtd_by_mob.gross.in_site_tot_session|floatformat:0|intcomma}}</h2>
+						<span class="in_site_tot_sess_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>체류시간(GA) (초)</span>
+						<h2>{{dict_mtd_by_mob.gross.avg_dur_sec|floatformat:1|intcomma}}</h2>
+						<span class="in_site_dur_sec_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>매출(GA) (원)</span>
+						<h2>0</h2>
+						<span class="in_site_rev_mob" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+				</div>
+				<div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>PC 요약 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>매체비(Media) (원)</span>
+						<h2 title="{{dict_mtd_by_pc.gross.media_gross_cost_inc_vat|floatformat:0|intcomma}}">
+{% if dict_mtd_by_pc.gross.media_gross_cost_inc_vat > 999999 %}
+	{{dict_mtd_by_pc.gross.media_gross_cost_inc_vat|intword}}
+{% else %}
+	{{dict_mtd_by_pc.gross.media_gross_cost_inc_vat|floatformat:0|intcomma}}원
+{% endif %}
+						</h2>
+						<span class="media_tot_cost_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+                    <div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>노출수(Media) (회)</span>
+						<h2 title="{{dict_mtd_by_pc.gross.media_imp|floatformat:0|intcomma}}">
+{% if dict_mtd_by_pc.gross.media_imp > 999999 %}
+	{{dict_mtd_by_pc.gross.media_imp|intword}}
+{% else %}
+	{{dict_mtd_by_pc.gross.media_imp|floatformat:0|intcomma}}원
+{% endif %}
+						</h2>
+						<span class="media_tot_imp_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>클릭수(Media) (회)</span>
+						<h2>{{dict_mtd_by_pc.gross.media_click|floatformat:0|intcomma}}</h2>
+						<span class="media_tot_clk_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>총 세션수(Media) (회)</span>
+						<h2>{{dict_mtd_by_pc.gross.in_site_tot_session|floatformat:0|intcomma}}</h2>
+						<span class="in_site_tot_sess_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>체류시간(GA) (초)</span>
+						<h2>{{dict_mtd_by_pc.gross.avg_dur_sec|floatformat:1|intcomma}}</h2>
+						<span class="in_site_dur_sec_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+					<div class="col-md-2 col-sm-3 col-xs-6 tile">
+						<span>매출(GA) (원)</span>
+						<h2>0</h2>
+						<span class="in_site_rev_pc" style="height: 160px;">
+						<canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 30px;"></canvas>
+						</span>
+					</div>
+				</div>
+
+                <!----- begin - 총유입수 기준 유입출처 top 5----->
+                <div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>방문 유입출처 요약 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+                    <p>사이트 총 유입수 기준 Top 5, 외 <code>{{n_other_source_cnt|intcomma}} 개 source_medium</code></p>
+                    <table class="table table-striped responsive-utilities jambo_table bulk_action">
+                       <thead>
+                          <tr class="headings">
+                             <th class="column-title">유입출처 </th>
+                             <th class="column-title">총비용 </th>
+                             <th class="column-title">노출수 </th>
+                             <th class="column-title">클릭율 </th>
+                             <th class="column-title">클릭수 </th>
+                             <th class="column-title">CPC </th>
+                             <th class="column-title">총유입수 </th>
+                             <th class="column-title">총신규수 </th>
+                             <th class="column-title">총이탈수 </th>
+                             <th class="column-title">체류시간 </th>
+                             <th class="column-title no-link last"><span class="nobr">페이지뷰</span>
+                             </th>
+                             <th class="bulk-actions" colspan="7">
+                                <a class="antoo" style="color:#fff; font-weight:500;">Bulk Actions ( <span class="action-cnt"> </span> ) <i class="fa fa-chevron-down"></i></a>
+                             </th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          <!--- odd pointer --->
+                          {% for source, row in dict_top_sources.items %}
+                          <tr class="even pointer">
+                             <td class=" ">{{source}}</td>
+                             <td class=" ">{{row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.media_imp|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.gross_ctr|floatformat:2}}%</td>
+                             <td class=" ">{{row.media_click|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.gross_cpc_inc_vat|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_session|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_new|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_bounce|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.avg_dur_sec|floatformat:0|intcomma}}초</td>
+                             <td class=" last"><a href="#">{{row.avg_pvs|floatformat:0|intcomma}}pvs</a></td>
+                          </tr>
+                          {% endfor %}
+                       </tbody>
+                    </table>
+				</div>
+				<div class="clearfix"></div>
+                <!----- end - 총유입수 기준 유입출처 top 5----->
+
+				<!----- begin - 총유입수 기준 키워드 top 5----->
+                <div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>목적 방문 키워드 요약 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+                    <p>사이트 총 유입수 기준 Top {{inbound_noun_n_th_rank}}, 외 <code>{{n_other_kws_cnt|intcomma}} 개 키워드</code></p>
+                    <table class="table table-striped responsive-utilities jambo_table bulk_action">
+                       <thead>
+                          <tr class="headings">
+                             <th class="column-title">키워드 </th>
+                             <th class="column-title">총비용 </th>
+                             <th class="column-title">노출수 </th>
+                             <th class="column-title">클릭율 </th>
+                             <th class="column-title">클릭수 </th>
+                             <th class="column-title">CPC </th>
+                             <th class="column-title">총유입수 </th>
+                             <th class="column-title">총신규수 </th>
+                             <th class="column-title">총이탈수 </th>
+                             <th class="column-title">체류시간 </th>
+                             <th class="column-title no-link last"><span class="nobr">페이지뷰</span>
+                             </th>
+                             <th class="bulk-actions" colspan="7">
+                                <a class="antoo" style="color:#fff; font-weight:500;">Bulk Actions ( <span class="action-cnt"> </span> ) <i class="fa fa-chevron-down"></i></a>
+                             </th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          <!--- odd pointer --->
+                          {% for keyword, row in dict_top_kws.items %}
+                          <tr class="even pointer">
+                             <td class=" ">{{keyword}}</td>
+                             <td class=" ">{{row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.media_imp|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.gross_ctr|floatformat:2}}%</td>
+                             <td class=" ">{{row.media_click|floatformat:0|intcomma}}</td>
+                             <td class=" ">{{row.gross_cpc_inc_vat|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_session|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_new|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.in_site_tot_bounce|floatformat:0|intcomma}}</td>
+                             <td class="a-right a-right ">{{row.avg_dur_sec|floatformat:0|intcomma}}초</td>
+                             <td class=" last"><a href="#">{{row.avg_pvs|floatformat:0|intcomma}}pvs</a></td>
+                          </tr>
+                          {% endfor %}
+                       </tbody>
+                    </table>
+				</div>
+				<div class="clearfix"></div>
+                <!----- end - 총유입수 기준 키워드 top 5----->
+			</div>
+		</div>
+	</div>
+</div>
+<!-- end - daily media performance by ua  -->
+
+<script type="text/javascript">
+jQuery('.lnk_go_source_medium_detail').bind('click', function () {
+    var aCurUrl = window.location.href.split('?');
+    sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+    sCurUrlBase = sCurUrlBase.replace( '/ga_media/', '/by_source_medium/' )
+    window.location.href = sCurUrlBase;
+});
+
+jQuery('.lnk_morpheme_chronicle_single').bind('click', function () {
+    var aCurUrl = window.location.href.split('?');
+    sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+    sCurUrlBase = sCurUrlBase.replace( '/ga_media/', '/morpheme/' )
+    sCurUrlBase = sCurUrlBase + 'chronicle/?morpheme_id=' + $(this).attr('morpheme-srl');
+    window.location.href = sCurUrlBase;
+});
+</script>
+
+<!-- sparkline -->
+<script src="/static/skins/default/js/sparkline/jquery.sparkline.min.js"></script>
+<script>
+// sparkline graph
+jQuery('document').ready(function() {
+	var data_cost_mob = [
+{% for key, val in dict_mtd_by_mob.media_gross_cost_inc_vat.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_cost_mob").sparkline(data_cost_mob, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+
+	var data_imp_mob = [
+{% for key, val in dict_mtd_by_mob.media_imp.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_imp_mob").sparkline(data_imp_mob, {
+		type: 'bar',
+		width: '180',
+		height: '40',
+		barWidth: 3,
+		barSpacing: 2,
+		barColor: '#26B99A'
+	});
+
+	var data_clk_mob = [
+{% for key, val in dict_mtd_by_mob.media_click.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_clk_mob").sparkline(data_clk_mob, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+
+	var data_sess_mob = [
+{% for key, val in dict_mtd_by_mob.in_site_tot_session.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".in_site_tot_sess_mob").sparkline(data_sess_mob, {
+		type: 'bar',
+		width: '180',
+		height: '40',
+		barWidth: 3,
+		barSpacing: 2,
+		barColor: '#26B99A'
+	});
+
+	var data_dur_sec_mob = [
+{% for key, val in dict_mtd_by_mob.avg_dur_sec.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".in_site_dur_sec_mob").sparkline(data_dur_sec_mob, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+
+	var data_cost_pc = [
+{% for key, val in dict_mtd_by_pc.media_gross_cost_inc_vat.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_cost_pc").sparkline(data_cost_pc, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+
+	var data_imp_pc = [
+{% for key, val in dict_mtd_by_pc.media_imp.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_imp_pc").sparkline(data_imp_pc, {
+		type: 'bar',
+		width: '180',
+		height: '40',
+		barWidth: 3,
+		barSpacing: 2,
+		barColor: '#26B99A'
+	});
+
+	var data_clk_pc = [
+{% for key, val in dict_mtd_by_pc.media_click.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".media_tot_clk_pc").sparkline(data_clk_pc, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+
+	var data_sess_pc = [
+{% for key, val in dict_mtd_by_pc.in_site_tot_session.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".in_site_tot_sess_pc").sparkline(data_sess_pc, {
+		type: 'bar',
+		width: '180',
+		height: '40',
+		barWidth: 3,
+		barSpacing: 2,
+		barColor: '#26B99A'
+	});
+
+	var data_dur_sec_pc = [
+{% for key, val in dict_mtd_by_pc.avg_dur_sec.items %}'{{val}}',{% endfor %}
+		];
+	jQuery(".in_site_dur_sec_pc").sparkline(data_dur_sec_pc, {
+		type: 'line',
+		width: '170',
+		height: '40',
+		lineColor: '#26B99A',
+		fillColor: 'rgba(223, 223, 223, 0.57)',
+		lineWidth: 2,
+		spotColor: '#26B99A',
+		minSpotColor: '#26B99A'
+	});
+});
+</script>
+{% endblock %}

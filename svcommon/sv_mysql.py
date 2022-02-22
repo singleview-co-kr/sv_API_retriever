@@ -28,7 +28,7 @@ import sys
 import logging
 import re # https://docs.python.org/3/library/re.html
 import ctypes
-# from pathlib import Path
+# from django.db import utils
 
 # 3rd party library
 import configparser  # https://docs.python.org/3/library/configparser.html
@@ -45,6 +45,7 @@ elif __name__ == 'sv_mysql': # for plugin console debugging
     import settings
 elif __name__ == '__main__': # for class console debugging
     pass
+
 
 class SvMySql(sv_object.ISvObject):
     """ mysql operation class based on pymysql library """
@@ -105,17 +106,13 @@ class SvMySql(sv_object.ISvObject):
         :param s_app_name:
         :return:
         """
-        # print('-----------------')
-        # print(s_app_name)
         sSubPath = ''
         if s_app_name is None:
             print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
             return
         if s_app_name.find('.') != -1:  # eg., transform.view
             self.__g_sAppName = s_app_name.split('.')[0]
-            # print(self.__g_sAppName)
             if self.__g_sAppName == 'svplugins':
-                #  print(__name__)
                 if __name__ == 'svcommon.sv_mysql':  # svextract.plugin_console execution
                     self.__g_sAppName = s_app_name + '.queries.'
                 elif __name__ == 'sv_mysql':  # console execution
@@ -128,10 +125,7 @@ class SvMySql(sv_object.ISvObject):
         else:
             print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
         
-        # print(self.__g_sAppName)
         self.__g_sAbsolutePath += sSubPath
-        # print(self.__g_sAbsolutePath)
-        # print('-----------------')
 
     def initialize(self, dict_brand_info=None):
         self.__g_oConfig = configparser.ConfigParser()
@@ -143,7 +137,7 @@ class SvMySql(sv_object.ISvObject):
                 self.__g_oConfig.read(s_brand_db_config_path)
                 # self.__g_sDbMode = 'pymysql'
         
-        if 'SERVER' in self.__g_oConfig.keys():  # use account specific DB
+        if 'SERVER' in self.__g_oConfig:  # .keys():  # use account specific DB
             self.__g_dictConfig['db_hostname'] = self.__g_oConfig['SERVER']['db_hostname']
             self.__g_dictConfig['db_port'] = int(self.__g_oConfig['SERVER']['db_port'])
             self.__g_dictConfig['db_userid'] = self.__g_oConfig['SERVER']['db_userid']
@@ -166,28 +160,24 @@ class SvMySql(sv_object.ISvObject):
         # else:  # for sv extraction bot mode
         #     self.__g_sAppAbsPath = str(Path(__file__).resolve().parent)
 
-        lst_qry_file_diff = list(self.__g_dictRegExQueryFileClassifier.keys())
-        if 'select' not in lst_qry_file_diff:
+        if 'select' not in self.__g_dictRegExQueryFileClassifier:
             self.__g_dictRegExQueryFileClassifier['select'] = re.compile(r"^[g][e][t]\w+")
-        if 'update' not in lst_qry_file_diff:
+        if 'update' not in self.__g_dictRegExQueryFileClassifier:
             self.__g_dictRegExQueryFileClassifier['update'] = re.compile(r"^[u][p][d][a][t][e]\w+")
-        if 'insert' not in lst_qry_file_diff:            
+        if 'insert' not in self.__g_dictRegExQueryFileClassifier:
             self.__g_dictRegExQueryFileClassifier['insert'] = re.compile(r"^[i][n][s][e][r][t]\w+")
-        if 'delete' not in lst_qry_file_diff:
+        if 'delete' not in self.__g_dictRegExQueryFileClassifier:
             self.__g_dictRegExQueryFileClassifier['delete'] = re.compile(r"^[d][e][l][e][t][e]\w+")
-        del lst_qry_file_diff
-        lst_regex = list(self.__g_dictRegEx.keys())
-        if 'prefix_create_tbl' not in lst_regex:
+        if 'prefix_create_tbl' not in self.__g_dictRegEx:
             self.__g_dictRegEx['prefix_create_tbl'] = re.compile(r"(?<=[cC][rR][eE][aA][tT][eE]\s[tT][aA][bB][lL][eE]\s)\w+")
-        if 'hint_select_or_delete' not in lst_regex:
+        if 'hint_select_or_delete' not in self.__g_dictRegEx:
             self.__g_dictRegEx['hint_select_or_delete'] = re.compile(r"(?<=[fF][rR][oO][mM]\s)\w+")
-        if 'hint_update' not in lst_regex:
+        if 'hint_update' not in self.__g_dictRegEx:
             self.__g_dictRegEx['hint_update'] = re.compile(r"(?<=[uU][pP][dD][aA][tT][eE]\s)\w+")
-        if 'hint_insert' not in lst_regex:
+        if 'hint_insert' not in self.__g_dictRegEx:
             self.__g_dictRegEx['hint_insert'] = re.compile(r"(?<=[iI][nN][tT][oO]\s)\w+")
-        if 'retrieve_reserved_tag' not in lst_regex:
+        if 'retrieve_reserved_tag' not in self.__g_dictRegEx:
             self.__g_dictRegEx['retrieve_reserved_tag'] = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
-        del lst_regex
 
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', '')  # to end with '/'
         for _, _, files in os.walk(s_schema_path_abs):
@@ -196,9 +186,12 @@ class SvMySql(sv_object.ISvObject):
                     sTableName = re.sub(".sql", "", filename )
                     self.__createTable(sTableName)
 
-    def setTablePrefix(self, s_table_prefix):
+    def set_tbl_prefix(self, s_table_prefix):
         if s_table_prefix is not None:
             self.__g_dictConfig['db_table_prefix'] = s_table_prefix+'_'
+
+    def setTablePrefix(self, s_table_prefix):  # will be deprecated 
+        self.set_tbl_prefix(s_table_prefix)
                 
     def set_reserved_tag_value(self, dict_tag):
         if not dict_tag:
@@ -229,10 +222,11 @@ class SvMySql(sv_object.ISvObject):
         if s_sql_compiled is None:
             return []
         # execute query
-        try:
-            self.__g_oCursor.execute(s_sql_compiled)
-        except Exception as e:  # eg, Duplicate entry Exception
-            raise e
+        #try:
+        # self.__g_oCursor.execute(s_sql_compiled)
+        self.__execute_query(s_sql_compiled)
+        # except Exception as e:  # eg, Duplicate entry Exception
+        #     raise e
         return self.__arrange_query_rst(s_pysql_id, s_query_type)
 
     def executeQuery(self, s_sql_filename, *params):  # params is tuple type
@@ -250,12 +244,54 @@ class SvMySql(sv_object.ISvObject):
                 return []
             # cache compiled sql statement
             self.__g_dictCompiledSqlStmt[self.__g_nThreadId][s_sql_filename] = [s_query_type, s_sql_compiled]
-        try:
-            self.__g_oCursor.execute(s_sql_compiled, params)
-        except Exception as e:  # eg, Duplicate entry Exception
-            raise e
+        #try:
+        # self.__g_oCursor.execute(s_sql_compiled, params)
+        self.__execute_query(s_sql_compiled, params)  # execute query
+        # except Exception as e:  # eg, Duplicate entry Exception
+        #     raise e
         return self.__arrange_query_rst(s_sql_filename, s_query_type)
 
+    def __execute_query(self, s_sql_compiled, params=None):
+        """
+        execute query
+        :param s_sql_compiled:
+        :param params: None if dynamic query
+        :return:
+        """
+        try:
+            if params:
+                self.__g_oCursor.execute(s_sql_compiled, params)
+            else:
+                self.__g_oCursor.execute(s_sql_compiled)
+        # except utils.OperationalError as e:
+        #     if e.args[0] == 2006:  # mysql 2006 error “MySQL server has gone away” exception in Django; this happens only on http connection
+        #         # logger.debug('mysql 2006 exception catched... rebuild connection')
+        #         self.__connect()
+        #         if params:
+        #             self.__g_oCursor.execute(s_sql_compiled, params)
+        #         else:
+        #             self.__g_oCursor.execute(s_sql_compiled)
+        # except utils.ProgrammingError as e:
+        #     if e.args[0] == 1146:  # Table doesn't exist Exception
+        #         pass
+        except Exception as e:
+            n_pymysql_err_code = e.args[0]
+            if n_pymysql_err_code == 1146:  # Table doesn't exist Exception
+                pass
+            if n_pymysql_err_code == 1062:  # Duplicate entry Exception
+                pass
+            if n_pymysql_err_code == 2006:  # mysql 2006 error “MySQL server has gone away” exception in Django; this happens only on http connection
+                # logger.debug('mysql 2006 exception catched... rebuild connection')
+                self.__connect()
+                if params:
+                    self.__g_oCursor.execute(s_sql_compiled, params)
+                else:
+                    self.__g_oCursor.execute(s_sql_compiled)
+            else:
+                # logger.debug(e)
+                pass
+            # raise e
+            
     def __getThreadId(self):
         """
         Returns OS thread id to identify 
@@ -278,7 +314,6 @@ class SvMySql(sv_object.ISvObject):
             raise e
 
     def __compileDynamicSql(self, s_pysql_filename, dict_param):  # add new
-        # s_pysql_path_full = self.__g_sAppName + '.queries.' + s_pysql_filename
         try:
             o_sql = self.__import_pysql(s_pysql_filename)
         except ModuleNotFoundError as e:
@@ -338,6 +373,7 @@ class SvMySql(sv_object.ISvObject):
         return s_sql_compiled
 
     def __arrange_query_rst(self, s_sql_filename, s_query_type):
+        """ param: s_sql_filename is for query debug """
         if s_query_type == 'insert':
             # https://stackoverflow.com/questions/2548493/how-do-i-get-the-id-after-insert-into-mysql-database-with-python
             lst_rows = [{'id': self.__g_oCursor.lastrowid}]
@@ -346,6 +382,10 @@ class SvMySql(sv_object.ISvObject):
             lst_rows = [{'rowcount': self.__g_oCursor.rowcount}]
         else:
             lst_rows = self.__fetch()
+            if len(lst_rows) == 0:
+                lst_rows = []
+            # if s_sql_filename == 'getLtmartLogByPeriod':
+            #     print(lst_rows)
         return lst_rows  # return dataset
 
     def __categorizeQueryBySqlFilename(self, s_sql_filename):
@@ -373,7 +413,6 @@ class SvMySql(sv_object.ISvObject):
         # MySQL Connection 연결
         self.__g_oConn = pymysql.connect(host=self.__g_dictConfig['db_hostname'], port=self.__g_dictConfig['db_port'], user=self.__g_dictConfig['db_userid'], 
             password=self.__g_dictConfig['db_password'], db=self.__g_dictConfig['db_database'], charset=self.__g_dictConfig['db_charset'])
-        
         # Connection 으로부터 Cursor 생성
         self.__g_oCursor = self.__g_oConn.cursor(pymysql.cursors.DictCursor) # set Dictionary cursor, Array based cursor if None
 
@@ -396,20 +435,17 @@ class SvMySql(sv_object.ISvObject):
         f = open(s_schema_path_abs,'r')
         sSqlStatement = f.read()
         f.close()
-
         sSqlStatement = re.sub("\n", " ", sSqlStatement)  # make one line
         sSqlStatement = re.sub("`", "", sSqlStatement ) # 존재할 수 있는 sql 문자열 wrapper 기호 제거 `
         # m = oRegEx.search(sSqlStatement) # match()와 search() 차이점 refer to 빠르게활용하는파이썬3.6프로그램 p241
         m = self.__g_dictRegEx['prefix_create_tbl'].search(sSqlStatement)
         if m: # if table name is existing in the sql statement
-            # sTableSearchSql = "show tables like '"+self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
             sTableSearchSql = "show tables like '"+self.__g_dictConfig['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
             self.__g_oCursor.execute(sTableSearchSql)
             rows = self.__g_oCursor.fetchall()
             if not self.__g_oCursor.rowcount: # table creation
                 if __name__ == '__main__':
                     self._printDebug("table creation")
-                # sSqlStatement = re.sub(m.group(0), self.__g_oConfig['SERVER']['db_table_prefix']+m.group(0), sSqlStatement ) # add table prefix on table name
                 sSqlStatement = re.sub(m.group(0), self.__g_dictConfig['db_table_prefix']+m.group(0), sSqlStatement ) # add table prefix on table name
                 self.__g_oCursor.execute(sSqlStatement)
             else:

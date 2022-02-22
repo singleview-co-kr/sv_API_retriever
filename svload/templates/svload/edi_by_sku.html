@@ -1,0 +1,167 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-{{s_bokeh_version}}.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-{{s_bokeh_version}}.min.js"></script>
+    {{ script | safe }}
+    {% endblock %}
+
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_item_name}} 성과 상세 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="" role="tabpanel" data-example-id="togglable-tabs">
+                        <ul id="myTab" class="nav nav-tabs bar_tabs" role="tablist">
+                            <li role="presentation" class="active">
+                                <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="true">전국</a>
+                            </li>
+                            <li role="presentation" class="">
+                                <a href="#tab_content2" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">Top {{s_top_branch_cnt}}</a>
+                            </li>
+                        </ul>
+                        <div id="myTabContent" class="tab-content">
+                            <div role="tabpanel" class="tab-pane fade active in" id="tab_content1" aria-labelledby="home-tab">
+                                <div style="height: 310px; width: 100%;">
+                                    {{ div.monthly_national | safe }}
+                                </div>
+                            </div>
+                            <div role="tabpanel" class="tab-pane fade" id="tab_content2" aria-labelledby="profile-tab">
+                                <div style="height: 310px; width: 100%;">
+                                    {{ div.monthly_branch_top4 | safe }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+        </div>
+    </div>
+<!-- end - tab daily revenue performance -->
+<!-- begin - branch rank table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_item_name}} 매장별 성과 상세 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <table id="datatable-responsive" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%">
+                        <thead>
+                        <tr>
+                            <th>당기순위</th>
+                            <th>마트명</th>
+                            <th>매장명</th>
+                            <th>전기순위</th>
+                            <th>전년순위</th>
+                            <th>당기공급액</th>
+                            <th>전기공급액</th>
+                            <th>전년공급액</th>
+                            <th>당기수량</th>
+                            <th>전기수량</th>
+                            <th>전년수량</th>
+                            <th>도</th>
+                            <th>시</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for dic_row in lst_branch_data_table %}
+                        <tr>
+                            <td>{{dic_row.n_rank_tm}}</td>
+                            <td>{{dic_row.hypermart_name}}</td>
+                            <td><a branch_id="{{dic_row.n_branch_id}}" class="lnk_go_branch"><u>{{dic_row.s_branch_name}}</u></a></td>
+                            <td>{{dic_row.n_rank_lm}}</td>
+                            <td>{{dic_row.n_rank_ly}}</td>
+                            <td>{{dic_row.n_amnt_tm|intcomma}}</td>
+                            <td>{{dic_row.n_amnt_lm|intcomma}}</td>
+                            <td>{{dic_row.n_amnt_ly|intcomma}}</td>
+                            <td>{{dic_row.n_qty_tm|intcomma}}</td>
+                            <td>{{dic_row.n_qty_lm|intcomma}}</td>
+                            <td>{{dic_row.n_qty_ly|intcomma}}</td>
+                            <td>{{dic_row.s_do_name}}</td>
+                            <td>{{dic_row.s_si_name}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - branch rank table -->
+<!-- Datatables-->
+<link href="/static/skins/default/js/datatables/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/buttons.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/fixedHeader.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/responsive.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/scroller.bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+<script src="/static/skins/default/js/datatables/jquery.dataTables.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.bootstrap.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.buttons.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/jszip.min.js"></script>
+<script src="/static/skins/default/js/datatables/pdfmake.min.js"></script>
+<script src="/static/skins/default/js/datatables/vfs_fonts.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.html5.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.print.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.fixedHeader.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.keyTable.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.responsive.min.js"></script>
+<script src="/static/skins/default/js/datatables/responsive.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.scroller.min.js"></script>
+
+<script type="text/javascript">
+jQuery('.lnk_go_branch').bind('click', function () {
+    var nBranchId = jQuery(this).attr('branch_id');
+    if( nBranchId > 0 )
+    {
+        //var aCurUrl = window.location.href.split('?');
+        //sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        //aParamToAdd = Array();
+		//aParamToAdd['freq'] = s_sampling_freq;
+		window.location.href = $.urlParam('edi_by_branch', nBranchId)
+    }
+    else
+        alert('plz choose branch');
+});
+
+jQuery(document).ready(function() {
+    jQuery('#datatable-responsive').DataTable();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    {% endblock %}
+<!-- begin - budget list table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>예산 항목 수정 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <br />
+                    <form method="POST" id='frm_budget_update' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
+                    <input type="hidden" id="act" name="act" value="update_budget" />
+                    <input type="hidden" id="budget_id" name="budget_id" value="{{dict_budget_info.n_budget_id}}" />
+                    {% csrf_token %}
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="acct_id">계정 분류 <span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <select class="form-control" name="acct_id">
+                                <option value="">분류 선택</option>
+                                {% for dict_acct in lst_acct_list %}
+                                    <option value="{{dict_acct.n_acct_id}}" {% if dict_acct.n_acct_id == dict_budget_info.acct_id %}selected="selected"{% endif %}>{{dict_acct.s_budget_acct_ttl}}</option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_alloc_period">회계연월 <span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="budget_alloc_period" placeholder="YYYYMM" required="required" value="{{dict_budget_info.s_budget_yrmo}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_memo">메모<span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="budget_memo" placeholder="예산 설명" required="required" value="{{dict_budget_info.memo}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_target_amnt_inc_vat">목표액(VAT포함, 원)<span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="budget_target_amnt_inc_vat" placeholder="VAT 포함, 원" required="required" value="{{dict_budget_info.target_amnt_inc_vat}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_date_begin">예산시작일<span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="budget_date_begin" placeholder="YYYY-MM-DD" required="required" value="{{dict_budget_info.s_date_begin}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_date_end">예산종료일<span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="budget_date_end" placeholder="YYYY-MM-DD" required="required" value="{{dict_budget_info.s_date_end}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12">Gender</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <div id="gender" class="btn-group" data-toggle="buttons">
+                                    <label class="btn btn-default" data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                                        <input type="radio" name="gender" value="male"> &nbsp; Male &nbsp;
+                                    </label>
+                                    <label class="btn btn-primary" data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                                        <input type="radio" name="gender" value="female"> Female
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ln_solid"></div>
+                        <div class="form-group">
+                            <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+                                <button type="submit" id='btn_update_budget' class="btn btn-success">수정</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="text/javascript">
+jQuery("#btn_update_budget").click(function(){
+    n_acct_id = jQuery("select[name='acct_id']").val();
+    //console.log(n_acct_id);
+    if( n_acct_id == '' )
+    {
+        alert('예산 분류를 선택하세요');
+        return false;
+    }
+    else
+        return true;
+})
+
+jQuery(".lnk_update_budget").click(function(){
+    var nBudgetId = jQuery(this).attr('budget_id');
+    console.log(nBudgetId);
+    if( nBudgetId > 0 )
+    {
+        var aCurUrl = window.location.href.split('?');
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        sCurUrlBase = sCurUrlBase.replace( '/budget/', '/budget_update/' )
+        console.log(sCurUrlBase + nBudgetId);
+        // window.location.href = sCurUrlBase + nBranchId;
+    }
+    else
+        alert('plz choose branch');
+})
+</script>
+{% endblock %}

@@ -1,0 +1,537 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-{{s_bokeh_version}}.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-{{s_bokeh_version}}.min.js"></script>
+    {% if 'chakan.co.kr' in ALLOWED_HOSTS %}
+    <!--- Naver map REST API --->
+	<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=0zevyl5fvq"></script>
+    {% endif %}
+    {{ script | safe }}
+    {% endblock %}
+
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_sch_name}} {{s_branch_name}} 품목별 성과 상세 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="" role="tabpanel" data-example-id="togglable-tabs">
+                        <ul id="myTab" class="nav nav-tabs bar_tabs" role="tablist">
+                            <li role="presentation" class="active">
+                                <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="true">당기 품목별 공급액 순위</a>
+                            </li>
+                            <li role="presentation" class="">
+                                <a href="#tab_content2" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">당기 품목별 출고량 비교</a>
+                            </li>
+                            <li role="presentation" class="">
+                                <a href="#tab_content3" role="tab" id="profile-tab2" data-toggle="tab" aria-expanded="false">Top 4 공급액 추이 2년간</a>
+                            </li>
+                        </ul>
+                        <div id="myTabContent" class="tab-content">
+                            <div role="tabpanel" class="tab-pane fade active in" id="tab_content1" aria-labelledby="home-tab">
+                                <div style="height: 710px; width: 100%;">
+                                    {{ div.sell_in_amnt | safe }}
+                                </div>
+                            </div>
+                            <div role="tabpanel" class="tab-pane fade" id="tab_content2" aria-labelledby="profile-tab">
+                                <div style="height: 710px; width: 100%;">
+                                    {{ div.sell_out_qty | safe }}
+                                </div>
+                            </div>
+                            <div role="tabpanel" class="tab-pane fade" id="tab_content3" aria-labelledby="profile-tab">
+                                <div style="height: 710px; width: 100%;">
+                                    {{ div.monthly | safe }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+        </div>
+    </div>
+<!-- end - tab daily revenue performance -->
+<!-- begin - item level historic trend -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>품목 수준 역사적 추이 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Settings 1</a></li>
+                            <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="row" style="border-bottom: 1px solid #E0E0E0; padding-bottom: 5px; margin-bottom: 5px;">
+                        <p>당기 공급액 기준 상위 10개 품목</p>
+                        <!-- start project list -->
+                        <table class="table table-striped projects">
+                            <thead>
+                            <tr>
+                                <th>순위</th>
+                                <th style="">마트명</th>
+                                <th style="">제품명</th>
+                                <th>당기 공급액%</th>
+                                <th>당기 출고량%</th>
+                                <th>최근 2년간 월간 공급액</th>
+                                <th>최근 2년간 월간 출고량</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+{% for n_item_id, dict_sku in dict_all_sku_table.items %}
+                            <tr>
+                                <td>{{dict_sku.rank}}위</td>
+                                <td>{{dict_sku.hypermart_name}}</td>
+                                <td>
+                                    <a sku_id="{{n_item_id}}" class="lnk_go_sku"><b><u>{{dict_sku.item_name}}</b></u></a>
+                                    <br />
+                                    <small>최초 판매 {{dict_sku.s_detected_date}}</small>
+                                </td>
+                                <td class="project_progress">
+                                    <div class="progress progress_sm">
+                                        <div class="progress-bar bg-green" role="progressbar" data-transitiongoal="{{dict_sku.shr_amnt}}"></div>
+                                    </div>
+                                    <small>{{dict_sku.amnt|intcomma}}원 ({{dict_sku.shr_amnt}}%)</small>
+                                </td>
+                                <td class="project_progress">
+                                    <div class="progress progress_sm">
+                                        <div class="progress-bar bg-green" role="progressbar" data-transitiongoal="{{dict_sku.shr_qty}}"></div>
+                                    </div>
+                                    <small>{{dict_sku.qty|intcomma}}개 ({{dict_sku.shr_qty}}%)</small>
+                                </td>
+                                <td>
+                                    <span id="sparkline_bar_amnt_{{n_item_id}}" style="height: 160px;">
+                                        <canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 120px;"></canvas>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span id="sparkline_bar_qty_{{n_item_id}}" style="height: 160px;">
+                                        <canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 120px;"></canvas>
+                                    </span>
+                                </td>
+                            </tr>
+{% endfor %}
+                            </tbody>
+                        </table>
+                        <!-- end project list -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - item level historic trend -->
+<!-- begin - branch level historic trend -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>매장 수준 역사적 추이 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Settings 1</a></li>
+                            <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="row" style="border-bottom: 1px solid #E0E0E0; padding-bottom: 5px; margin-bottom: 5px;">
+                        <div class="col-md-6" style="overflow:hidden;">
+                            <h4 style="margin:18px">공급액 추이 - {{s_branch_name}}</h4>
+                            <canvas id="amntChart" height="90"></canvas>
+                            <h4 style="margin:18px">공급액 추이 - 전국 {{s_sch_name}}</h4>
+                            <canvas id="amntNationalChart" height="90"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 style="margin:18px">출고량 추이 - {{s_branch_name}}</h4>
+                            <canvas id="qtyChart" height="90"></canvas>
+                            <h4 style="margin:18px">출고량 추이 - 전국 {{s_sch_name}}</h4>
+                            <canvas id="qtyNationalChart" height="90"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - branch level historic trend -->
+	<div class="row">
+        <div class="col-md-5 col-sm-5 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_branch_name}} 메모 입력<small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <!-- start form for validation -->
+                    <form class="form-horizontal form-label-left input_mask" method="POST" id='frm_budget_appending' enctype="multipart/form-data">
+                    {% csrf_token %}
+                        <div class="form-group">
+                            <label class="control-label col-md-2 col-sm-2 col-xs-12">기간 <span class="required">*</span></label>
+                            <div class="col-md-10 col-sm-10 col-xs-12">
+                                <input id="period_date" name="period_date" class="date-picker form-control col-md-7 col-xs-12" required="required" type="text">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-2 col-sm-2 col-xs-12">메모 <span class="required">*</span></label>
+                            <div class="col-md-10 col-sm-10 col-xs-12">
+                                <textarea id="memo" name="memo" required="required" class="form-control"
+                                          data-parsley-trigger="keyup"
+                                          data-parsley-minlength="20" data-parsley-maxlength="500"
+                                          data-parsley-minlength-message="20자 이상 입력하세요."
+                                          data-parsley-validation-threshold="10" placeholder="(20~500자)"></textarea>
+                            </div>
+                        </div>
+                        <div class="ln_solid"></div>
+                        <div class="form-group">
+                            <div class="col-md-9 col-sm-9 col-xs-12 col-md-offset-2">
+                                <button type="submit" class="btn btn-success">Submit</button>
+                            </div>
+                        </div>
+                    </form>
+                    <!-- end form for validations -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7 col-sm-7 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_branch_name}} 메모 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+					<div style="width:100%;height:190px;">
+						<!-- Large modal -->
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-lg">Large modal</button>
+                        <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span></button>
+                                        <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <h4>Text in a modal</h4>
+                                        <p>Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.</p>
+                                        <p>Aenean lacinia bibendum nulla sed consectetur. Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Donec sed odio dui. Donec ullamcorper nulla non metus auctor fringilla.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary">Save changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Small modal -->
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-sm">Small modal</button>
+                        <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-hidden="true">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                                        <h4 class="modal-title" id="myModalLabel2">Modal title</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <h4>Text in a modal</h4>
+                                        <p>Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.</p>
+                                        <p>Aenean lacinia bibendum nulla sed consectetur. Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Donec sed odio dui. Donec ullamcorper nulla non metus auctor fringilla.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary">Save changes</button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+        </div>
+
+	</div>
+	<div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>{{s_branch_name}} 매장 입지 <small>Naver Map</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+{% if dict_branch_info.branch_type_id == BranchType.OFFLINE %}
+                    <div id="map" style="width:100%;height:350px;"></div>
+{% else %}
+                    <div style="width:100%;height:350px;">
+                        <span>
+                            <center><img height=300 src="/static/skins/default/images/free-icon-home-page-844837.png"><div>아이콘 제작자 <a href="https://www.flaticon.com/kr/authors/smartline" title="Smartline">Smartline</a> from <a href="https://www.flaticon.com/kr/" title="Flaticon">www.flaticon.com</a></div></center>
+                        </span>
+                    </div>
+{% endif %}
+                </div>
+                <div class="clearfix"></div>
+            </div>
+        </div>
+    </div>
+<!-- daterangepicker -->
+<script type="text/javascript" src="/static/skins/default/js/moment/moment.min.js"></script>
+<script type="text/javascript" src="/static/skins/default/js/datepicker/daterangepicker.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+  $('#period_date').daterangepicker({
+    singleDatePicker: false,
+    calender_style: "picker_4"
+  }, function(start, end, label) {
+    console.log(start.toISOString(), end.toISOString(), label);
+  });
+});
+</script>
+
+<!-- chart js -->
+<script src="/static/skins/default/js/chartjs/chart.min.js"></script>
+<script>
+    // Bar chart
+    var ctx = document.getElementById("amntChart");
+    var amntChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2ly", "ly", "lm", "tm"],
+        datasets: [{
+          label: '매장 공급액',
+          backgroundColor: "#6CBDAC",
+          data: [
+{% for nAmnt in dict_branch_overview.amnt %}
+    {{nAmnt}},
+{% endfor %}
+          ]
+        }]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+            display: false,
+            labels: {
+                color: 'rgb(255, 99, 132)'
+            }
+        }
+      }
+    });
+
+    // Bar chart
+    var ctx = document.getElementById("qtyChart");
+    var qtyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2ly", "ly", "lm", "tm"],
+        datasets: [{
+          label: '매장 출고량',
+          backgroundColor: "#6CBDAC",
+          data: [
+{% for nQty in dict_branch_overview.qty %}
+    {{nQty}},
+{% endfor %}
+          ]
+        }]
+      },
+
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+            display: false,
+            labels: {
+                color: 'rgb(255, 99, 132)'
+            }
+        }
+      }
+    });
+
+    // Bar chart
+    var ctx = document.getElementById("amntNationalChart");
+    var amntNationalChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2ly", "ly", "lm", "tm"],
+        datasets: [{
+          label: '전국 공급액',
+          backgroundColor: "#A4C8C1",
+          data: [
+{% for nAmnt in dict_national_overview.amnt %}
+    {{nAmnt}},
+{% endfor %}
+          ]
+        }]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+            display: false,
+            labels: {
+                color: 'rgb(255, 99, 132)'
+            }
+        }
+      }
+    });
+
+    // Bar chart
+    var ctx = document.getElementById("qtyNationalChart");
+    var qtyNationalChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2ly", "ly", "lm", "tm"],
+        datasets: [{
+          label: '전국 출고량',
+          backgroundColor: "#A4C8C1",
+          data: [
+{% for nQty in dict_national_overview.qty %}
+    {{nQty}},
+{% endfor %}
+          ]
+        }]
+      },
+
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+            display: false,
+            labels: {
+                color: 'rgb(255, 99, 132)'
+            }
+        }
+      }
+    });
+    </script>
+{% if 'chakan.co.kr' in ALLOWED_HOSTS and dict_branch_info.branch_type_id == BranchType.OFFLINE %}
+<!--- Naver Map REST API --->
+<script>
+var mapOptions = {
+    center: new naver.maps.LatLng({{dict_branch_info.latitude}}, {{dict_branch_info.longitude}}),
+    zoom: 16
+};
+
+var map = new naver.maps.Map('map', mapOptions);
+
+var marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng({{dict_branch_info.latitude}}, {{dict_branch_info.longitude}}),
+    map: map
+});
+</script>
+{% endif %}
+
+<!-- sparkline -->
+<script src="/static/skins/default/js/sparkline/jquery.sparkline.min.js"></script>
+<script>
+    $('document').ready(function() {
+    {% for n_item_id, dict_sku in dict_all_sku_table.items %}
+          $("#sparkline_bar_amnt_{{n_item_id}}").sparkline({{dict_sku.lst_monthly_amnt}}, {
+            type: 'bar',
+            width: '170',
+            height: '35',
+            colorMap: {
+              '7': '#a1a1a1'
+            },
+            barColor: '#26B99A'
+          });
+
+          $("#sparkline_bar_qty_{{n_item_id}}").sparkline({{dict_sku.lst_monthly_qty}}, {
+            type: 'bar',
+            width: '170',
+            height: '35',
+            colorMap: {
+              '7': '#a1a1a1'
+            },
+            barColor: '#26B99A'
+          });
+    {% endfor %}
+    });
+    </script>
+{% endblock %}

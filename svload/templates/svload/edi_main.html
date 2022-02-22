@@ -1,0 +1,600 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-{{s_bokeh_version}}.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-{{s_bokeh_version}}.min.js"></script>
+    {{ script | safe }}
+    {% endblock %}
+<!-- begin - national filter -->
+<!-- select2 -->
+<link href="/static/skins/default/css/select/select2.min.css" rel="stylesheet">
+<script src="/static/skins/default/js/select/select2.full.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    $("#filter_sales_ch").select2({
+      maximumSelectionLength: 5,
+      placeholder: "검색하여 최대 5개 유통 채널 선택",
+      allowClear: true
+    });
+    $("#filter_branch").select2({
+      maximumSelectionLength: 20,
+      placeholder: "검색하여 최대 20개 매장 선택",
+      allowClear: true
+    });
+    $("#filter_sku").select2({
+      maximumSelectionLength: 20,
+      placeholder: "검색하여 최대 20개 품목 선택",
+      allowClear: true
+    });
+});
+</script>
+<!-- /select2 -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_content">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <div class="control-label col-md-2 col-sm-2 col-xs-12">
+                                <div class="btn-group">
+                                    <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" type="button">
+                                        {% if s_sales_ch_filter_mode == 'inc' %}포함{% endif %}
+                                        {% if s_sales_ch_filter_mode == 'exc' %}제외{% endif %}
+                                        필터 실행 <span class="caret"></span> </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="#" id="filter_include_sales_ch">선택한 유통채널만 포함</a></li>
+                                        <li><a href="#" id="filter_exclude_sales_ch">선택한 유통채널만 제외</a></li>
+                                        <li><a href="#" id="filter_sales_ch_clear">유통채널 필터 해제</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-10 col-sm-10 col-xs-12">
+                                <select class="select2_multiple form-control" id='filter_sales_ch' multiple="multiple">
+                                    {% for n_sales_ch_id, dict_sales_ch in dict_sales_ch_info_by_id.items %}
+                                    <option value="{{n_sales_ch_id}}" {{dict_sales_ch.selected}}>{{dict_sales_ch.sales_ch_name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <div class="control-label col-md-2 col-sm-2 col-xs-12">
+                                <div class="btn-group">
+                                    <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" type="button">
+                                        {% if s_branch_filter_mode == 'inc' %}포함{% endif %}
+                                        {% if s_branch_filter_mode == 'exc' %}제외{% endif %}
+                                        필터 실행 <span class="caret"></span> </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="#" id="filter_include_branch">선택한 매장만 포함</a></li>
+                                        <li><a href="#" id="filter_exclude_branch">선택한 매장만 제외</a></li>
+                                        <li><a href="#" id="filter_branch_clear">매장 필터 해제</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-10 col-sm-10 col-xs-12">
+                                <select class="select2_multiple form-control" id='filter_branch' multiple="multiple">
+                                    {% for n_branch_id, dict_branch in dict_branch_info_by_id.items %}
+                                    <option value="{{n_branch_id}}" {{dict_branch.selected}}>{{dict_branch.hypermart_name}}-{{dict_branch.name}}({{dict_branch.branch_type}})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="x_content">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <div class="control-label col-md-2 col-sm-2 col-xs-12">
+                                <div class="btn-group">
+                                    <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" type="button">
+                                        {% if s_sku_filter_mode == 'inc' %}포함{% endif %}
+                                        {% if s_sku_filter_mode == 'exc' %}제외{% endif %}
+                                        필터 실행 <span class="caret"></span> </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="#" id="filter_include_sku">선택한 폼목만 포함</a></li>
+                                        <li><a href="#" id="filter_exclude_sku">선택한 폼목만 제외</a></li>
+                                        <li><a href="#" id="filter_sku_clear">폼목 필터 해제</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-10 col-sm-10 col-xs-12">
+                                <select class="select2_multiple form-control" id='filter_sku' multiple="multiple">
+                                    {% for n_sku_id, dict_sku in dict_sku_info_by_id.items %}
+                                    <option value="{{n_sku_id}}" {{dict_sku.selected}}>{{dict_sku.sch_name}}-{{dict_sku.name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - national filter -->
+    <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>표시된 매장 총공급액 추이<small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <canvas height="90" id="grossAmntChart"></canvas>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>2년전</th>
+                            <th>전년</th>
+                            <th>전기</th>
+                            <th>당기</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">금액</th>
+                            {% for n_amnt in dict_branch_gross.amnt %}<td>{{n_amnt|intcomma}}원</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Δ</th>
+                            {% for f_ratio in dict_branch_gross.amnt_ratio %}<td>{{f_ratio|floatformat:1|intcomma}}%</td>{% endfor %}
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>표시된 매장 총출고량 추이 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <canvas height="90" id="grossQtyChart"></canvas>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>2년전</th>
+                            <th>전년</th>
+                            <th>전기</th>
+                            <th>당기</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">금액</th>
+                            {% for n_amnt in dict_branch_gross.qty %}<td>{{n_amnt|intcomma}}개</td>{% endfor %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Δ</th>
+                            {% for f_ratio in dict_branch_gross.qty_ratio %}<td>{{f_ratio|floatformat:1|intcomma}}%</td>{% endfor %}
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- begin - branch rank table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>매장별 월간 현황 <small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <table id="datatable-responsive" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%">
+                        <thead>
+                        <tr>
+                            <th>당기순위</th>
+                            <th>마트명</th>
+                            <th>매장명</th>
+                            <th>전기순위</th>
+                            <th>전년순위</th>
+                            <th>당기공급액</th>
+                            <th>전기공급액</th>
+                            <th>전년공급액</th>
+                            <th>당기수량</th>
+                            <th>전기수량</th>
+                            <th>전년수량</th>
+                            <th>도</th>
+                            <th>시</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for dic_row in lst_branch_data_table %}
+                        <tr>
+                            <td>{{dic_row.n_rank_tm}}</td>
+                            <td>{{dic_row.s_hypermart_name}}</td>
+                            <td><a branch_id="{{dic_row.n_branch_id}}" class="lnk_go_branch"><u>{{dic_row.s_branch_name}}</u></a></td>
+                            <td>{{dic_row.n_rank_lm}}</td>
+                            <td>{{dic_row.n_rank_ly}}</td>
+                            <td>{{dic_row.n_amnt_tm|intcomma}}</td>
+                            <td>{{dic_row.n_amnt_lm|intcomma}}</td>
+                            <td>{{dic_row.n_amnt_ly|intcomma}}</td>
+                            <td>{{dic_row.n_qty_tm|intcomma}}</td>
+                            <td>{{dic_row.n_qty_lm|intcomma}}</td>
+                            <td>{{dic_row.n_qty_ly|intcomma}}</td>
+                            <td>{{dic_row.s_do_name}}</td>
+                            <td>{{dic_row.s_si_name}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- end - branch rank table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2> 당기 품목별 현황<small>EDI</small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="" role="tabpanel" data-example-id="togglable-tabs">
+                        <ul id="myTab" class="nav nav-tabs bar_tabs" role="tablist">
+                            <li role="presentation" class="active">
+                                <a href="#tab_content3" role="tab" id="profile-tab2" data-toggle="tab" aria-expanded="true">품목별 현황</a>
+                            </li>
+                            <li role="presentation" class="">
+                                <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="false">당월 공급액 순위</a>
+                            </li>
+                            <li role="presentation" class="">
+                                <a href="#tab_content2" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">당월 출고량 비교</a>
+                            </li>
+                        </ul>
+                        <div id="myTabContent" class="tab-content">
+                            <div role="tabpanel" class="tab-pane fade active in" id="tab_content3" aria-labelledby="profile-tab">
+                                <div style="height: {{n_sku_dashboard_div_height_px}}px; width: 100%;">
+                                    <p>당기 공급액 기준 상위 품목 혹은 선택 품목</p>
+                                    <!-- start project list -->
+                                    <table class="table table-striped projects">
+                                        <thead>
+                                        <tr>
+                                            <th>순위</th>
+                                            <th style="">마트명</th>
+                                            <th style="">제품명</th>
+                                            <th>당기 공급액%</th>
+                                            <th>당기 출고량%</th>
+                                            <th>최근 2년간 월간 공급액</th>
+                                            <th>최근 2년간 월간 출고량</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+{% for n_item_id, dict_sku in dict_top_5_sku_table.items %}
+                                        <tr>
+                                            <td>{{dict_sku.rank}}위</td>
+                                            <td>{{dict_sku.hypermart_name}}</td>
+                                            <td>
+                                                <a sku_id="{{n_item_id}}" class="lnk_go_sku"><b><u>{{dict_sku.item_name}}</u></b></a>
+                                                <br />
+                                                <small>최초 판매 {{dict_sku.s_detected_date}}</small>
+                                            </td>
+                                            <td class="project_progress">
+                                                <div class="progress progress_sm">
+                                                    <div class="progress-bar bg-green" role="progressbar" data-transitiongoal="{{dict_sku.shr_amnt}}"></div>
+                                                </div>
+                                                <small>{{dict_sku.amnt|intcomma}}원 ({{dict_sku.shr_amnt}}%)</small>
+                                            </td>
+                                            <td class="project_progress">
+                                                <div class="progress progress_sm">
+                                                    <div class="progress-bar bg-green" role="progressbar" data-transitiongoal="{{dict_sku.shr_qty}}"></div>
+                                                </div>
+                                                <small>{{dict_sku.qty|intcomma}}개 ({{dict_sku.shr_qty}}%)</small>
+                                            </td>
+                                            <td>
+                                                <span id="sparkline_bar_amnt_{{n_item_id}}" style="height: 160px;">
+                                                    <canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 120px;"></canvas>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span id="sparkline_bar_qty_{{n_item_id}}" style="height: 160px;">
+                                                    <canvas width="200" height="60" style="display: inline-block; vertical-align: top; width: 94px; height: 120px;"></canvas>
+                                                </span>
+                                            </td>
+                                        </tr>
+{% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <!-- end project list -->
+                                </div>
+                            </div>
+                            <div role="tabpanel" class="tab-pane fade" id="tab_content1" aria-labelledby="home-tab">
+                                <div style="height: 750px; width: 100%;">
+                                    {{ div.sell_in_amnt | safe }}
+                                </div>
+                            </div>
+                            <div role="tabpanel" class="tab-pane fade" id="tab_content2" aria-labelledby="profile-tab">
+                                <div style="height: 750px; width: 100%;">
+                                    {{ div.sell_out_qty | safe }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+        </div>
+    </div>
+<!-- end - tab daily revenue performance -->
+<!-- Datatables-->
+<link href="/static/skins/default/js/datatables/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/buttons.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/fixedHeader.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/responsive.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/scroller.bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+<script src="/static/skins/default/js/datatables/jquery.dataTables.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.bootstrap.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.buttons.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/jszip.min.js"></script>
+<script src="/static/skins/default/js/datatables/pdfmake.min.js"></script>
+<script src="/static/skins/default/js/datatables/vfs_fonts.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.html5.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.print.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.fixedHeader.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.keyTable.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.responsive.min.js"></script>
+<script src="/static/skins/default/js/datatables/responsive.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.scroller.min.js"></script>
+
+<script type="text/javascript">
+// filter sales ch
+jQuery('#filter_include_sales_ch').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_sales_ch").val();
+    aParamToAdd = Array();
+    aParamToAdd['sales_ch_inc'] = aSelected.join(',');
+    aParamToAdd['sales_ch_exc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_exclude_sales_ch').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_sales_ch").val();
+    aParamToAdd = Array();
+    aParamToAdd['sales_ch_inc'] = '';
+    aParamToAdd['sales_ch_exc'] = aSelected.join(',');
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_sales_ch_clear').bind('click', function () {
+    aParamToAdd = Array();
+    aParamToAdd['sales_ch_inc'] = '';
+    aParamToAdd['sales_ch_exc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+// filter branch
+jQuery('#filter_include_branch').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_branch").val();
+    aParamToAdd = Array();
+    aParamToAdd['branch_inc'] = aSelected.join(',');
+    aParamToAdd['branch_exc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_exclude_branch').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_branch").val();
+    aParamToAdd = Array();
+    aParamToAdd['branch_exc'] = aSelected.join(',');
+    aParamToAdd['branch_inc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_branch_clear').bind('click', function () {
+    aParamToAdd = Array();
+    aParamToAdd['branch_exc'] = '';
+    aParamToAdd['branch_inc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+// filter sku
+jQuery('#filter_include_sku').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_sku").val();
+    aParamToAdd = Array();
+    aParamToAdd['sku_inc'] = aSelected.join(',');
+    aParamToAdd['sku_exc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_exclude_sku').bind('click', function () {
+    // https://stackoverflow.com/questions/19908273/jquery-select2-get-value-of-select-tag
+    var aSelected = $("#filter_sku").val();
+    aParamToAdd = Array();
+    aParamToAdd['sku_exc'] = aSelected.join(',');
+    aParamToAdd['sku_inc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('#filter_sku_clear').bind('click', function () {
+    aParamToAdd = Array();
+    aParamToAdd['sku_exc'] = '';
+    aParamToAdd['sku_inc'] = '';
+    sTargetUrl = $.urlParam('same', 0, aParamToAdd)
+    window.location.href = sTargetUrl;
+});
+
+jQuery('.lnk_go_branch').bind('click', function () {
+    var nBranchId = jQuery(this).attr('branch_id');
+    if( nBranchId > 0 )
+    {
+        var aCurUrl = window.location.href.split('?');
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        sCurUrlBase = sCurUrlBase.replace( '/edi/', '/edi_by_branch/' )
+        window.location.href = sCurUrlBase + nBranchId;
+    }
+    else
+        alert('plz choose branch');
+});
+
+jQuery('.lnk_go_sku').bind('click', function () {
+    var nSkuId = jQuery(this).attr('sku_id');
+    console.log(nSkuId);
+    if( nSkuId > 0 )
+    {
+        var aCurUrl = window.location.href.split('?');
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        sCurUrlBase = sCurUrlBase.replace( '/edi/', '/edi_by_sku/' )
+        window.location.href = sCurUrlBase + nSkuId;
+    }
+    else
+        alert('plz choose sku');
+});
+
+jQuery(document).ready(function() {
+    jQuery('#datatable-responsive').DataTable();
+});
+</script>
+
+<script src="/static/skins/default/js/chartjs/chart.min.js"></script>
+<script>
+    Chart.defaults.global.legend = {
+      enabled: false
+    };
+
+    var ctx = document.getElementById("grossAmntChart");
+    var grossAmntChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2년전", "전년", "전기", "당기"],
+        datasets: [{
+          label: '공급액',
+          backgroundColor: "#6CBDAC",
+          data: {{dict_branch_gross.amnt}}
+        }]
+      },
+
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+    var ctx = document.getElementById("grossQtyChart");
+    var grossQtyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["2년전", "전년", "전기", "당기"],
+        datasets: [{
+          label: '출고량',
+          backgroundColor: "#6CBDAC",
+          data: {{dict_branch_gross.qty}}
+        }]
+      },
+
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+</script>
+<!-- sparkline -->
+<script src="/static/skins/default/js/sparkline/jquery.sparkline.min.js"></script>
+<script>
+$('document').ready(function() {
+
+{% for n_item_id, dict_sku in dict_top_5_sku_table.items %}
+      $("#sparkline_bar_amnt_{{n_item_id}}").sparkline({{dict_sku.lst_monthly_amnt}}, {
+        type: 'bar',
+        width: '170',
+		height: '35',
+        colorMap: {
+          '7': '#a1a1a1'
+        },
+        barColor: '#26B99A'
+      });
+
+      $("#sparkline_bar_qty_{{n_item_id}}").sparkline({{dict_sku.lst_monthly_qty}}, {
+        type: 'bar',
+        width: '170',
+		height: '35',
+        colorMap: {
+          '7': '#a1a1a1'
+        },
+        barColor: '#26B99A'
+      });
+{% endfor %}
+});
+</script>
+
+{% endblock %}

@@ -31,7 +31,7 @@ import pymysql
 # singleview library
 if __name__ == 'edi_extract': # for console debugging
     import edi_model
-    import sv_hypermart_geo_info
+    import sv_hypermart_model
 else: # for platform running
     pass
 
@@ -70,13 +70,13 @@ class TransformEdiExcel:
         self.__g_sActEdiFileFullPath = s_path_abs_unzip
         # begin - set csv transferring filename
         self.__g_dictEdiCsvFileMap = {
-            str(edi_model.HyperMartType.EMART) + '_' + str(edi_model.EdiDataType.QTY):
+            str(sv_hypermart_model.HyperMartType.EMART) + '_' + str(sv_hypermart_model.EdiDataType.QTY):
                 {'s_csv_filename': os.path.join(self.__g_sActEdiFileFullPath, 'compiled_emart_qty.csv'), 'b_db_proc': False},
-            str(edi_model.HyperMartType.EMART) + '_' + str(edi_model.EdiDataType.AMNT):
+            str(sv_hypermart_model.HyperMartType.EMART) + '_' + str(sv_hypermart_model.EdiDataType.AMNT):
                 {'s_csv_filename': os.path.join(self.__g_sActEdiFileFullPath, 'compiled_emart_amnt.csv'), 'b_db_proc': False},
-            str(edi_model.HyperMartType.LOTTEMART) + '_' + str(edi_model.EdiDataType.QTY_AMNT):
+            str(sv_hypermart_model.HyperMartType.LOTTEMART) + '_' + str(sv_hypermart_model.EdiDataType.QTY_AMNT):
                 {'s_csv_filename': os.path.join(self.__g_sActEdiFileFullPath, 'compiled_lottemart_qty_amnt.csv'), 'b_db_proc': False},
-            str(edi_model.HyperMartType.HOMEPLUS) + '_' + str(edi_model.EdiDataType.QTY_AMNT):
+            str(sv_hypermart_model.HyperMartType.HOMEPLUS) + '_' + str(sv_hypermart_model.EdiDataType.QTY_AMNT):
                 {'s_csv_filename': os.path.join(self.__g_sActEdiFileFullPath, 'compiled_homeplus_qty_amnt.csv'), 'b_db_proc': False},
         }
         # end - set csv transferring filename
@@ -84,16 +84,16 @@ class TransformEdiExcel:
         if lst_edi_file_info:
             self.__g_lstCsvTransferFile.clear()  # clear lst info to prevent short-term duplicated work
             for dict_single_edi in lst_edi_file_info:
-                if dict_single_edi['status'] != edi_model.ProgressStatus.UPLOADED:
+                if dict_single_edi['status'] != sv_hypermart_model.ProgressStatus.UPLOADED:
                     print(dict_single_edi['s_filename'] + ' is already on transforming')
                     continue
-                if dict_single_edi['n_hyper_mart'] == int(edi_model.HyperMartType.EMART):
-                    if dict_single_edi['n_edi_data_type'] == int(edi_model.EdiDataType.ESTIMATION) or \
-                        dict_single_edi['n_edi_data_type'] == int(edi_model.EdiDataType.NOT_SURE):
+                if dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.HyperMartType.EMART):
+                    if dict_single_edi['n_edi_data_type'] == int(sv_hypermart_model.EdiDataType.ESTIMATION) or \
+                        dict_single_edi['n_edi_data_type'] == int(sv_hypermart_model.EdiDataType.NOT_SURE):
                         raise Exception('plz define edi data type')
                     self.__g_lstCsvTransferFile.append(dict_single_edi)
-                elif dict_single_edi['n_hyper_mart'] == edi_model.HyperMartType.LOTTEMART or \
-                        dict_single_edi['n_hyper_mart'] == edi_model.HyperMartType.HOMEPLUS:
+                elif dict_single_edi['n_hyper_mart'] == sv_hypermart_model.HyperMartType.LOTTEMART or \
+                        dict_single_edi['n_hyper_mart'] == sv_hypermart_model.HyperMartType.HOMEPLUS:
                     self.__g_lstCsvTransferFile.append(dict_single_edi)
         return
 
@@ -110,19 +110,19 @@ class TransformEdiExcel:
         for dict_single_edi in self.__g_lstCsvTransferFile:
             s_csv_file_id = str(dict_single_edi['n_hyper_mart']) + '_' + str(dict_single_edi['n_edi_data_type'])
             s_csv_file_path = self.__g_dictEdiCsvFileMap[s_csv_file_id]['s_csv_filename']
-            if dict_single_edi['n_hyper_mart'] == int(edi_model.HyperMartType.EMART):
+            if dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.HyperMartType.EMART):
                 print('emart xls -> csv detected')
                 o_emart_excel.set_edi_data_year(dict_single_edi['n_edi_data_year'])
                 o_emart_excel.load_file(self.__g_sActEdiFileFullPath, dict_single_edi['s_filename'], b_data_year_est=False)
                 o_emart_excel.to_csv(s_csv_file_path)
                 self.__g_dictEdiCsvFileMap[s_csv_file_id]['b_db_proc'] = True
-            elif dict_single_edi['n_hyper_mart'] == int(edi_model.HyperMartType.LOTTEMART):
+            elif dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.HyperMartType.LOTTEMART):
                 print('lmart xls -> csv detected')
                 o_lmart_excel.load_file(self.__g_sActEdiFileFullPath, dict_single_edi['s_filename'])
                 o_lmart_excel.get_edi_data_year()
                 o_lmart_excel.to_csv(s_csv_file_path)
                 self.__g_dictEdiCsvFileMap[s_csv_file_id]['b_db_proc'] = True
-            elif dict_single_edi['n_hyper_mart'] == int(edi_model.HyperMartType.HOMEPLUS):
+            elif dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.HyperMartType.HOMEPLUS):
                 print('homeplus xls -> csv detected')
         del o_emart_excel
         del o_lmart_excel
@@ -145,13 +145,13 @@ class TransformEdiExcel:
             if o_csv_file.is_file():
                 lst_file_info = s_csv_file_id.split('_')  # [0]=HyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
-                if lst_file_info[0] == edi_model.HyperMartType.EMART:
+                if lst_file_info[0] == sv_hypermart_model.HyperMartType.EMART:
                     print('emart csv detected -> check new entity ')
                     return self.__emart_check_new(s_csv_file_path)
-                elif lst_file_info[0] == edi_model.HyperMartType.LOTTEMART:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.LOTTEMART:
                     print('lmart csv detected -> check new entity')
                     return self.__lmart_check_new(s_csv_file_path)
-                elif lst_file_info[0] == edi_model.HyperMartType.HOMEPLUS:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.HOMEPLUS:
                     print('HP csv detected -> check new entity')
                     print(s_csv_file_path + ' goes HP registering')
     
@@ -168,13 +168,13 @@ class TransformEdiExcel:
             if o_csv_file.is_file():
                 lst_file_info = s_csv_file_id.split('_')  # [0]=HyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
-                if lst_file_info[0] == edi_model.HyperMartType.EMART:
+                if lst_file_info[0] == sv_hypermart_model.HyperMartType.EMART:
                     print('emart csv -> db detected')
                     dict_rst = self.__emart_check_new(s_csv_file_path)
-                elif lst_file_info[0] == edi_model.HyperMartType.LOTTEMART:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.LOTTEMART:
                     print('lmart csv -> db detected')
                     dict_rst = self.__lmart_check_new(s_csv_file_path)
-                elif lst_file_info[0] == edi_model.HyperMartType.HOMEPLUS:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.HOMEPLUS:
                     print('HP csv -> db detected')
                     print(s_csv_file_path + ' goes HP registering')
         
@@ -204,13 +204,13 @@ class TransformEdiExcel:
             if o_csv_file.is_file():
                 lst_file_info = s_csv_file_id.split('_')  # [0]=HyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
-                if lst_file_info[0] == edi_model.HyperMartType.EMART:
+                if lst_file_info[0] == sv_hypermart_model.HyperMartType.EMART:
                     print('emart csv -> db detected')
                     self.__emart_csv_to_db(s_csv_file_path, lst_file_info[1])
-                elif lst_file_info[0] == edi_model.HyperMartType.LOTTEMART:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.LOTTEMART:
                     print('lmart csv -> db detected')
                     self.__lmart_csv_to_db(s_csv_file_path)
-                elif lst_file_info[0] == edi_model.HyperMartType.HOMEPLUS:
+                elif lst_file_info[0] == sv_hypermart_model.HyperMartType.HOMEPLUS:
                     print('HP csv -> db detected')
                     print(s_csv_file_path + ' goes HP registering')
 
@@ -264,7 +264,7 @@ class TransformEdiExcel:
         :param n_emart_data_type:
         :return:
         """
-        s_emart_id = str(edi_model.HyperMartType.EMART)
+        s_emart_id = str(sv_hypermart_model.HyperMartType.EMART)
         f = open(s_csv_file, 'r')
         reader = csv.reader(f, delimiter=",")
         for i, line in enumerate(reader):
@@ -291,26 +291,26 @@ class TransformEdiExcel:
             lst_rst = self.__g_oSvDb.executeQuery('getEmartLogByItemBranchDate', n_sku_id, n_branch_id, line[5])
             s_query_stmt = None
             if len(lst_rst) == 0:  # add new log; emart separate QTY and AMNT report
-                if n_emart_data_type == edi_model.EdiDataType.QTY:
+                if n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
                     s_query_stmt = 'insertEmartDailyQtyLog'
-                elif n_emart_data_type == edi_model.EdiDataType.AMNT:
+                elif n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
                     s_query_stmt = 'insertEmartDailyAmntLog'
                 self.__g_oSvDb.executeQuery(s_query_stmt, n_sku_id, n_branch_id, line[4], line[5])
             elif len(lst_rst) == 1:  # update existing log; emart separate QTY and AMNT report
                 n_log_id = lst_rst[0]['id']
                 if lst_rst[0]['qty'] != 0:
-                    if n_emart_data_type == edi_model.EdiDataType.QTY:
+                    if n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
                         print('denied: duplicated emart qty for log id -> ' + str(n_log_id) + ' on date ' +
                               str(line[5]) + ' qty -> ' + str(line[4]))
                         continue
-                    elif n_emart_data_type == edi_model.EdiDataType.AMNT:
+                    elif n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
                         s_query_stmt = 'updateEmartDailyAmntLog'
                 elif lst_rst[0]['amnt'] != 0:
-                    if n_emart_data_type == edi_model.EdiDataType.AMNT:
+                    if n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
                         print('denied: duplicated emart amnt for log id -> ' + str(n_log_id) + ' on date ' +
                               str(line[5]) + ' amnt -> ' + str(line[4]))
                         continue
-                    elif n_emart_data_type == edi_model.EdiDataType.QTY:
+                    elif n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
                         s_query_stmt = 'updateEmartDailyQtyLog'
                 if s_query_stmt is None:
                     raise Exception('data corrupted')  # need user define Exception    
@@ -331,7 +331,7 @@ class TransformEdiExcel:
         :param s_csv_file:
         :return:
         """
-        s_ltmart_id = str(edi_model.HyperMartType.LOTTEMART)
+        s_ltmart_id = str(sv_hypermart_model.HyperMartType.LOTTEMART)
         f = open(s_csv_file, 'r')
         reader = csv.reader(f, delimiter=",")
         for i, line in enumerate(reader):
@@ -386,8 +386,8 @@ class TransformEdiExcel:
         f.close()
 
     def __get_hypermart_branch_info(self):
-        dict_branch_by_title = edi_model.HyperMartType.get_dict_by_title()
-        o_mart_geo_info = sv_hypermart_geo_info.svHypermartGeoInfo()
+        dict_branch_by_title = sv_hypermart_model.HyperMartType.get_dict_by_title()
+        o_mart_geo_info = sv_hypermart_model.SvHypermartGeoInfo()
         for dict_single_branch in o_mart_geo_info.lst_hypermart_geo_info:
             n_hypermart_id = dict_branch_by_title[dict_single_branch['hypermart_name']]
             self.__g_dictBranchInfo[str(n_hypermart_id)+'_'+dict_single_branch['branch_code']] = dict_single_branch['id']
@@ -411,7 +411,7 @@ class TransformEdiExcel:
         :param s_csv_file:
         :return:
         """
-        s_ltmart_id = str(edi_model.HyperMartType.LOTTEMART)
+        s_ltmart_id = str(sv_hypermart_model.HyperMartType.LOTTEMART)
         dict_new_branch = {}
         dict_new_sku = {}
         f = open(s_csv_file, 'r')
@@ -448,7 +448,7 @@ class TransformEdiExcel:
         :param s_csv_file:
         :return:
         """
-        s_emart_id = str(edi_model.HyperMartType.EMART)
+        s_emart_id = str(sv_hypermart_model.HyperMartType.EMART)
         dict_new_branch = {}
         dict_new_sku = {}
         f = open(s_csv_file, 'r')
