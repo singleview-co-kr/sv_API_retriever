@@ -34,11 +34,19 @@
                                  <div class="x_content">
                                      <div class="">
                                          <div class="pricing_features">
-                                             <i class="fa fa-circle text-danger"></i> 데이터 추출
-                                             <ul class="list text-left">
-                                                 <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">API 추출</a></li>
-                                                 <li><a href="{% url 'svupload:index' dict_brand.n_brand_id %}">파일 목록</a></li>
-                                             </ul>
+                                            <i class="fa fa-circle text-danger"></i> 데이터 시각화
+                                            <ul class="list text-left">
+                                               <li><a href="{% url 'svload:index' dict_brand.n_brand_id %}">Today Focus</a></li>
+                                               <li><a href="{% url 'svload:ga_media' dict_brand.n_brand_id %}">GA & Media</a></li>
+                                               <li><a href="{% url 'svload:edi_today' dict_brand.n_brand_id %}">EDI</a></li>
+                                               <li><a href="{% url 'svload:morpheme' dict_brand.n_brand_id %}">고객 바이럴</a></li>
+                                               <li><a href="{% url 'svload:budget_list' dict_brand.n_brand_id %}">예산 설정</a></li>
+                                            </ul>
+                                            <i class="fa fa-circle text-danger"></i> 데이터 추출
+                                            <ul class="list text-left">
+                                                <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">API 추출</a></li>
+                                                <li><a href="{% url 'svupload:index' dict_brand.n_brand_id %}">파일 목록</a></li>
+                                            </ul>
                                          </div>
                                      </div>
                                  </div>

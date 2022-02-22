@@ -25,13 +25,75 @@
 # standard library
 
 # singleview library
-if __name__ == 'internal_search': # for console debugging
-    pass
-else: # for platform running
-    pass
+# if __name__ == 'sv_hypermart_model': # for console debugging
+#     pass
+# else: # for platform running
+#     pass
+
+from django.db import models
 
 
-class svHypermartGeoInfo():
+# to write korean string from excel into csv, or exception 'ascii' codec can't encode characters in position - begin
+# # http://blog.dscpl.com.au/2014/09/setting-lang-and-lcall-when-using.html -> launch WSGI Daemon with utf-8 locale is first
+# import locale
+# import platform
+# s_os_title = platform.system()
+# if s_os_title == 'Linux':
+#    # https://stackoverflow.com/questions/9942594/unicodeencodeerror-ascii-codec-cant-encode-character-u-xa0-in-position-20
+#    os.environ["PYTHONIOENCODING"] = "utf-8"
+#    myLocale=locale.setlocale(category=locale.LC_ALL, locale="ko_KR.UTF-8")
+# elif s_os_title == 'Window':
+#    pass
+# # to write korean string from excel into csv, or exception 'ascii' codec can't encode characters in position - end
+class HyperMartType(models.IntegerChoices):
+    # https://docs.djangoproject.com/en/3.1/ref/models/fields/#enumeration-types
+    ESTIMATION = 1, '분석 중'
+    NOT_SURE = 2, '판단 불가'
+    EMART = 3, 'Emart'
+    LOTTEMART = 4, 'Lottemart'
+    HOMEPLUS = 5, 'Homeplus'
+
+    @classmethod
+    def get_dict_by_idx(cls):
+        return {key.value: key.name.title() for key in cls}
+
+    @classmethod
+    def get_dict_by_title(cls):
+        return {key.name.title(): key.value for key in cls}
+
+
+class EdiDataType(models.IntegerChoices):
+    """사용자가 직접 업로드한 파일에서 추출한 실제 로우 데이터 파일 기록: 개별 엑셀 파일"""
+    ESTIMATION = 1, '분석 중'
+    NOT_SURE = 2, '판단 불가'  # for emart only
+    IGNORE = 3, '무시'
+    QTY = 4, '수량 EDI'  # for emart only
+    AMNT = 5, '금액 EDI'  # for emart only
+    QTY_AMNT = 6, '수량금액 EDI'  # for lottemart, homeplus
+
+
+class BranchType(models.IntegerChoices):
+    OFFLINE = 1, 'Offline'
+    ONLINE = 2, 'Online'
+
+    @classmethod
+    def choices(cls):
+        return [(key.value, key.name) for key in cls]
+    
+    @classmethod
+    def get_dict_by_title(cls):
+        return {key.name.title(): key.value for key in cls}
+
+
+
+class ProgressStatus(models.IntegerChoices):
+    DENIED = 1, '거부'  # data file has been uploaded
+    UPLOADED = 2, '업로드 완료'  # data file has been uploaded
+    ON_TRANSFORMING = 3, '변환 중'  # data file is on transforming to csv
+    TRANSFORMED = 4, '변환 완료'  # data file has been transformed to csv
+
+
+class SvHypermartGeoInfo():
     lst_hypermart_geo_info = [
         {'id': 1, 'hypermart_name': 'Emart', 'branch_code': '1000', 'name': '창동점', 'branch_type': 'Offline', 'do_name': '서울', 'si_name': '서울특별시', 'gu_gun': '도봉구', 'dong_myun_ri': '창동', 'latitude': '37.651793', 'longitude': '127.046965'},
         {'id': 2, 'hypermart_name': 'Emart', 'branch_code': '1001', 'name': '일산점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '고양시', 'gu_gun': '일산동구', 'dong_myun_ri': '백석동', 'latitude': '37.648015', 'longitude': '126.782407'},
@@ -334,4 +396,5 @@ class svHypermartGeoInfo():
         pass
 
     def __del__(self):
+        self.lst_hypermart_geo_info
         pass

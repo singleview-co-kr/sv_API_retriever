@@ -7,6 +7,7 @@
 misc/dbs.pid
 conf/
 files/
+media/
 storage/
 log/
 changeLog_dbs.txt

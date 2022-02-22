@@ -7,61 +7,13 @@ import csv
 from datetime import datetime
 # from edi_models import BranchType, HyperMartType, EdiDataType, ProgressStatus
 
-from django.db import models
+# from django.db import models
 
-# to write korean string from excel into csv, or exception 'ascii' codec can't encode characters in position - begin
-# # http://blog.dscpl.com.au/2014/09/setting-lang-and-lcall-when-using.html -> launch WSGI Daemon with utf-8 locale is first
-# import locale
-# import platform
-# s_os_title = platform.system()
-# if s_os_title == 'Linux':
-#    # https://stackoverflow.com/questions/9942594/unicodeencodeerror-ascii-codec-cant-encode-character-u-xa0-in-position-20
-#    os.environ["PYTHONIOENCODING"] = "utf-8"
-#    myLocale=locale.setlocale(category=locale.LC_ALL, locale="ko_KR.UTF-8")
-# elif s_os_title == 'Window':
-#    pass
-# # to write korean string from excel into csv, or exception 'ascii' codec can't encode characters in position - end
-class HyperMartType(models.IntegerChoices):
-    # https://docs.djangoproject.com/en/3.1/ref/models/fields/#enumeration-types
-    ESTIMATION = 1, '분석 중'
-    NOT_SURE = 2, '판단 불가'
-    EMART = 3, 'Emart'
-    LOTTEMART = 4, 'Lottemart'
-    HOMEPLUS = 5, 'Homeplus'
-
-    @classmethod
-    def get_dict_by_idx(cls):
-        return {key.value: key.name.title() for key in cls}
-
-    @classmethod
-    def get_dict_by_title(cls):
-        return {key.name.title(): key.value for key in cls}
-
-
-class EdiDataType(models.IntegerChoices):
-    """사용자가 직접 업로드한 파일에서 추출한 실제 로우 데이터 파일 기록: 개별 엑셀 파일"""
-    ESTIMATION = 1, '분석 중'
-    NOT_SURE = 2, '판단 불가'  # for emart only
-    IGNORE = 3, '무시'
-    QTY = 4, '수량 EDI'  # for emart only
-    AMNT = 5, '금액 EDI'  # for emart only
-    QTY_AMNT = 6, '수량금액 EDI'  # for lottemart, homeplus
-
-
-class BranchType(models.IntegerChoices):
-    OFFLINE = 1, 'Offline'
-    ONLINE = 2, 'Online'
-
-    @classmethod
-    def choices(cls):
-        return [(key.value, key.name) for key in cls]
-
-
-class ProgressStatus(models.IntegerChoices):
-    # DENIED = 1, '거부'  # data file has been uploaded
-    UPLOADED = 2, '업로드 완료'  # data file has been uploaded
-    ON_TRANSFORMING = 3, '변환 중'  # data file is on transforming to csv
-    TRANSFORMED = 4, '변환 완료'  # data file has been transformed to csv
+# singleview library
+if __name__ == 'edi_model': # for console debugging
+    import sv_hypermart_model
+else: # for platform running
+    pass
 
 
 class SvEdiExcel:
@@ -83,7 +35,7 @@ class SvEdiExcel:
         o_book = xlrd.open_workbook(s_excel_filename)
         self.__g_oActiveSheet = o_book.sheet_by_index(0)
 
-        n_hyper_mart = HyperMartType.NOT_SURE
+        n_hyper_mart = sv_hypermart_model.HyperMartType.NOT_SURE
         n_edi_data_type = None
         n_edi_data_year = None  # for emart only
         if self.__is_emart():  # try emart
@@ -91,7 +43,7 @@ class SvEdiExcel:
             o_excel = EmartEdiExcel()
             o_excel.set_edi_data_year(self.__g_nEdiDataYear)  # 개별 EDI 파일에 연도 추정 표시가 없으면 사용
             o_excel.load_file(s_unzip_path, s_unzipped_file, b_data_year_est=True)
-            n_hyper_mart = HyperMartType.EMART
+            n_hyper_mart = sv_hypermart_model.HyperMartType.EMART
             n_edi_data_year = o_excel.get_edi_data_year()
             n_edi_data_type = o_excel.lookup_edi_data_type()
             del o_excel
@@ -99,20 +51,20 @@ class SvEdiExcel:
             print('lotte mart detected')
             o_excel = LotteMartEdiExcel()
             o_excel.load_file(s_unzip_path, s_unzipped_file)
-            n_hyper_mart = HyperMartType.LOTTEMART
+            n_hyper_mart = sv_hypermart_model.HyperMartType.LOTTEMART
             n_edi_data_year = o_excel.get_edi_data_year()
-            n_edi_data_type = EdiDataType.QTY_AMNT
+            n_edi_data_type = sv_hypermart_model.EdiDataType.QTY_AMNT
             del o_excel
         else:
             dict_rst['s_msg'] = 'invalid hypermart EDI file detected'
-            # print(HyperMartType.HOMEPLUS)
-            # print(HyperMartType.NOT_SURE)
+            # print(sv_hypermart_model.HyperMartType.HOMEPLUS)
+            # print(sv_hypermart_model.HyperMartType.NOT_SURE)
 
         dict_rst['b_err'] = False
         dict_rst['dict_val'] = {'n_edi_data_year': n_edi_data_year,
                                 'n_hyper_mart': n_hyper_mart,
                                 'n_edi_data_type': n_edi_data_type,  # 이마트만 수량과 금액 파일을 분리함
-                                'status': ProgressStatus.UPLOADED}
+                                'status': sv_hypermart_model.ProgressStatus.UPLOADED}
         return dict_rst
 
     def __is_emart(self):
@@ -275,7 +227,7 @@ class LotteMartEdiExcel:
 
 
 class EmartEdiExcel:
-    __g_dictDataType = {EdiDataType.QTY: 'qty', EdiDataType.AMNT: 'amnt'}
+    __g_dictDataType = {sv_hypermart_model.EdiDataType.QTY: 'qty', sv_hypermart_model.EdiDataType.AMNT: 'amnt'}
     __g_dictColTitleTranslation = {'상품코드': 'item_code', '상품명': 'item_name', '점포코드': 'shop_code', '점포명': 'shop_name'}
 
     def __new__(cls):
@@ -499,11 +451,11 @@ class EmartEdiExcel:
         # print(lst_edifile_date_col_info)
 
         if dict_vote['qty'] > dict_vote['amnt']:
-            return EdiDataType.QTY
+            return sv_hypermart_model.EdiDataType.QTY
         elif dict_vote['qty'] < dict_vote['amnt']:
-            return EdiDataType.AMNT
+            return sv_hypermart_model.EdiDataType.AMNT
         else:
-            return EdiDataType.NOT_SURE
+            return sv_hypermart_model.EdiDataType.NOT_SURE
 
     def get_edi_data_date_lst(self):
         dict_edifile_data_type_col_info = {}  # emart edi 파일이 수량인지 금액인 판별하기 위한 [합계] [평균] 컬럼 위치 저장

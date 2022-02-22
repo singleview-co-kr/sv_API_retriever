@@ -33,4 +33,5 @@ urlpatterns = [
 
     path('extract/', include('svextract.urls')),
     path('upload/', include('svupload.urls')),
+    path('load/', include('svload.urls')),
 ]
