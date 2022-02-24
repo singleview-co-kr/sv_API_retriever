@@ -228,7 +228,6 @@ class FocusTodayEdi(LoginRequiredMixin, TemplateView):
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
-        # n_brand_id = dict_rst['dict_ret']['n_brand_id']
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
 
@@ -337,7 +336,6 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
-        # n_brand_id = dict_rst['dict_ret']['n_brand_id']
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
         n_branch_id = kwargs['branch_id']
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
@@ -457,8 +455,6 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
-
         from .pandas_plugins.edi_by_branch import Performance
         o_branch = Performance()
         dict_rst = o_branch.add_memo(o_sv_db, int(kwargs['branch_id']), n_brand_id, request)
@@ -488,7 +484,6 @@ class BySkuEdi(LoginRequiredMixin, TemplateView):
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
-        # n_brand_id = dict_rst['dict_ret']['n_brand_id']
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
 
@@ -620,7 +615,6 @@ class BudgetView(LoginRequiredMixin, TemplateView):
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'add_budget':
-            # n_brand_id = dict_rst['dict_ret']['n_brand_id']
             from .pandas_plugins.budget import Budget
             o_budget = Budget(o_sv_db)
             dict_rst = o_budget.add_budget(n_brand_id, request)

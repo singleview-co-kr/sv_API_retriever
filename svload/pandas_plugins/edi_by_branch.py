@@ -294,7 +294,7 @@ class Performance:
         del o_emart_sampler
         return dict_top_n
 
-    def add_memo(self, o_sv_db, n_branch_id, n_brand_id, request):
+    def add_memo(self, o_sv_db, n_branch_id, request):
         a_period = request.POST['period_date'].split(' - ')
         s_memo = request.POST['memo']
 
@@ -317,6 +317,6 @@ class Performance:
         except ValueError:
             return False
         # end - validation
-        o_sv_db.executeQuery('insertBranchMemo', request.user.pk, n_brand_id, n_branch_id, s_memo,
-                             dt_memo_date_begin, dt_memo_date_end)
+        o_sv_db.executeQuery('insertBranchMemo', request.user.pk, n_branch_id, s_memo,
+                                dt_memo_date_begin, dt_memo_date_end)
         return {}

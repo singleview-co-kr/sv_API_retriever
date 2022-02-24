@@ -75,7 +75,6 @@ class EdiRaw:
             self.__g_dictEdiSku = {1: {'hypermart_name': 'Emart', 'selected': '', 'mart_id': 3, 'name': 'none', 'first_detect_logdate': date.today()}}  # raise Exception('invalid dict_sku')
         else:
             self.__g_dictEdiSku = dict_sku
-        # self.__g_dfEdiSku = pd.DataFrame(dict_sku).transpose()
 
     def load_sch_gross_by_item_id_list(self, o_db, n_sch_id):
         if not o_db:  # refer to an external db instance to minimize data class
@@ -112,9 +111,6 @@ class EdiRaw:
             raise Exception('not ready to load dataframe to analyze')
 
         # retrieve sku id list, convert int id to string id
-        # lst_edi_sku_id = [str(n_sku_id) for n_sku_id in list(self.__g_dictEdiSku.keys())]
-        # dict_param_tmp = {'s_req_sku_set': ','.join(lst_edi_sku_id), 's_period_start': self.__g_dtDesignatedFirstDate,
-        #                   's_period_end': self.__g_dtDesignatedLastDate}
         dict_param_tmp = {'s_period_start': self.__g_dtDesignatedFirstDate,
                           's_period_end': self.__g_dtDesignatedLastDate}
 
