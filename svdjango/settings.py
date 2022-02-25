@@ -53,8 +53,8 @@ INSTALLED_APPS = [
     'svload.apps.SvloadConfig',
     'svextract.apps.SvextractConfig',
     'svupload.apps.SvuploadConfig',  # for template
-    'svauth',  # for user model customization
-    'svacct',
+    'svauth.apps.SvauthConfig',  # for user model customization
+    'svacct.apps.SvacctConfig',
     'django.contrib.humanize',  # for number formatter on template
 ]
 
@@ -112,7 +112,8 @@ DATABASES = {
         'HOST': config('db_hostname'),
         'PORT': config('db_port'),
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES';",
+	    'charset': 'utf8',
         },
     }
 }

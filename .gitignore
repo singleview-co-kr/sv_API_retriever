@@ -18,6 +18,7 @@ changeLog.txt
 __pycache__/
 __init__.py
 !svauth/migrations/__init__.py
+!svacct/migrations/__init__.py
 *.py[cod]
 *$py.class
 
