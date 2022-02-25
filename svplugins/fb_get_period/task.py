@@ -69,7 +69,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Feb 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -143,7 +143,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         sAccessToken = fb_biz_config.ACCESS_TOKEN
         sAdAccountId = 'act_'+sFbBizAid
-        FacebookAdsApi.init(access_token=sAccessToken, api_version='v11.0')
+        FacebookAdsApi.init(access_token=sAccessToken, api_version='v12.0')
         lstAd = []
         sAdCreativeFilepath = os.path.join(sDownloadPath, 'ad_creative.tsv')
         try:
