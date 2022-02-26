@@ -42,7 +42,7 @@ elif __name__ == '__main__': # for class console debugging
     import sv_object
 
     
-class svTwitter(sv_object.ISvObject):
+class SvTwitter(sv_object.ISvObject):
     """  """
     __g_oTwitterApi = None
     __g_bAvailable = False
@@ -154,7 +154,7 @@ class svTwitter(sv_object.ISvObject):
 
 
 # if __name__ == '__main__': # for console debugging
-#     oSvTwitter = svTwitter()
+#     oSvTwitter = SvTwitter()
 #     # n_twt_limit = 110
 #     # since_id=1458220286151921666,  # 육아
 #     # max_id=1458220438266388494,  # 육아

@@ -152,9 +152,13 @@ class SvStorage():
     def get_uploaded_file_all(self):
         return self.__g_oSvMysql.executeQuery('getUploadedFileAll')
 
-    def get_uploaded_file(self, n_file_id):  
+    def get_uploaded_file(self, n_file_id):
         # access right control - n_user_id, b_admin, 
         dict_rst = {'b_err': False, 's_msg': None, 'dict_val': None}
+        if not n_file_id.isdigit():
+            dict_rst['b_err'] = True
+            dict_rst['s_msg'] = 'invalid sv file id'
+            return dict_rst
         s_acct_id = self.__g_dictSvAcctInfo['s_sv_acct_id']
         s_brand_id = self.__g_dictSvAcctInfo['s_brand_id']
         dict_req_file = self.__get_file_info_by_id(n_file_id)

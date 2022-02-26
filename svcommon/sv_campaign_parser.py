@@ -38,7 +38,7 @@ elif __name__ == '__main__': # for class console debugging
     sys.path.append('../svcommon')
     import sv_object
 
-class svCampaignParser(sv_object.ISvObject):
+class SvCampaignParser(sv_object.ISvObject):
     """ campaign parser class for singleview only 
         naver=NV, google=GG, youtube=YT, facebook=FB, instagram=IN, daumkakao=DAUM
         TG=targetinggates
@@ -403,5 +403,5 @@ class svCampaignParser(sv_object.ISvObject):
 
 			
 #if __name__ == '__main__': # for console debugging
-#	oSvCampaignParser = svCampaignParser()
+#	oSvCampaignParser = SvCampaignParser()
 #	oSvCampaignParser.sendMsg('ddd')

@@ -45,7 +45,7 @@ from django.db import models
 # elif s_os_title == 'Window':
 #    pass
 # # to write korean string from excel into csv, or exception 'ascii' codec can't encode characters in position - end
-class HyperMartType(models.IntegerChoices):
+class SvHyperMartType(models.IntegerChoices):
     # https://docs.djangoproject.com/en/3.1/ref/models/fields/#enumeration-types
     ESTIMATION = 1, '분석 중'
     NOT_SURE = 2, '판단 불가'

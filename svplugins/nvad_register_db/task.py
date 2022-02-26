@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -165,7 +165,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return False
 
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
-        oSvCampaignParser = sv_campaign_parser.svCampaignParser()
+        oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')

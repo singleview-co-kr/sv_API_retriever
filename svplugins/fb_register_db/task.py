@@ -49,11 +49,11 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()
+    __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 

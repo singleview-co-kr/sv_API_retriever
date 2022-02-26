@@ -17,6 +17,8 @@ changeLog.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 __init__.py
+
+### for makemigration ###
 !svauth/migrations/__init__.py
 !svacct/migrations/__init__.py
 *.py[cod]

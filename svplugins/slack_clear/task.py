@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         self._g_dictParam.update({'slack_ch_ttl':None})
 
     def __del__(self):
@@ -60,7 +60,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
         s_slack_ch_title = self._g_dictParam['slack_ch_ttl']
-        o_sv_slack = sv_slack.svSlack(sCallingBot='dbs')
+        o_sv_slack = sv_slack.SvSlack(sCallingBot='dbs')
         
         self._printDebug('Prepare to clear slack channel - ' + s_slack_ch_title)
         o_slack_cleaner = o_sv_slack.get_slack_cleaner(s_slack_ch_title)

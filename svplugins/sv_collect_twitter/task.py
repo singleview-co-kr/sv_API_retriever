@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -123,7 +123,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lst_rst = o_sv_mysql.executeQuery('getLatestStatusId', n_morpheme_srl)
             n_since_id = lst_rst[0]['status_id']
 
-        o_sv_twitter = sv_twitter.svTwitter()
+        o_sv_twitter = sv_twitter.SvTwitter()
         lst_status = o_sv_twitter.searchQuery(s_morpheme, n_twt_limit=50, n_since_id=n_since_id)
         del o_sv_twitter
         lst_status_registered = []

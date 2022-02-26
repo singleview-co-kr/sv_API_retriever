@@ -60,14 +60,14 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()  #None
+    __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()  #None
     __g_nPnsTouchingDate = 20190126 # to seperate the old & non-systematic & complicated situation for PNS cost process
     __g_dictNvPnsUaCostPortion = {'M':0.7, 'P':0.3} # sum must be 1
     __g_sSvNull = '#%'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 

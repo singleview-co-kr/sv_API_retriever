@@ -31,7 +31,7 @@ try:
 except ModuleNotFoundError:
     print('start initialize proc')
     from svcommon import sv_install
-    o_install = sv_install.svInstall()
+    o_install = sv_install.SvInstall()
     o_install.start_up_dbs()
     sys.exit("sv_API_retriever has been installed successfully")
 
@@ -112,7 +112,7 @@ class setSvDaemon(daemonocle.Daemon):
 def cb_shutdown(message, code):
     logging.info(__file__ + ' v' + g_sVersion + ' has been shutdown')
     logging.debug(message)
-    oSvSlack = sv_slack.svSlack('dbs')
+    oSvSlack = sv_slack.SvSlack('dbs')
     oSvSlack.sendMsg('bot has been shutdown')
 
 @click.command(cls=DaemonCLI, daemon_class=setSvDaemon, daemon_params={'shutdown_callback': cb_shutdown, 'pidfile': './misc/dbs.pid'})
@@ -161,7 +161,7 @@ def _startScheduler():
         })
     g_oScheduler.add_listener(_my_listener, events.EVENT_JOB_EXECUTED | events.EVENT_JOB_ERROR)
     g_oScheduler.start()
-    oSvSlack = sv_slack.svSlack('dbs')
+    oSvSlack = sv_slack.SvSlack('dbs')
     oSvSlack.sendMsg('bot has been started')
 
 def _arouseDbo(nParentJobId):
@@ -176,7 +176,7 @@ def _arouseDbo(nParentJobId):
     # if dbo.py PID exists
     #oLogger.debug(nPid)
     if nPid > 0:
-        oSvSlack = sv_slack.svSlack('dbs')
+        oSvSlack = sv_slack.SvSlack('dbs')
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             lstRootJob = oSvMysql.executeQuery('getJobBySrl', nParentJobId )
             #oLogger.debug(lstRootJob)
@@ -223,7 +223,7 @@ def _my_listener(event):
     # http://apscheduler.readthedocs.io/en/latest/modules/events.html
     # http://nullege.com/codes/show/src%40c%40k%40ckan-service-provider-HEAD%40ckanserviceprovider%40web.py/69/apscheduler.events.EVENT_JOB_ERROR/python
     oLogger = logging.getLogger(__file__)
-    oSvSlack = sv_slack.svSlack('dbs')
+    oSvSlack = sv_slack.SvSlack('dbs')
     #oLogger.debug(event.code)  # raised event code defined by APS; normal completion designates 4096 = events.EVENT_JOB_EXECUTED
     #oLogger.debug(event.exception) # raised event code defined by sys.exit(); normal completion designates None
 

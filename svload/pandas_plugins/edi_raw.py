@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import date
 
-from svcommon.sv_hypermart_model import HyperMartType, SvHypermartGeoInfo
+from svcommon.sv_hypermart_model import SvHyperMartType, SvHypermartGeoInfo
 
 # for logger
 import logging
@@ -75,6 +75,7 @@ class EdiRaw:
             self.__g_dictEdiSku = {1: {'hypermart_name': 'Emart', 'selected': '', 'mart_id': 3, 'name': 'none', 'first_detect_logdate': date.today()}}  # raise Exception('invalid dict_sku')
         else:
             self.__g_dictEdiSku = dict_sku
+        # self.__g_dfEdiSku = pd.DataFrame(dict_sku).transpose()
 
     def load_sch_gross_by_item_id_list(self, o_db, n_sch_id):
         if not o_db:  # refer to an external db instance to minimize data class
@@ -85,9 +86,9 @@ class EdiRaw:
         dict_param_tmp = {'s_period_start': self.__g_dtDesignatedFirstDate,
                           's_period_end': self.__g_dtDesignatedLastDate}
 
-        if n_sch_id == HyperMartType.EMART.value:
+        if n_sch_id == SvHyperMartType.EMART.value:
             lst_sch_raw_data = self.__load_emart_edi(dict_param_tmp)
-        elif n_sch_id == HyperMartType.LOTTEMART.value:
+        elif n_sch_id == SvHyperMartType.LOTTEMART.value:
             lst_sch_raw_data = self.__load_ltmart_edi(dict_param_tmp)
         else:
             lst_sch_raw_data = []
@@ -111,10 +112,13 @@ class EdiRaw:
             raise Exception('not ready to load dataframe to analyze')
 
         # retrieve sku id list, convert int id to string id
+        # lst_edi_sku_id = [str(n_sku_id) for n_sku_id in list(self.__g_dictEdiSku.keys())]
+        # dict_param_tmp = {'s_req_sku_set': ','.join(lst_edi_sku_id), 's_period_start': self.__g_dtDesignatedFirstDate,
+        #                   's_period_end': self.__g_dtDesignatedLastDate}
         dict_param_tmp = {'s_period_start': self.__g_dtDesignatedFirstDate,
                           's_period_end': self.__g_dtDesignatedLastDate}
 
-        dict_hypermart_type = HyperMartType.get_dict_by_idx()
+        dict_hypermart_type = SvHyperMartType.get_dict_by_idx()
         del dict_hypermart_type[1]  # remove ESTIMATION
         del dict_hypermart_type[2]  # remove NOT_SURE
         lst_extract_hypermart_type = []
@@ -125,22 +129,22 @@ class EdiRaw:
                     lst_extract_hypermart_type.append(n_hypermart_id)
 
         # begin - Emart
-        if HyperMartType.EMART.value in lst_extract_hypermart_type:
+        if SvHyperMartType.EMART.value in lst_extract_hypermart_type:
             lst_raw_data_emart = self.__load_emart_edi(dict_param_tmp)
         else:
             lst_raw_data_emart = []
         # lst_raw_data_emart = []
-        # if HyperMartType.EMART.value in lst_extract_hypermart_type:
+        # if SvHyperMartType.EMART.value in lst_extract_hypermart_type:
         #    lst_raw_data_emart = o_db.executeDynamicQuery('getEmartLogByItemId', dict_param_tmp)
         # end - Emart
 
         # begin - Lotte mart
-        if HyperMartType.LOTTEMART.value in lst_extract_hypermart_type:
+        if SvHyperMartType.LOTTEMART.value in lst_extract_hypermart_type:
             lst_raw_data_ltmart = self.__load_ltmart_edi(dict_param_tmp)
         else:
             lst_raw_data_ltmart = []
         # lst_raw_data_ltmart = []
-        # if HyperMartType.LOTTEMART.value in lst_extract_hypermart_type:
+        # if SvHyperMartType.LOTTEMART.value in lst_extract_hypermart_type:
         #    if self.__g_sFreqMode == 'day':
         #        lst_raw_data_ltmart = o_db.executeDynamicQuery('getLtmartLogByItemIdLogdateSince', dict_param_tmp)
         #        lst_raw_data_ltmart_daily_allocated = []
@@ -193,10 +197,10 @@ class EdiRaw:
         dict_single_branch_info = list(self.__g_dictEdiBranchId.values())[0]
         # retrieve sku id list, convert int id to string id
         n_hypermart_id = dict_single_branch_info['hypermart_id']
-        if n_hypermart_id == HyperMartType.EMART.value:
+        if n_hypermart_id == SvHyperMartType.EMART.value:
             lst_branch_raw_data = self.__g_oSvDb.executeQuery('getEmartLogByBranchId', self.__g_dtDesignatedFirstDate,
                                                                 self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
-        elif n_hypermart_id == HyperMartType.LOTTEMART.value:
+        elif n_hypermart_id == SvHyperMartType.LOTTEMART.value:
             lst_branch_raw_data = self.__g_oSvDb.executeQuery('getLtmartLogByBranchId', self.__g_dtDesignatedFirstDate,
                                                                 self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
             if self.__g_sFreqMode == 'day':
@@ -230,10 +234,10 @@ class EdiRaw:
 
         dict_single_sku_info = list(self.__g_dictEdiSku.values())[0]
         n_hypermart_id = dict_single_sku_info['mart_id']
-        if n_hypermart_id == HyperMartType.EMART.value:
+        if n_hypermart_id == SvHyperMartType.EMART.value:
             lst_raw_data = self.__g_oSvDb.executeQuery('getEmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
                                                        self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
-        elif n_hypermart_id == HyperMartType.LOTTEMART.value:
+        elif n_hypermart_id == SvHyperMartType.LOTTEMART.value:
             lst_raw_data = self.__g_oSvDb.executeQuery('getLtmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
                                                        self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
             if self.__g_sFreqMode == 'day':
@@ -253,17 +257,17 @@ class EdiRaw:
         lst_emart_branch_id = []
         lst_ltmart_branch_id = []
         for n_branch_id, dict_branch in self.__g_dictEdiBranchId.items():
-            if dict_branch['hypermart_name'] == HyperMartType.EMART.name.title():
+            if dict_branch['hypermart_name'] == SvHyperMartType.EMART.name.title():
                 lst_emart_branch_id.append(n_branch_id)
-            elif dict_branch['hypermart_name'] == HyperMartType.LOTTEMART.name.title():
+            elif dict_branch['hypermart_name'] == SvHyperMartType.LOTTEMART.name.title():
                 lst_ltmart_branch_id.append(n_branch_id)
         # divide sku by mart
         lst_emart_sku_id = []
         lst_ltmart_sku_id = []
         for n_sku_id, dict_sku in self.__g_dictEdiSku.items():
-            if dict_sku['mart_id'] == HyperMartType.EMART.value:
+            if dict_sku['mart_id'] == SvHyperMartType.EMART.value:
                 lst_emart_sku_id.append(n_sku_id)
-            elif dict_sku['mart_id'] == HyperMartType.LOTTEMART.value:
+            elif dict_sku['mart_id'] == SvHyperMartType.LOTTEMART.value:
                 lst_ltmart_sku_id.append(n_sku_id)
 
         lst_blank_edi = []

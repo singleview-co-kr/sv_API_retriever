@@ -81,7 +81,7 @@ class SvApiConfigParser(sv_object.ISvObject):
             if __name__ == 'sv_api_config_parser': # for plugin console running
                 # sys.path.append('../../classes')
                 import sv_install
-                o_install = sv_install.svInstall()
+                o_install = sv_install.SvInstall()
                 dict_config_info = {'s_abs_path_bot': self.__g_sAbsolutePath, 's_acct_info': self.__g_sConfigLoc}
                 o_install.start_up_job_plugin(dict_config_info)
                 del o_install

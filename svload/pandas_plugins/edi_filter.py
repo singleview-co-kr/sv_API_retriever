@@ -1,7 +1,7 @@
 # for logger
 import logging
 
-from svcommon.sv_hypermart_model import BranchType, HyperMartType, SvHypermartGeoInfo
+from svcommon.sv_hypermart_model import BranchType, SvHyperMartType, SvHypermartGeoInfo
 
 logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
@@ -22,14 +22,14 @@ class EdiFilter:
         self.__g_oHttpRequest = request
 
         # begin - set effective hyper mart type dict
-        dict_hyper_mart_type = HyperMartType.get_dict_by_idx()
+        dict_hyper_mart_type = SvHyperMartType.get_dict_by_idx()
         del dict_hyper_mart_type[1]  # remove ESTIMATION
         del dict_hyper_mart_type[2]  # remove NOT_SURE
         del dict_hyper_mart_type[5]  # remove HOMEPLUS
         self.__g_dictSalesChInfo = dict_hyper_mart_type
 
         # begin - hyper mart branch object
-        dict_branch_by_title = HyperMartType.get_dict_by_title()
+        dict_branch_by_title = SvHyperMartType.get_dict_by_title()
         dict_branch_type = BranchType.get_dict_by_title()
         o_mart_geo_info = SvHypermartGeoInfo()
         for dict_single_branch in o_mart_geo_info.lst_hypermart_geo_info:
@@ -229,7 +229,7 @@ class EdiFilter:
         #     # {19: {'mart_id': 3, 'mart_name': 'Emart', 'name': '유한락스 욕실청소 900ML*2', 'first_detect_logdate': datetime.date(2019, 1, 1)}}
         # else:  # all branch & all sku mode
         #     lst_sku_rst = o_sv_db.executeQuery('getEdiSkuInfoByBrandId', n_brand_id)
-        dict_hyper_mart_type = HyperMartType.get_dict_by_idx()
+        dict_hyper_mart_type = SvHyperMartType.get_dict_by_idx()
         dict_sku_info_by_id = {}
         if len(lst_selected_sku):
             for dict_sku in lst_selected_sku:

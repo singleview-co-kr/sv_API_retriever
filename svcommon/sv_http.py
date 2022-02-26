@@ -47,7 +47,7 @@ elif __name__ == '__main__': # for class console debugging
     import sv_cipher
 
 
-class svHttpCom(sv_object.ISvObject):
+class SvHttpCom(sv_object.ISvObject):
     """ HTTP communication class for singleview only """
     __g_oHttpConn = None
     #__g_oLogger = None
@@ -103,7 +103,7 @@ class svHttpCom(sv_object.ISvObject):
         del o_server_name_regex
 
         self._g_oLogger = logging.getLogger(__file__)
-        self.__g_oCipher = sv_cipher.svCipherOpenSsl()  # sv_cipher.svCipherMcrypt()
+        self.__g_oCipher = sv_cipher.SvCipherOpenSsl()  # sv_cipher.svCipherMcrypt()
 
     def getSecuredUrl(self, dictParams):
         # oResp = None
@@ -237,7 +237,7 @@ class svHttpCom(sv_object.ISvObject):
 
 
 if __name__ == '__main__': # for console debugging
-    oSvHttpCom = svHttpCom('localhost')
+    oSvHttpCom = SvHttpCom('localhost')
     dictParams = {'@key': 234, '@type': 'issue', '@action': 'show'}
     oResp = oSvHttpCom.postUrl('/devel/api/', dictParams)
     oSvHttpCom.close()

@@ -41,7 +41,7 @@ elif __name__ == 'sv_http': # for plugin console debugging
 elif __name__ == 'classes.sv_http' : # for platform running
     from classes import sv_cipher
 
-class svInstall():
+class SvInstall():
     """ install class """
     __g_sBaseAbsPath = None
     __g_sMiscAbsPath = None

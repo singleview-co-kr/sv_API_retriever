@@ -41,7 +41,7 @@ elif __name__ == '__main__': # for class console debugging
     pass
 
     
-class svSlack(sv_object.ISvObject):
+class SvSlack(sv_object.ISvObject):
     """ bot notice through slack messenger class for singleview only """
     # https://somjang.tistory.com/entry/Python-Slack-WebHooks-%EC%9D%84-%ED%86%B5%ED%95%B4-%EC%9E%91%EC%97%85-%EC%A7%84%ED%96%89%EC%83%81%ED%99%A9-%EC%95%8C%EB%A6%BC-%EB%B0%9B%EC%95%84%EB%B3%B4%EA%B8%B0-feat-Incoming-WebHooks
     # https://lsjsj92.tistory.com/594
@@ -145,6 +145,6 @@ class svSlack(sv_object.ISvObject):
 
 
 #if __name__ == '__main__': # for console debugging
-#    oSvSlack = svSlack('dbs')
+#    oSvSlack = SvSlack('dbs')
 #    # oSvSlack.sendMsg('ddd')
 #    oSvSlack.delete_all('dbs_bot')

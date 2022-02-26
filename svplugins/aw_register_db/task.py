@@ -59,7 +59,7 @@ else:
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oSvCampaignParser = sv_campaign_parser.svCampaignParser()  # None
+    __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()  # None
     __g_lstIgnoreText = ['CRITERIA', # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
                         'google', # for new google ads API report; ignore report title row: google_ads_api (v6)
                         'Campaign', # ignore column title row
@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 

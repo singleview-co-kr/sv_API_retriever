@@ -37,7 +37,7 @@ elif __name__ == '__main__': # for class console debugging
     import sv_object
 
 
-class svCipherOpenSsl(sv_object.ISvObject):
+class SvCipherOpenSsl(sv_object.ISvObject):
     """ 
     compatible with php openssl_encrypt()
     this class can be utilzied between python-php secured communcation
@@ -147,7 +147,7 @@ if __name__ == '__main__': # for console debugging
     sv_secret_key = 'sv_secret_key'
     sv_iv = 'sv_iv'
 
-    oSvCipher = svCipherOpenSsl()
+    oSvCipher = SvCipherOpenSsl()
     oSvCipher.setIv(sv_iv)
     oSvCipher.setSecretKey(sv_secret_key)
 

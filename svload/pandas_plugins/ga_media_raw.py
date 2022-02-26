@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from svcommon.sv_campaign_parser import svCampaignParser
+from svcommon.sv_campaign_parser import SvCampaignParser
 
 # for logger
 import logging
@@ -38,7 +38,7 @@ class GaSourceMediaRaw:
         if not o_sv_db:  # refer to an external db instance to minimize data class
             raise Exception('invalid db handler')
         self.__g_oSvDb = o_sv_db
-        self.__g_oSvCampaignParser = svCampaignParser()
+        self.__g_oSvCampaignParser = SvCampaignParser()
         self.__g_sClassId = id(self)
         self.__g_dictAggregatedDf[self.__g_sClassId] = {'mtd': None, 'full': None}
         self.__g_dtToday = datetime.today().date()
