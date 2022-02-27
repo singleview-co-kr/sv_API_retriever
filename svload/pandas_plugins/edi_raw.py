@@ -57,18 +57,18 @@ class EdiRaw:
                 self.__g_dictEdiBranchId = o_branch_info['dict_branch_info_for_ui']
             else:
                 raise Exception('excel extraction failure - no branch info')
-        elif type(o_branch_info) == SvHypermartGeoInfo:
-            # print('single branch')
-            self.__g_dictEdiBranchId = {o_branch_info.id: {'id': o_branch_info.id,
-                                                           'selected': '',
-                                                           'hypermart_name': o_branch_info.get_hypermart_type_label(),
-                                                           'name': o_branch_info.branch_name,
-                                                           'branch_type': o_branch_info.get_branch_type_label(),
-                                                           'do_name': o_branch_info.do_name,
-                                                           'si_name': o_branch_info.si_name,
-                                                           'gu_gun': o_branch_info.gu_gun,
-                                                           'dong_myun_ri': o_branch_info.dong_myun_ri}
-                                        }
+        # elif type(o_branch_info) == SvHypermartGeoInfo:
+        #     # print('single branch')
+        #     self.__g_dictEdiBranchId = {o_branch_info.id: {'id': o_branch_info.id,
+        #                                                    'selected': '',
+        #                                                    'hypermart_name': o_branch_info.get_hypermart_type_label(),
+        #                                                    'name': o_branch_info.branch_name,
+        #                                                    'branch_type': o_branch_info.get_branch_type_label(),
+        #                                                    'do_name': o_branch_info.do_name,
+        #                                                    'si_name': o_branch_info.si_name,
+        #                                                    'gu_gun': o_branch_info.gu_gun,
+        #                                                    'dong_myun_ri': o_branch_info.dong_myun_ri}
+        #                                 }
 
     def set_sku_dict(self, dict_sku):
         if len(dict_sku) == 0:

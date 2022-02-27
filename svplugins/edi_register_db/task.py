@@ -32,6 +32,7 @@
 # standard library
 import sys
 import logging
+from datetime import datetime
 
 # 3rd party library
 
@@ -44,10 +45,9 @@ if __name__ == '__main__': # for console debugging
     import sv_object
     import sv_plugin
     import sv_storage
-    import sv_hypermart_model
     import edi_model
     import edi_extract
-    # import edi_transform
+    import edi_transform
 else:
     from svcommon import sv_mysql
     from svcommon import sv_object
@@ -60,12 +60,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
-        self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None})
+        self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None,
+                                  'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
         self.__g_oSvStorage = sv_storage.SvStorage()
+        self.__oEdiExtractor = None
         self.__oEdiTransformer = None
         self.__g_sMode = None
         self.__g_nSvFileId = None
@@ -122,7 +124,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uploaded_filename = dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext']
         self._printDebug(s_uploaded_filename + ' will be extracted')
 
-        self.__oEdiTransformer = edi_extract.TransformEdiExcel()
+        self.__oEdiExtractor = edi_extract.ExtractEdiExcel()
+        self.__oEdiTransformer = edi_transform.TransformEdiDb()
+        
         if self.__g_sMode == 'lookup':
             self._printDebug('-> lookup EDI file')
             self.__prepare_EDI_file(dict_rst)
@@ -132,20 +136,56 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'register_db':
             self._printDebug('-> register into DB')
             self.__register_db(dict_rst)
+        elif self.__g_sMode == 'transform_db':
+            self._printDebug('-> transform DB')
+            self.__transform_db()
         else:
             self._printDebug('error -> invalid mode')
+        
         self.__oEdiTransformer.clear()
+        self.__oEdiExtractor.clear()
         self.__oSvMysql = None
         self._task_post_proc(self._g_oCallback)
         return
+
+    def __transform_db(self):
+        if 'start_yyyymmdd' not in self._g_dictParam:
+            self._printDebug('error! invalid start_yyyymmdd')
+            return
+        s_start_yyyymmdd = self._g_dictParam['start_yyyymmdd']
+        if s_start_yyyymmdd is None:
+            self._printDebug('error! invalid start_yyyymmdd')
+            return
+        try:
+            datetime.strptime(s_start_yyyymmdd, '%Y%m%d')
+        except ValueError:
+            self._printDebug('error! invalid start_yyyymmdd')
+            return
+        if 'end_yyyymmdd' not in self._g_dictParam:
+            self._printDebug('error! invalid end_yyyymmdd')
+            return
+        s_end_yyyymmdd = self._g_dictParam['end_yyyymmdd']
+        if s_end_yyyymmdd is None:
+            self._printDebug('error! invalid end_yyyymmdd')
+            return
+        try:
+            datetime.strptime(s_end_yyyymmdd, '%Y%m%d')
+        except ValueError:
+            self._printDebug('error! invalid start_yyyymmdd')
+            return        
+        
+        dict_param = {'b_google_data_studio_edi': True,
+                      's_period_start': s_start_yyyymmdd,
+                      's_period_end': s_end_yyyymmdd}
+        self.__oEdiTransformer.initialize(self.__oSvMysql, dict_param)
 
     def __register_db(self, dict_rst):
         if 's_path_abs_unzip' not in dict_rst['dict_val']:
             self._printDebug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiTransformer.initialize(self.__oSvMysql, s_path_abs_unzip)
-        self.__oEdiTransformer.transform_csv_to_db()
+        self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
+        self.__oEdiExtractor.transform_csv_to_db()
         # unset unzip file
         self.__g_oSvStorage.unset_temp_file(self.__g_nSvFileId)
         # self.__g_oSvStorage.register_uploaded_file_config(n_sv_file_id, lst_edi_file_info)
@@ -155,8 +195,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiTransformer.initialize(self.__oSvMysql, s_path_abs_unzip)
-        self.__oEdiTransformer.add_new_sku_info(self._g_dictParam['new_sku_id'])
+        self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
+        self.__oEdiExtractor.add_new_sku_info(self._g_dictParam['new_sku_id'])
 
     def __prepare_EDI_file(self, dict_rst):
         """ load EDI excel file """
@@ -186,9 +226,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_mart_rst
         del o_edi_model
 
-        self.__oEdiTransformer.initialize(self.__oSvMysql, s_path_abs_unzip, lst_edi_file_info)
-        self.__oEdiTransformer.transfer_excel_to_csv()
-        dict_rst = self.__oEdiTransformer.check_new_entity()
+        self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip, lst_edi_file_info)
+        self.__oEdiExtractor.transfer_excel_to_csv()
+        dict_rst = self.__oEdiExtractor.check_new_entity()
         if len(dict_rst['dict_new_branch']):
             self._printDebug('unknown branch has been detected\nplease contact system admin')
             for s_mart_id_branch_code, s_branch_name in dict_rst['dict_new_branch'].items():

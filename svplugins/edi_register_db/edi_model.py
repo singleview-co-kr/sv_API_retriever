@@ -5,9 +5,7 @@ import re
 import xlrd  # openpyxl does not support the old .xls file format
 import csv
 from datetime import datetime
-# from edi_models import BranchType, HyperMartType, EdiDataType, ProgressStatus
 
-# from django.db import models
 
 # singleview library
 if __name__ == 'edi_model': # for console debugging
@@ -35,7 +33,7 @@ class SvEdiExcel:
         o_book = xlrd.open_workbook(s_excel_filename)
         self.__g_oActiveSheet = o_book.sheet_by_index(0)
 
-        n_hyper_mart = sv_hypermart_model.HyperMartType.NOT_SURE
+        n_hyper_mart = sv_hypermart_model.SvHyperMartType.NOT_SURE
         n_edi_data_type = None
         n_edi_data_year = None  # for emart only
         if self.__is_emart():  # try emart
@@ -43,7 +41,7 @@ class SvEdiExcel:
             o_excel = EmartEdiExcel()
             o_excel.set_edi_data_year(self.__g_nEdiDataYear)  # 개별 EDI 파일에 연도 추정 표시가 없으면 사용
             o_excel.load_file(s_unzip_path, s_unzipped_file, b_data_year_est=True)
-            n_hyper_mart = sv_hypermart_model.HyperMartType.EMART
+            n_hyper_mart = sv_hypermart_model.SvHyperMartType.EMART
             n_edi_data_year = o_excel.get_edi_data_year()
             n_edi_data_type = o_excel.lookup_edi_data_type()
             del o_excel
@@ -51,14 +49,14 @@ class SvEdiExcel:
             print('lotte mart detected')
             o_excel = LotteMartEdiExcel()
             o_excel.load_file(s_unzip_path, s_unzipped_file)
-            n_hyper_mart = sv_hypermart_model.HyperMartType.LOTTEMART
+            n_hyper_mart = sv_hypermart_model.SvHyperMartType.LOTTEMART
             n_edi_data_year = o_excel.get_edi_data_year()
             n_edi_data_type = sv_hypermart_model.EdiDataType.QTY_AMNT
             del o_excel
         else:
             dict_rst['s_msg'] = 'invalid hypermart EDI file detected'
-            # print(sv_hypermart_model.HyperMartType.HOMEPLUS)
-            # print(sv_hypermart_model.HyperMartType.NOT_SURE)
+            # print(sv_hypermart_model.SvHyperMartType.HOMEPLUS)
+            # print(sv_hypermart_model.SvHyperMartType.NOT_SURE)
 
         dict_rst['b_err'] = False
         dict_rst['dict_val'] = {'n_edi_data_year': n_edi_data_year,

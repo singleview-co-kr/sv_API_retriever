@@ -28,7 +28,6 @@ import sys
 import logging
 import re # https://docs.python.org/3/library/re.html
 import ctypes
-# from django.db import utils
 
 # 3rd party library
 import configparser  # https://docs.python.org/3/library/configparser.html
@@ -204,7 +203,7 @@ class SvMySql(sv_object.ISvObject):
         s_sql_statement = 'truncate `' + s_real_tbl_name + '`;'
         self.__g_oCursor.execute(s_sql_statement)
     
-    def createTableOnDemand(self, s_prefix, s_schema_filename):
+    def create_table_on_demand(self, s_schema_filename):
         if s_schema_filename.startswith('_'):  # _로 시작하는 스키마 파일은 명시 요청할 때만 생성
             self.__createTable(s_schema_filename)
 
@@ -215,8 +214,6 @@ class SvMySql(sv_object.ISvObject):
         dict_param은 msg broker를 통과할 수도 있으므로 문자열 변수만 포함해야 함
         """
         s_query_type, s_sql_compiled = self.__compileDynamicSql(s_pysql_id, dict_param)
-        print(s_query_type)
-        print(s_sql_compiled)
         if s_query_type == 'unknown':
             return []
         if s_sql_compiled is None:
@@ -288,8 +285,8 @@ class SvMySql(sv_object.ISvObject):
                 else:
                     self.__g_oCursor.execute(s_sql_compiled)
             else:
+                print(e) 
                 # logger.debug(e)
-                pass
             # raise e
             
     def __getThreadId(self):
@@ -356,7 +353,12 @@ class SvMySql(sv_object.ISvObject):
             for r in result:
                 # add table prefix on table name
                 s_table_name = r.group(0)
-                s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
+                if s_table_name.startswith('_'):  # regarding on demand table name starts with _
+                    s_normalized_tbl_name = s_table_name.replace('_', '', 1)
+                    s_normalized_tbl_name = self.__g_dictConfig['db_table_prefix'] + s_normalized_tbl_name
+                    s_sql_compiled = re.sub(s_table_name, s_normalized_tbl_name, s_sql_compiled)  # 테이블명이 _로 시작하면 on demand table이므로 _ 제거
+                else:
+                    s_sql_compiled = re.sub(s_table_name, self.__g_dictConfig['db_table_prefix'] + s_table_name, s_sql_compiled)
         del result
         return [s_query_type, s_sql_compiled]
     
@@ -429,7 +431,7 @@ class SvMySql(sv_object.ISvObject):
             else: # connected
                 self.__g_oConn.close()
 
-    def __createTable(self,sTableName):
+    def __createTable(self, sTableName):
         # https://wikidocs.net/26
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', sTableName + '.sql')
         f = open(s_schema_path_abs,'r')
@@ -437,6 +439,9 @@ class SvMySql(sv_object.ISvObject):
         f.close()
         sSqlStatement = re.sub("\n", " ", sSqlStatement)  # make one line
         sSqlStatement = re.sub("`", "", sSqlStatement ) # 존재할 수 있는 sql 문자열 wrapper 기호 제거 `
+        if sTableName.startswith('_'):  # regarding on demand table name starts with _
+            s_normalized_tbl_name = sTableName.replace('_', '', 1)
+            sSqlStatement = re.sub(sTableName, s_normalized_tbl_name, sSqlStatement )  # 테이블명이 _로 시작하면 on demand table이므로 _ 제거
         # m = oRegEx.search(sSqlStatement) # match()와 search() 차이점 refer to 빠르게활용하는파이썬3.6프로그램 p241
         m = self.__g_dictRegEx['prefix_create_tbl'].search(sSqlStatement)
         if m: # if table name is existing in the sql statement

@@ -30,18 +30,13 @@
 # singleview library
 if __name__ == 'edi_transform': # for console debugging
     # import edi_model
-    # import sv_hypermart_geo_info
-    pass
+    import sv_hypermart_model
 else: # for platform running
     pass
 
 
-class ExtractDb:
-    __g_oSvDb = None
-    __g_sExtractFilenamePrefix = None
-    __g_bDebugMode = False
+class TransformEdiDb:
     __g_dictBranchInfoById = {}
-    __g_dictSkuInfoById = {}
     __g_nLimitToSingleQuery = 100000  # prevent memory dump, when loads big data
 
     def __new__(cls):
@@ -50,6 +45,10 @@ class ExtractDb:
 
     def __init__(self):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
+        self.__g_oSvDb = None
+        self.__g_dictSkuInfoById = {}
+        # self.__g_sExtractFilenamePrefix = None
+        self.__g_bDebugMode = False
         super().__init__()
 
     def __enter__(self):
@@ -63,34 +62,41 @@ class ExtractDb:
         """ unconditionally calling desctructor """
         return self
 
-    def initialize(self, dict_param):
+    def initialize(self, o_sv_mysql, dict_param):
+        self.__g_oSvDb = o_sv_mysql
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+
         b_excel_pivot = False
         b_google_data_studio_edi = False
         b_aws_quicksight = False
         b_oracle_analytics_cloud = False
 
-        if dict_param['b_debug_mode']:
-            self.__g_bDebugMode = True
-        if dict_param['b_excel_pivot']:
-            b_excel_pivot = True
-        if dict_param['b_google_data_studio_edi']:
-            b_google_data_studio_edi = True
-        if dict_param['b_aws_quicksight']:
-            b_aws_quicksight = True
-        if dict_param['b_oracle_analytics_cloud']:
-            b_oracle_analytics_cloud = True
+        if 'b_debug_mode' in dict_param:
+            if dict_param['b_debug_mode']:
+                self.__g_bDebugMode = True
+        if 'b_excel_pivot' in dict_param:
+            if dict_param['b_excel_pivot']:
+                b_excel_pivot = True
+        if 'b_google_data_studio_edi' in dict_param:
+            if dict_param['b_google_data_studio_edi']:
+                b_google_data_studio_edi = True
+        if 'b_aws_quicksight' in dict_param:
+            if dict_param['b_aws_quicksight']:
+                b_aws_quicksight = True
+        if 'b_oracle_analytics_cloud' in dict_param:
+            if dict_param['b_oracle_analytics_cloud']:
+                b_oracle_analytics_cloud = True
 
-        self.__g_oSvDb = SvSqlAccess()
-        if not self.__g_oSvDb:
-            raise Exception('invalid db handler')
-        self.__g_oSvDb.set_tbl_prefix(dict_param['s_tbl_prefix'])
-        self.__g_oSvDb.set_app_name(__name__)
-        self.__g_oSvDb.initialize()
-        self.__g_oSvDb.set_reserved_tag_value({'brand_id': dict_param['n_brand_id']})
-        self.__g_oSvDb.createTableOnDemand('_edi_daily_log_denorm')
-        self.__g_oSvDb.truncateTable('_edi_daily_log_denorm')
+        # self.__g_oSvDb = SvSqlAccess()
+        # if not self.__g_oSvDb:
+        #     raise Exception('invalid db handler')
+        # self.__g_oSvDb.set_tbl_prefix(dict_param['s_tbl_prefix'])
+        # self.__g_oSvDb.set_app_name(__name__)
+        # self.__g_oSvDb.initialize()
+        # self.__g_oSvDb.set_reserved_tag_value({'brand_id': dict_param['n_brand_id']})
 
-        self.__g_sExtractFilenamePrefix = dict_param['s_extract_filename_prefix']
+        # self.__g_sExtractFilenamePrefix = dict_param['s_extract_filename_prefix']
         print('start extract_db()')
         self.__extract_branch_and_skus(dict_param)
         if b_excel_pivot:
@@ -98,13 +104,224 @@ class ExtractDb:
         if b_google_data_studio_edi:
             self.__extract_excel_pivot(dict_param)
         if b_oracle_analytics_cloud:
-            self.__extract_for_oac(dict_param)
+            self.__extract_for_oac_desktop(dict_param)
         if b_aws_quicksight:
             self.__extract_for_aws_quicksight(dict_param)
         print('finish extract_db()')
         return 'Done!'
+        
+    def __extract_branch_and_skus(self, dict_param):
+        """
+        retrieve branches and skus info
+        :param dict_param:
+        :return:
+        """
+        dict_branch_by_title = sv_hypermart_model.SvHyperMartType.get_dict_by_title()
+        dict_branch_type = sv_hypermart_model.BranchType.get_dict_by_title()
+        o_mart_geo_info = sv_hypermart_model.SvHypermartGeoInfo()
 
-    def __extract_for_oac(self, dict_param):
+        lst_hypermart_geo_info = o_mart_geo_info.lst_hypermart_geo_info
+        if len(lst_hypermart_geo_info):
+            # for single_branch in o_branch_info:
+            # for dict_single_branch in lst_hypermart_geo_info:
+            #     self.__g_dictBranchInfoById[dict_single_branch['id']] = {
+            #         'mart': single_branch.get_hypermart_type_label(),  # emart, lottemart
+            #         'type': single_branch.get_branch_type_label(),  # on & off
+            #         'name': single_branch.branch_name,
+            #         'do': single_branch.do_name,
+            #         'si': single_branch.si_name,
+            #         'gu': single_branch.gu_gun,
+            #         'dong': single_branch.dong_myun_ri,
+            #         'longi': single_branch.longitude,
+            #         'lati': single_branch.latitude
+            #     }
+            for dict_single_branch in o_mart_geo_info.lst_hypermart_geo_info:
+                n_hypermart_id = dict_branch_by_title[dict_single_branch['hypermart_name']]
+                n_branch_type_id = dict_branch_type[dict_single_branch['branch_type']]
+                dict_branch = {'mart': dict_single_branch['hypermart_name'],  # emart, lottemart
+                               'type': dict_single_branch['branch_type'],  # on & off
+                               'name': dict_single_branch['name'],
+                               'do': dict_single_branch['do_name'],
+                               'si': dict_single_branch['si_name'],
+                               'gu': dict_single_branch['gu_gun'],
+                               'dong': dict_single_branch['dong_myun_ri'],
+                               'longi': dict_single_branch['longitude'],
+                               'lati': dict_single_branch['latitude']}
+                self.__g_dictBranchInfoById[dict_single_branch['id']] = dict_branch
+
+            # write emart branch info csv
+            # s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
+            #                                          str(dict_param['n_owner_id']), 'edi_branches.csv')
+            # try:
+            #     with codecs.open(s_full_path_extracted_csv, "w", "utf-8") as f:
+            #         writer = csv.writer(f)
+            #         # write csv header
+            #         writer.writerow(['branch_id', 'branch_name', 'branch_type', 'do_name', 'si_name', 'gu_gun',
+            #                          'dong_myun_ri', 'longitude', 'latitude'])
+            #         # write csv body
+            #         for single_branch in o_branch_info:
+            #             writer.writerow([single_branch.id,
+            #                              single_branch.branch_name,
+            #                              single_branch.get_branch_type_label(),
+            #                              single_branch.do_name,
+            #                              single_branch.si_name,
+            #                              single_branch.gu_gun,
+            #                              single_branch.dong_myun_ri,
+            #                              single_branch.longitude,
+            #                              single_branch.latitude])
+            # except Exception as e:
+            #     del o_branch_info
+            #     print(e)
+        else:
+            del dict_branch_by_title
+            del dict_branch_type
+            del o_mart_geo_info
+            print('excel extraction failure - no branch info')
+            return
+        
+        del dict_branch_by_title
+        del dict_branch_type
+        del o_mart_geo_info
+
+        # write selected sku info csv
+        # retrieve account specific SKU info dictionary from account dependent table
+        
+        # for dictSingleRow in lst_rst:
+        #     self.__g_dictSkuInfoById[str(dictSingleRow['mart_id']) + '_' + dictSingleRow['item_code']] = dictSingleRow['id']
+        # return
+
+        # lst_sku_info_rst = self.__g_oSvDb.executeQuery('getEdiSkuByBrandId', dict_param['n_brand_id'])
+        lst_sku_info_rst = self.__g_oSvDb.executeQuery('getEdiSkuAccepted', 1)
+        if len(lst_sku_info_rst):
+            for dict_single_sku in lst_sku_info_rst:
+                self.__g_dictSkuInfoById[dict_single_sku['id']] = {
+                    'name': dict_single_sku['item_name']
+                }
+            # s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
+            #                                          str(dict_param['n_owner_id']),
+            #                                          self.__g_sExtractFilenamePrefix + '_edi_skus.csv')
+            # try:
+            #     with codecs.open(s_full_path_extracted_csv, "w", "utf-8") as f:
+            #         writer = csv.writer(f)
+            #         # write csv header
+            #         writer.writerow(['item_id', 'item_code', 'item_name', 'first_detect_date'])
+            #         # write csv body
+            #         for dict_single_sku in lst_sku_info_rst:
+            #             writer.writerow([dict_single_sku['id'],
+            #                              dict_single_sku['item_code'],
+            #                              dict_single_sku['item_name'],
+            #                              dict_single_sku['first_detect_logdate']])
+            # except Exception as e:
+            #     print(e)
+        del lst_sku_info_rst
+
+    def __extract_excel_pivot(self, dict_param):
+        """
+        retrieve specific period for excel pivoting
+        or
+        retrieve specific period for Google Data Studio
+        :param dict_param:
+        :return:
+        """
+        print('start excel extraction')
+        self.__g_oSvDb.create_table_on_demand('_edi_daily_log_denorm')
+        # self.__g_oSvDb.truncate_table('_edi_daily_log_denorm')
+        if not dict_param['s_period_start'] or not dict_param['s_period_end']:
+            print('excel extraction failure - no period selected')
+            return
+        dict_param_tmp = {'s_period_start': dict_param['s_period_start'],
+                          's_period_end': dict_param['s_period_end']}
+
+        # s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
+        #                                          str(dict_param['n_owner_id']),
+        #                                          self.__g_sExtractFilenamePrefix + '_excel_pivot.csv')
+        # try:
+        #     f = open(s_full_path_extracted_csv, 'w', encoding='euc-kr')
+        # except Exception as e:
+        #     print(e)
+        #     return
+        lst_mart = ['Emart', 'Ltmart']
+        for s_mart_title in lst_mart:
+            s_log_cnt_query = 'get{s_mart_title}LogCountByPeriod'.format(s_mart_title=s_mart_title)
+            lst_log_count = self.__g_oSvDb.executeQuery(s_log_cnt_query, dict_param['s_period_start'], dict_param['s_period_end'])
+            n_edi_log_count = lst_log_count[0]['count(*)']
+            del lst_log_count
+
+            # print(n_edi_log_count)
+
+            s_performance_log_query = 'get{s_mart_title}LogByPeriod'.format(s_mart_title=s_mart_title)
+            # begin - mart extraction by mart
+            
+
+            n_limit = self.__g_nLimitToSingleQuery
+            n_offset = 0
+            dict_param_tmp = {'s_period_start': dict_param['s_period_start'],
+                              's_period_end': dict_param['s_period_end'],
+                              'n_offset': n_offset, 'n_limit': n_limit}
+
+            # writer = csv.writer(f)
+            # # write csv header
+            # lst_log_columns = ['branch_name', 'item_name', 'yr', 'mo', 'day', 'refund', 'qty', 'amnt']
+            # if self.__g_bDebugMode:
+            #     lst_log_columns = ['log_srl'] + lst_log_columns
+            # writer.writerow(lst_log_columns)
+            # del lst_log_columns
+            # very big data causes memory dump, if retrieve at single access
+            while n_edi_log_count > 0:
+                dict_param_tmp['n_offset'] = n_offset
+                dict_param_tmp['n_limit'] = n_limit
+                n_offset = n_offset + n_limit
+                n_edi_log_count = n_edi_log_count - n_limit
+                if n_limit >= n_edi_log_count:
+                    n_limit = n_edi_log_count
+
+                lst_log_period = self.__g_oSvDb.executeDynamicQuery(s_performance_log_query, dict_param_tmp)
+                # write csv body
+                for dict_single_log in lst_log_period:
+                    b_refund = 0
+                    if int(dict_single_log['qty']) < 0:
+                        b_refund = 1
+                        n_amnt = dict_single_log['amnt'] * -1
+                    else:
+                        n_amnt = dict_single_log['amnt']
+                    if dict_param['b_google_data_studio_edi']:
+                        if self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati']:
+                            s_latitude_longitude = self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati'] + ',' + \
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['longi']
+                        else:
+                            s_latitude_longitude = None
+                        self.__g_oSvDb.executeQuery('insertEdiDailyLogDenorm',
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
+                                                    self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
+                                                    dict_single_log['qty'], n_amnt,
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
+                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
+                                                    s_latitude_longitude,
+                                                    dict_single_log['logdate'])
+                    # else:  # excel csv mode
+                    #     lst_final_data_cols = [self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
+                    #                            self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
+                    #                            dict_single_log['logdate'].year,
+                    #                            dict_single_log['logdate'].month,
+                    #                            dict_single_log['logdate'].day,
+                    #                            b_refund,
+                    #                            dict_single_log['qty'],
+                    #                            dict_single_log['amnt']]
+                    #     if self.__g_bDebugMode:
+                    #         lst_final_data_cols = [dict_single_log['id']] + lst_final_data_cols
+                    #     writer.writerow(lst_final_data_cols)
+                del lst_log_period
+        # f.close()
+        # end - extraction by mart
+        # del dict_param_tmp
+        # specific period for excel pivoting end
+        print('excel extraction succeed')
+
+    def __extract_for_oac_desktop(self, dict_param):
         """
         write EDI daily and GA-media daily log info csv for Oracle Analytics Cloud
         OAC allows multi independent tables in a single project
@@ -112,7 +329,7 @@ class ExtractDb:
         :param dict_param:
         :return:
         """
-        print('start - OAC extraction')
+        print('start - OAC desktop extraction')
         dict_param_tmp = {'s_req_sku_set': dict_param['s_req_sku_set'], 'n_owner_id': dict_param['n_owner_id']}
         lst_log_count = self.__g_oSvDb.executeDynamicQuery('getEmartLogCountByItemId', dict_param_tmp)
         n_lst_log_count = lst_log_count[0]['count(*)']
@@ -335,180 +552,6 @@ class ExtractDb:
                 print(e)
         del lst_rst
         print('finish - QWS quicksight extraction')
-
-    def __extract_excel_pivot(self, dict_param):
-        """
-        retrieve specific period for excel pivoting
-        or
-        retrieve specific period for Google Data Studio
-        :param dict_param:
-        :return:
-        """
-        print('start excel extraction')
-        if not dict_param['s_period_start'] or not dict_param['s_period_end']:
-            print('excel extraction failure - no period selected')
-            return
-        dict_param_tmp = {'s_req_sku_set': dict_param['s_req_sku_set'],
-                          's_period_start': dict_param['s_period_start'],
-                          's_period_end': dict_param['s_period_end']}
-
-        s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
-                                                 str(dict_param['n_owner_id']),
-                                                 self.__g_sExtractFilenamePrefix + '_excel_pivot.csv')
-        try:
-            f = open(s_full_path_extracted_csv, 'w', encoding='euc-kr')
-        except Exception as e:
-            print(e)
-            return
-        lst_mart = ['Emart', 'Ltmart']
-        for s_mart_title in lst_mart:
-            s_log_cnt_query = 'get{s_mart_title}LogCountByItemIdPeriod'.format(s_mart_title=s_mart_title)
-            s_performance_log_query = 'get{s_mart_title}LogByItemIdPeriod'.format(s_mart_title=s_mart_title)
-            # begin - mart extraction by mart
-            lst_log_count = self.__g_oSvDb.executeDynamicQuery(s_log_cnt_query, dict_param_tmp)
-            n_lst_log_count = lst_log_count[0]['count(*)']
-            del lst_log_count
-
-            n_limit = self.__g_nLimitToSingleQuery
-            n_offset = 0
-            dict_param_tmp = {'s_req_sku_set': dict_param['s_req_sku_set'],
-                              's_period_start': dict_param['s_period_start'], 's_period_end': dict_param['s_period_end'],
-                              'n_offset': n_offset, 'n_limit': n_limit}
-
-            writer = csv.writer(f)
-            # write csv header
-            lst_log_columns = ['branch_name', 'item_name', 'yr', 'mo', 'day', 'refund', 'qty', 'amnt']
-            if self.__g_bDebugMode:
-                lst_log_columns = ['log_srl'] + lst_log_columns
-            writer.writerow(lst_log_columns)
-            del lst_log_columns
-            # very big data causes memory dump, if retrieve at single access
-            while n_lst_log_count > 0:
-                dict_param_tmp['n_offset'] = n_offset
-                dict_param_tmp['n_limit'] = n_limit
-                n_offset = n_offset + n_limit
-                n_lst_log_count = n_lst_log_count - n_limit
-                if n_limit >= n_lst_log_count:
-                    n_limit = n_lst_log_count
-
-                lst_log_period = self.__g_oSvDb.executeDynamicQuery(s_performance_log_query, dict_param_tmp)
-                # write csv body
-                for dict_single_log in lst_log_period:
-                    b_refund = 0
-                    if int(dict_single_log['qty']) < 0:
-                        b_refund = 1
-                        n_amnt = dict_single_log['amnt'] * -1
-                    else:
-                        n_amnt = dict_single_log['amnt']
-                    if dict_param['b_google_data_studio_edi']:
-                        if self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati']:
-                            s_latitude_longitude = self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati'] + ',' + \
-                                                   self.__g_dictBranchInfoById[dict_single_log['branch_id']]['longi']
-                        else:
-                            s_latitude_longitude = None
-                        self.__g_oSvDb.executeQuery('insertEdiDailyLogDenorm',
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                                                    self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                                                    dict_single_log['qty'], n_amnt,
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
-                                                    s_latitude_longitude,
-                                                    dict_single_log['logdate'])
-                    else:  # excel csv mode
-                        lst_final_data_cols = [self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                                               self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                                               dict_single_log['logdate'].year,
-                                               dict_single_log['logdate'].month,
-                                               dict_single_log['logdate'].day,
-                                               b_refund,
-                                               dict_single_log['qty'],
-                                               dict_single_log['amnt']]
-                        if self.__g_bDebugMode:
-                            lst_final_data_cols = [dict_single_log['id']] + lst_final_data_cols
-                        writer.writerow(lst_final_data_cols)
-                del lst_log_period
-        f.close()
-        # end - extraction by mart
-        del dict_param_tmp
-        # specific period for excel pivoting end
-        print('excel extraction succeed')
-
-    def __extract_branch_and_skus(self, dict_param):
-        """
-        retrieve branches and skus info
-        :param dict_param:
-        :return:
-        """
-        o_branch_info = HypermartGeoInfo.objects.all()
-        if len(o_branch_info):
-            for single_branch in o_branch_info:
-                self.__g_dictBranchInfoById[single_branch.id] = {
-                    'mart': single_branch.get_hypermart_type_label(),  # emart, lottemart
-                    'type': single_branch.get_branch_type_label(),  # on & off
-                    'name': single_branch.branch_name,
-                    'do': single_branch.do_name,
-                    'si': single_branch.si_name,
-                    'gu': single_branch.gu_gun,
-                    'dong': single_branch.dong_myun_ri,
-                    'longi': single_branch.longitude,
-                    'lati': single_branch.latitude
-                }
-            # write emart branch info csv
-            s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
-                                                     str(dict_param['n_owner_id']), 'edi_branches.csv')
-            try:
-                with codecs.open(s_full_path_extracted_csv, "w", "utf-8") as f:
-                    writer = csv.writer(f)
-                    # write csv header
-                    writer.writerow(['branch_id', 'branch_name', 'branch_type', 'do_name', 'si_name', 'gu_gun',
-                                     'dong_myun_ri', 'longitude', 'latitude'])
-                    # write csv body
-                    for single_branch in o_branch_info:
-                        writer.writerow([single_branch.id,
-                                         single_branch.branch_name,
-                                         single_branch.get_branch_type_label(),
-                                         single_branch.do_name,
-                                         single_branch.si_name,
-                                         single_branch.gu_gun,
-                                         single_branch.dong_myun_ri,
-                                         single_branch.longitude,
-                                         single_branch.latitude])
-            except Exception as e:
-                del o_branch_info
-                print(e)
-        else:
-            del o_branch_info
-            print('excel extraction failure - no branch info')
-            return
-        del o_branch_info
-        # write selected sku info csv
-        lst_sku_info_rst = self.__g_oSvDb.executeQuery('getEdiSkuByBrandId', dict_param['n_brand_id'])
-        if len(lst_sku_info_rst):
-            for dict_single_sku in lst_sku_info_rst:
-                self.__g_dictSkuInfoById[dict_single_sku['id']] = {
-                    'name': dict_single_sku['item_name']
-                }
-            s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,
-                                                     str(dict_param['n_owner_id']),
-                                                     self.__g_sExtractFilenamePrefix + '_edi_skus.csv')
-            try:
-                with codecs.open(s_full_path_extracted_csv, "w", "utf-8") as f:
-                    writer = csv.writer(f)
-                    # write csv header
-                    writer.writerow(['item_id', 'item_code', 'item_name', 'first_detect_date'])
-                    # write csv body
-                    for dict_single_sku in lst_sku_info_rst:
-                        writer.writerow([dict_single_sku['id'],
-                                         dict_single_sku['item_code'],
-                                         dict_single_sku['item_name'],
-                                         dict_single_sku['first_detect_logdate']])
-            except Exception as e:
-                print(e)
-        del lst_sku_info_rst
 
     def clear(self):
         self.__g_oSvDb = None

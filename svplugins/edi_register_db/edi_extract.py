@@ -36,7 +36,7 @@ else: # for platform running
     pass
 
 
-class TransformEdiExcel:
+class ExtractEdiExcel:
     __g_dictEdiCsvFileMap = {}  # internal memory to handle emart edi file type
 
     def __new__(cls):
@@ -243,7 +243,7 @@ class TransformEdiExcel:
     def clear(self):
         self.__g_dictSkuInfo.clear()
         self.__g_dictBranchInfo.clear()
-        print('TransformEdiExcel::clear() called')
+        print('ExtractEdiExcel::clear() called')
         return
 
     def __add_hypermart_sku_info(self, b_accept, s_mart_type, s_mart_item_code, s_mart_sku_name, s_first_detect_date):
