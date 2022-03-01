@@ -1,6 +1,6 @@
 CREATE TABLE `_edi_daily_log_denorm` (
   `mart_name` varchar(10) COLLATE utf8_bin NOT NULL,
-  `mart_type` varchar(5) COLLATE utf8_bin NOT NULL,
+  `mart_type` varchar(10) COLLATE utf8_bin NOT NULL,
   `branch_name` varchar(50) COLLATE utf8_bin NOT NULL,
   `item_name` varchar(50) COLLATE utf8_bin NOT NULL,
   `qty` smallint DEFAULT 0,

@@ -128,8 +128,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         sStartDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-' + str(lstMonthRange[1])
-        with sv_mysql.SvMySql('svplugins.aw_register_db', self._g_dictSvAcctInfo) as oSvMysql:
+
+        with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_app_name('svplugins.aw_register_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
     def __getCampaignNameAlias(self, sParentDataPath):
