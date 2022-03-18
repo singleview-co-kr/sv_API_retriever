@@ -740,7 +740,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # proc residual
         dictYtResidualArrangedLog = {}
         for nLogSrl, dict_single_yt_log in dictYtLogDailyLogSrl.items():
-            sRowId = dict_single_yt_log['customer_id'] + '|@| '+ dict_single_yt_log['ua']  +'|@| '+ \
+            sRowId = dict_single_yt_log['customer_id'] + '|@|'+ dict_single_yt_log['ua']  +'|@|'+ \
                 dict_single_yt_log['media']+'|@|' + dict_single_yt_log['rst_type'] + '|@|' + str(dict_single_yt_log['brd'])+'|@|' + \
                 dict_single_yt_log['campaign_1st']+'|@|'+ dict_single_yt_log['campaign_2nd']+'|@|'+ dict_single_yt_log['campaign_3rd']
             nCost = int(dict_single_yt_log['cost'])
