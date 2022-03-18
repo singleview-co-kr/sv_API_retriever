@@ -112,16 +112,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self.__g_oConfig.read(sKeyConfigPath)
 
-    # def __getThreadId(self):
-    #     """
-    #     Returns OS thread id to identify 
-    #     a cached compiled query for each thread - Specific to Linux
-    #     """
-    #     libc = ctypes.cdll.LoadLibrary('libc.so.6')
-    #     # System dependent, see e.g. /usr/include/x86_64-linux-gnu/asm/unistd_64.h
-    #     SYS_gettid = 186
-    #     return libc.syscall(SYS_gettid)
-
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         self.__g_sTargetUrl = self._g_dictParam['target_host_url']
@@ -148,29 +138,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         self.__getKeyConfig(s_sv_acct_id, s_brand_id)
-        
-        ############ begin python thread test ################ 
-        # try:
-        #     sLatestFilepath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'test_api_info.ini')
-        #     f = open(sLatestFilepath, 'r')
-        #     sMaxReportDate = f.readline()
-        #     f.close()
-        # except FileNotFoundError:
-        #     self._printDebug('FileNotFoundError')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
-        # self._printDebug('File Found')
-
-        # nThreadId = self.__getThreadId()
-        # for n_idx in range(20):
-        #     self._printDebug(str(nThreadId) + '-> ' + str(n_idx))
-        #     time.sleep(1)
-        #     if not self._continue_iteration():
-        #         self._task_post_proc(self._g_oCallback)
-        #         return
-        # self._task_post_proc(self._g_oCallback)
-        # return
-        ############ end python thread test ################ 
 
         if self.__g_sTargetUrl is None:
             if 'server' in self.__g_oConfig:
