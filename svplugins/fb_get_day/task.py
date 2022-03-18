@@ -58,7 +58,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 18th, Mar 2022')
 
     def __del__(self):
         """ never place self._task_post_proc() here 
@@ -69,11 +69,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oCallback = o_callback
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'fb_biz_aid' not in dict_acct_info:
+        dict_acct_info = self._task_pre_proc(o_callback)
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
+        if 'fb_biz_aid' not in dict_acct_info:
+            self._printDebug('stop -> no fb business API info')
+            self._task_post_proc(self._g_oCallback)
+            return
+
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         s_fb_biz_aid = dict_acct_info['fb_biz_aid']

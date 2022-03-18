@@ -61,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 18th, Mar 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -79,6 +79,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
+        dict_acct_info = self._task_pre_proc(o_callback)
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
+            self._printDebug('stop -> invalid config_loc')
+            self._task_post_proc(self._g_oCallback)
+            return
+        if 'adw_cid' not in dict_acct_info:
+            self._printDebug('stop -> no google ads API info')
+            self._task_post_proc(self._g_oCallback)
+            return
+
         if self._g_dictParam['data_first_date'] is None or \
             self._g_dictParam['data_last_date'] is None:
             self._printDebug('you should designate data_first_date and data_last_date')
@@ -86,13 +96,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
         self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
-        
-        dict_acct_info = self._task_pre_proc(o_callback)
-        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'adw_cid' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
-            self._task_post_proc(self._g_oCallback)
-            return
+
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         lst_google_ads = dict_acct_info['adw_cid']

@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 18th, Mar 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -82,11 +82,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
 
         dict_acct_info = self._task_pre_proc(o_callback)
-        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'adw_cid' not in dict_acct_info:
+        if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             return
+        if 'adw_cid' not in dict_acct_info:
+            self._printDebug('stop -> no google ads API info')
+            self._task_post_proc(self._g_oCallback)
+            return
+
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         lst_google_ads = dict_acct_info['adw_cid']

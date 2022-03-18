@@ -108,6 +108,7 @@ class PluginConsole(WebsocketConsumer):
                 # join() means to wait for thread completion, not stopping thread
                 self.__g_dictPluginThread[s_plugin_unique_id][s_interrupt_plugin_name].join()
                 self.print_msg_socket(s_interrupt_plugin_name + ' has been interrupted!')
+                del self.__g_dictPluginThread[s_plugin_unique_id][s_interrupt_plugin_name]
             except KeyError:
                 self.print_msg_socket(s_interrupt_plugin_name + ' is unable to be interrupted - not running')
             return
