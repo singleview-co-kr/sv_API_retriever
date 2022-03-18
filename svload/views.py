@@ -356,8 +356,8 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
         o_edi_raw = EdiRaw()
         o_edi_raw.set_period_dict(dt_start=dict_period['dt_first_day_2year_ago'], dt_end=dict_period['dt_today'])
         o_edi_raw.set_freq(dict_sampling_freq_mode)
-        o_edi_raw.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
         o_edi_raw.set_branch_info(dict_branch_info)
+        o_edi_raw.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
         df_edi_raw = o_edi_raw.load_branch(o_sv_db)
         del o_edi_raw
 
@@ -365,8 +365,8 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
         # get whole period
         o_whole_perf_summary = Performance()
         o_whole_perf_summary.set_period_dict(dict_period)
-        o_whole_perf_summary.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
         o_whole_perf_summary.set_single_branch_info(dict_branch_info)
+        o_whole_perf_summary.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
         o_whole_perf_summary.load_df(df_edi_raw)
 
         dict_plots = {}  # defaultdict()  # graph dict to draw

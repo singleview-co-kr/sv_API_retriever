@@ -58,8 +58,11 @@ class Performance:
         self.__g_sSamplingFreq = dict_period['s_cur_sampling_freq']
 
     def set_sku_dict(self, dict_sku):
+        # execute this method just after set_branch_info
         if len(dict_sku) == 0:
-            self.__g_dictEdiSku = {1: {'hypermart_name': 'Emart', 'selected': '', 'mart_id': 3, 'name': 'none', 'first_detect_logdate': date.today()}}  # raise Exception('invalid dict_sku')
+            s_mart_name = self.__g_dictSingleBranch['hypermart_name']
+            n_mart_id = self.__g_dictSingleBranch['n_hypermart_id']
+            self.__g_dictEdiSku = {1: {'hypermart_name': s_mart_name, 'selected': '', 'mart_id': n_mart_id, 'name': 'none', 'first_detect_logdate': date.today()}}  # raise Exception('invalid dict_sku')
         else:
             self.__g_dictEdiSku = dict_sku
 

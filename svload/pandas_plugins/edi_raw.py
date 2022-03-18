@@ -71,8 +71,13 @@ class EdiRaw:
         #                                 }
 
     def set_sku_dict(self, dict_sku):
+        # execute this method just after set_branch_info
         if len(dict_sku) == 0:
-            self.__g_dictEdiSku = {1: {'hypermart_name': 'Emart', 'selected': '', 'mart_id': 3, 'name': 'none', 'first_detect_logdate': date.today()}}  # raise Exception('invalid dict_sku')
+            dict_single_branch = list(self.__g_dictEdiBranchId.values())[0]
+            s_mart_name = dict_single_branch['hypermart_name']
+            n_mart_id = dict_single_branch['hypermart_id']
+            self.__g_dictEdiSku = {1: {'hypermart_name': s_mart_name, 'selected': '', 'mart_id': n_mart_id, 'name': 'none', 'first_detect_logdate': date.today()}}
+            del dict_single_branch
         else:
             self.__g_dictEdiSku = dict_sku
         # self.__g_dfEdiSku = pd.DataFrame(dict_sku).transpose()
@@ -269,7 +274,6 @@ class EdiRaw:
                 lst_emart_sku_id.append(n_sku_id)
             elif dict_sku['mart_id'] == SvHyperMartType.LOTTEMART.value:
                 lst_ltmart_sku_id.append(n_sku_id)
-
         lst_blank_edi = []
         # set emart null
         for n_branch_id in lst_emart_branch_id:
