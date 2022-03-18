@@ -96,11 +96,12 @@ class PeriodWindow:
         # reindex() 실행 시 아래와 같은 데이터가 필요해서 null dataframe이 생성됨
         # DatetimeIndex(['2021-07-01'], dtype='datetime64[ns]', freq='D')
         dt_today_tmp = datetime.today()
+        if dt_today_tmp.day == 1:  # should how last month for closing at the first day of month
+            dt_today_tmp = dt_today_tmp - relativedelta(days=1)
         dt_today = datetime(dt_today_tmp.year, dt_today_tmp.month, dt_today_tmp.day, 0, 0, 0)
         del dt_today_tmp
         dt_first_day_this_month = dt_today.replace(day=1)
         lst_requested_daily_period = []
-
         s_requested_start_date = self.__g_oHttpRequest.GET.get('startDate', None)
         s_requested_end_date = self.__g_oHttpRequest.GET.get('endDate', None)
         if s_requested_start_date and s_requested_end_date:
