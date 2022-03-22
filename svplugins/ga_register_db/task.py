@@ -66,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Mar 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -383,7 +383,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     for sQueryElement in aWeirdSource:
                         aQuery = sQueryElement.split('=')
                         if aQuery[0] == 'utm_campaign':
-                            dictSmRst = self.__g_oSvCampaignParser.parseCampaignCode(sSvCampaignCode=aQuery[1])
+                            dictSmRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=aQuery[1])
                             sSource = dictSmRst['source']
                             sMedium = dictSmRst['medium']
                             sCampaignCode = aQuery[1]
@@ -410,7 +410,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 for sQueryElement in aWeirdSource:
                     aQuery = sQueryElement.split('=')
                     if aQuery[0] == 'utm_campaign':
-                        dictSmRst = self.__g_oSvCampaignParser.parseCampaignCode(sSvCampaignCode=aQuery[1])
+                        dictSmRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=aQuery[1])
                         sSource = dictSmRst['source']
                         sMedium = dictSmRst['medium']
                         sCampaignCode = aQuery[1]
@@ -456,7 +456,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
                                 self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp3rd']
         
-        dictCampaignRst = self.__g_oSvCampaignParser.parseCampaignCode(sSvCampaignCode=sCampaignCode)
+        dictCampaignRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=sCampaignCode)
         if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data
             if sMedium == 'cpc' or sMedium == 'display':
                 dictCampaignRst['rst_type'] = 'PS'

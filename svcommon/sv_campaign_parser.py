@@ -175,10 +175,6 @@ class SvCampaignParser(sv_object.ISvObject):
             return self.__g_dictPnsServiceType[s_sv_service_type]
         else:
             return 'err_service_type'
-        # try:
-        #     return self.__g_dictPnsServiceType[s_sv_service_type]
-        # except KeyError:
-        #     return 'err_service_type'
 
     def getSvMediumTag(self, s_sv_medium_code):
         lst_tag = list(self.__g_dictMediumTag.keys())
@@ -186,11 +182,7 @@ class SvCampaignParser(sv_object.ISvObject):
             return self.__g_dictMediumTag[s_sv_medium_code]
         else:
             return 'err_medium'
-        # try:
-        #     return self.__g_dictMediumTag[sSvMediumCode] 
-        # except KeyError:
-        #     return 'err_medium'
-
+    
     def parseCampaignCodeFb(self, dictCampaignInfo, dictCampaignNameAlias):
         dictRst = {'source':'unknown','rst_type':'','medium':'','brd':'0','campaign1st':'0','campaign2nd':'0','campaign3rd':'0','detected':False}
         if dictCampaignInfo['url_tags'] == 'n/a': # facebook inlink ad or outlink ad without UTM params
@@ -229,7 +221,7 @@ class SvCampaignParser(sv_object.ISvObject):
                     dictRst['medium'] = self.__g_dictMediumTag[ 'CPI' ]
                     dictRst['campaign1st'] = sAdName
         else: # facebook outlink ad
-            dictTempRst = self.__analyzeSvCampaignCode(dictCampaignInfo['campaign_code'])
+            dictTempRst = self.__analyze_sv_campaign_code(dictCampaignInfo['campaign_code'])
             sSourceAbbreviation = dictTempRst['sv_code'][0]
             dictRst['source'] = self.__g_dictSourceAbbreviation[sSourceAbbreviation]
             lstCampaignCode = dictTempRst['sv_code']
@@ -251,140 +243,136 @@ class SvCampaignParser(sv_object.ISvObject):
                 dictRst['detected'] = True
         return dictRst
 
-    def parseCampaignCode(self, sSvCampaignCode=''):
-        """ this method might be for ga_register??? """
-        dictRst = {'source':'unknown','rst_type':'','medium':'','brd':0,'campaign1st':'00','campaign2nd':'00','campaign3rd':'00'}
-        if sSvCampaignCode == '(not set)':
-            return dictRst
-        
-        sSvCampaignCode = sSvCampaignCode.upper()
-        bLatestSvCampaignFound = False
-        for sCampaignPrefix in self.__g_lstLatestSvCampaignPrefix:
-            if sSvCampaignCode.find(sCampaignPrefix) > -1:
-                bLatestSvCampaignFound = True
-                break
-        
-        if bLatestSvCampaignFound: # latest version of SV campaign code
-            dictTempRst = self.__analyzeSvCampaignCode(sSvCampaignCode)
-            dictRst['brd'] = dictTempRst['brd']
-            aCampaignCode = dictTempRst['sv_code']
+    def parse_campaign_code(self, s_sv_campaign_code=''):
+        """ this method might be for ga_register???
+            should be synchronized with sv_API_retriever/svcommon/sv_campaign_parser
+        """
+        dict_rst = {'source': 'unknown', 'rst_type': '', 'medium': '', 'brd': 0,
+                    'campaign1st': '00', 'campaign2nd': '00', 'campaign3rd': '00'}
+        if s_sv_campaign_code == '(not set)':
+            return dict_rst
 
-            if aCampaignCode[0] == 'OLD': # first of all, process OLD prefix
-                del aCampaignCode[0]
-                nElemCnt = len(aCampaignCode)
-                aCampaignCode[nElemCnt - 1] = aCampaignCode[nElemCnt - 1] + '_OLD'
-            
+        s_sv_campaign_code = s_sv_campaign_code.upper()
+        b_latest_sv_campaign_found = False
+        for sCampaignPrefix in self.__g_lstLatestSvCampaignPrefix:
+            if s_sv_campaign_code.find(sCampaignPrefix) > -1:
+                b_latest_sv_campaign_found = True
+                break
+
+        if b_latest_sv_campaign_found:  # latest version of SV campaign code
+            dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
+            dict_rst['brd'] = dict_tmp_rst['brd']
+            list_campaign_code = dict_tmp_rst['sv_code']
+            del dict_tmp_rst
+
+            if list_campaign_code[0] == 'OLD':  # first of all, process OLD prefix
+                del list_campaign_code[0]
+                n_elem_cnt = len(list_campaign_code)
+                list_campaign_code[n_elem_cnt - 1] = list_campaign_code[n_elem_cnt - 1] + '_OLD'
+
             # set source tag
             try:
-                dictRst['source'] = self.__g_dictSourceAbbreviation[aCampaignCode[0]]
+                dict_rst['source'] = self.__g_dictSourceAbbreviation[list_campaign_code[0]]
             except KeyError:
-                dictRst['source'] = 'unknown'
+                dict_rst['source'] = 'unknown'
                 raise Exception('stop')
-
-            dictRst['rst_type'] = self.__g_dictResultTypeTag[aCampaignCode[1]] 
-            
+            # set search result type tag
+            dict_rst['rst_type'] = self.__g_dictResultTypeTag[list_campaign_code[1]]
             # set media tag
-            dictRst['medium'] = self.__g_dictMediumTag[aCampaignCode[2]]
-
-            if dictRst['source'] != 'unknown': # handle no sv campaign code data
-                dictRst['campaign1st'] = aCampaignCode[3]
+            dict_rst['medium'] = self.__g_dictMediumTag[list_campaign_code[2]]
+            if dict_rst['source'] != 'unknown':  # handle no sv campaign code data
+                dict_rst['campaign1st'] = list_campaign_code[3]
                 try:
-                    dictRst['campaign2nd'] = aCampaignCode[4]
-                    dictRst['campaign3rd'] = aCampaignCode[5]
+                    dict_rst['campaign2nd'] = list_campaign_code[4]
+                    dict_rst['campaign3rd'] = list_campaign_code[5]
                 except IndexError:
                     pass
-            
-            #if dictRst['campaign1st'].find('BR') > -1:
-            #	dictRst['brd'] = 1
-        else: # process old version of SV campaign code; part of this section will be deprecated after balanceseat complete analysis
-            bObsoleteSvCampaignFound = False
+        else:  # process old style SV campaign code; this section will be deprecated after balanceseat complete analysis
+            b_obsolete_sv_campaign_found = False
             for sCampaignPrefix in self.__g_lstObsoleteSvCampaignPrefix:
-                if sSvCampaignCode.find(sCampaignPrefix) > -1:
-                    bObsoleteSvCampaignFound = True
+                if s_sv_campaign_code.find(sCampaignPrefix) > -1:
+                    b_obsolete_sv_campaign_found = True
                     break
-            
-            if bObsoleteSvCampaignFound:
-                if sSvCampaignCode == 'NVR_BRAND_SEARCH_MOB' or sSvCampaignCode == 'NV_PS_BRSEARCH_MOB':
-                    dictRst['source'] = 'naver'
-                    dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
-                    dictRst['medium'] = 'display'
-                    dictRst['campaign1st'] = 'BRS'
-                    dictRst['campaign2nd'] = 'MOB'
-                elif sSvCampaignCode == 'NVR_BRAND_SEARCH_PC' or sSvCampaignCode == 'NV_PS_BRSEARCH_PC':
-                    dictRst['source'] = 'naver'
-                    dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
-                    dictRst['medium'] = 'display'
-                    dictRst['campaign1st'] = 'BRS'
-                    dictRst['campaign2nd'] = 'PC'
+
+            if b_obsolete_sv_campaign_found:
+                if s_sv_campaign_code == 'NVR_BRAND_SEARCH_MOB' or s_sv_campaign_code == 'NV_PS_BRSEARCH_MOB':
+                    dict_rst['source'] = 'naver'
+                    dict_rst['rst_type'] = self.__g_dictResultTypeTag['PS']
+                    dict_rst['medium'] = 'display'
+                    dict_rst['campaign1st'] = 'BRS'
+                    dict_rst['campaign2nd'] = 'MOB'
+                elif s_sv_campaign_code == 'NVR_BRAND_SEARCH_PC' or s_sv_campaign_code == 'NV_PS_BRSEARCH_PC':
+                    dict_rst['source'] = 'naver'
+                    dict_rst['rst_type'] = self.__g_dictResultTypeTag['PS']
+                    dict_rst['medium'] = 'display'
+                    dict_rst['campaign1st'] = 'BRS'
+                    dict_rst['campaign2nd'] = 'PC'
                 else:
-                    aCampaignCode = sSvCampaignCode.split('_')
+                    lst_campaign_code = s_sv_campaign_code.split('_')
                     # set source tag
                     try:
-                        dictRst['source'] = self.__g_dictSourceAbbreviation[aCampaignCode[0]]
+                        dict_rst['source'] = self.__g_dictSourceAbbreviation[lst_campaign_code[0]]
                     except KeyError:
-                        dictRst['source'] = 'unknown'
+                        dict_rst['source'] = 'unknown'
                         raise Exception('stop')
 
                     # set media tag
-                    if  aCampaignCode[1] == 'PS':
-                        dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
-                        dictRst['medium'] = 'cpc'
-                    elif aCampaignCode[1] == 'NS':
-                        dictRst['rst_type'] = self.__g_dictResultTypeTag['PNS']
-                        dictRst['medium'] = 'organic'
-                        if aCampaignCode[2] == 'BLOG' or aCampaignCode[2] == 'BL':
-                            aCampaignCode[2] = 'BL'
-                        elif aCampaignCode[2] == 'EXAM': # this condition deals with balanceseat yr 2015, 2016 only
-                            aCampaignCode[2] = 'BL'
-                            aCampaignCode[3] = 'EXAM'
-                        elif aCampaignCode[2] == 'POWER': # this condition deals with balanceseat yr 2015, 2016 only
-                            aCampaignCode[2] = 'BL'
-                            aCampaignCode[3] = 'POWERBLOGGER'
-                        elif aCampaignCode[2] == 'CAFE':
-                            aCampaignCode[2] = 'CF'
-                        elif aCampaignCode[2] == 'KIN' or aCampaignCode[2] == 'PAGE':
+                    if lst_campaign_code[1] == 'PS':
+                        dict_rst['rst_type'] = self.__g_dictResultTypeTag['PS']
+                        dict_rst['medium'] = 'cpc'
+                    elif lst_campaign_code[1] == 'NS':
+                        dict_rst['rst_type'] = self.__g_dictResultTypeTag['PNS']
+                        dict_rst['medium'] = 'organic'
+                        if lst_campaign_code[2] == 'BLOG' or lst_campaign_code[2] == 'BL':
+                            lst_campaign_code[2] = 'BL'
+                        elif lst_campaign_code[2] == 'EXAM':  # this condition deals with balanceseat yr 2015, 2016 only
+                            lst_campaign_code[2] = 'BL'
+                            lst_campaign_code[3] = 'EXAM'
+                        elif lst_campaign_code[2] == 'POWER':  # this condition deals with balanceseat yr 2015, 2016 only
+                            lst_campaign_code[2] = 'BL'
+                            lst_campaign_code[3] = 'POWERBLOGGER'
+                        elif lst_campaign_code[2] == 'CAFE':
+                            lst_campaign_code[2] = 'CF'
+                        elif lst_campaign_code[2] == 'KIN' or lst_campaign_code[2] == 'PAGE':
                             pass
-                    
-                    nCampaignCodeElem = len( aCampaignCode )
-                    if nCampaignCodeElem == 4: # ex) NVR_NS_KIN_20150724 > very seldom
-                        dictRst['campaign1st'] = aCampaignCode[2]
-                        dictRst['campaign2nd'] = aCampaignCode[3]
-                    elif nCampaignCodeElem == 5: # ex) NV_PS_WELCOMGUEST_00_00
-                        dictRst['campaign1st'] = aCampaignCode[2]
-                        dictRst['campaign2nd'] = aCampaignCode[3]
-                        dictRst['campaign3rd'] = aCampaignCode[4]
-                    elif nCampaignCodeElem == 6: # ex) NV_PS_WELCOM_GUEST_MAIN_01 > very seldom
-                        dictRst['campaign1st'] = aCampaignCode[2]
-                        dictRst['campaign2nd'] = aCampaignCode[3]
-                        dictRst['campaign3rd'] = aCampaignCode[4] + '_' + aCampaignCode[5]
-            else:
-                #self._printDebug('not a sv campaign code -> ' + sSvCampaignCode + ' @ ' + sDataFilename)
-                dictRst['campaign1st'] = sSvCampaignCode.strip()
-            
-            if( dictRst['campaign1st'].find('BR') > -1 ):
-                dictRst['brd'] = 1
-        
-        return dictRst
 
-    def __analyzeSvCampaignCode(self, sSvCampaignCode):
-        dictRst = {'sv_code':'0','brd':'0'}
-        if sSvCampaignCode == '':
-            return dictRst
-        
-        sSvCampaignCode = sSvCampaignCode.upper()
-        dictRst['sv_code'] = sSvCampaignCode.split('_')
-        
-        for sBrdedkTag in self.__g_lstBrdedTag:
-            if sSvCampaignCode.find(sBrdedkTag) > -1:
-                dictRst['brd'] = '1'
+                    n_campaign_code_elem = len(lst_campaign_code)
+                    if n_campaign_code_elem == 4:  # ex) NVR_NS_KIN_20150724 > very seldom
+                        dict_rst['campaign1st'] = lst_campaign_code[2]
+                        dict_rst['campaign2nd'] = lst_campaign_code[3]
+                    elif n_campaign_code_elem == 5:  # ex) NV_PS_WELCOMGUEST_00_00
+                        dict_rst['campaign1st'] = lst_campaign_code[2]
+                        dict_rst['campaign2nd'] = lst_campaign_code[3]
+                        dict_rst['campaign3rd'] = lst_campaign_code[4]
+                    elif n_campaign_code_elem == 6:  # ex) NV_PS_WELCOM_GUEST_MAIN_01 > very seldom
+                        dict_rst['campaign1st'] = lst_campaign_code[2]
+                        dict_rst['campaign2nd'] = lst_campaign_code[3]
+                        dict_rst['campaign3rd'] = lst_campaign_code[4] + '_' + lst_campaign_code[5]
+            else:
+                dict_rst['campaign1st'] = s_sv_campaign_code.strip()
+
+            if dict_rst['campaign1st'].find('BR') > -1:
+                dict_rst['brd'] = 1
+        return dict_rst
+
+    def __analyze_sv_campaign_code(self, s_sv_campaign_code):
+        dict_rst = {'sv_code': '0', 'brd': '0'}
+        if s_sv_campaign_code == '':
+            return dict_rst
+
+        s_sv_campaign_code = s_sv_campaign_code.upper()
+        dict_rst['sv_code'] = s_sv_campaign_code.split('_')
+        for s_brded_tag in self.__g_lstBrdedTag:
+            if s_sv_campaign_code.find(s_brded_tag) > -1:
+                dict_rst['brd'] = '1'
                 break
-        
-        if dictRst['brd'] == '0':
-            for sRmkTag in self.__g_lstRmkTag:
-                if sSvCampaignCode.find(sRmkTag) > -1:
-                    dictRst['brd'] = '1'
+
+        if dict_rst['brd'] == '0':
+            for s_rmk_tag in self.__g_lstRmkTag:
+                if s_sv_campaign_code.find(s_rmk_tag) > -1:
+                    dict_rst['brd'] = '1'
                     break
-        return dictRst
+        return dict_rst
 
     def __getBrandedTrunc(self, s_brded_terms_path):
         """ called by self.decideBrandedByTerm() """
@@ -401,7 +389,141 @@ class SvCampaignParser(sv_object.ISvObject):
                 pass
         return lst_branded_trunc
 
-			
+    # def parseCampaignCode(self, sSvCampaignCode=''):
+    #     """ this method might be for ga_register??? """
+    #     dictRst = {'source':'unknown','rst_type':'','medium':'','brd':0,'campaign1st':'00','campaign2nd':'00','campaign3rd':'00'}
+    #     if sSvCampaignCode == '(not set)':
+    #         return dictRst
+        
+    #     sSvCampaignCode = sSvCampaignCode.upper()
+    #     bLatestSvCampaignFound = False
+    #     for sCampaignPrefix in self.__g_lstLatestSvCampaignPrefix:
+    #         if sSvCampaignCode.find(sCampaignPrefix) > -1:
+    #             bLatestSvCampaignFound = True
+    #             break
+        
+    #     if bLatestSvCampaignFound: # latest version of SV campaign code
+    #         dictTempRst = self.__analyze_sv_campaign_code(sSvCampaignCode)
+    #         dictRst['brd'] = dictTempRst['brd']
+    #         aCampaignCode = dictTempRst['sv_code']
+
+    #         if aCampaignCode[0] == 'OLD': # first of all, process OLD prefix
+    #             del aCampaignCode[0]
+    #             nElemCnt = len(aCampaignCode)
+    #             aCampaignCode[nElemCnt - 1] = aCampaignCode[nElemCnt - 1] + '_OLD'
+            
+    #         # set source tag
+    #         try:
+    #             dictRst['source'] = self.__g_dictSourceAbbreviation[aCampaignCode[0]]
+    #         except KeyError:
+    #             dictRst['source'] = 'unknown'
+    #             raise Exception('stop')
+
+    #         dictRst['rst_type'] = self.__g_dictResultTypeTag[aCampaignCode[1]] 
+            
+    #         # set media tag
+    #         dictRst['medium'] = self.__g_dictMediumTag[aCampaignCode[2]]
+
+    #         if dictRst['source'] != 'unknown': # handle no sv campaign code data
+    #             dictRst['campaign1st'] = aCampaignCode[3]
+    #             try:
+    #                 dictRst['campaign2nd'] = aCampaignCode[4]
+    #                 dictRst['campaign3rd'] = aCampaignCode[5]
+    #             except IndexError:
+    #                 pass
+            
+    #         #if dictRst['campaign1st'].find('BR') > -1:
+    #         #	dictRst['brd'] = 1
+    #     else: # process old version of SV campaign code; part of this section will be deprecated after balanceseat complete analysis
+    #         bObsoleteSvCampaignFound = False
+    #         for sCampaignPrefix in self.__g_lstObsoleteSvCampaignPrefix:
+    #             if sSvCampaignCode.find(sCampaignPrefix) > -1:
+    #                 bObsoleteSvCampaignFound = True
+    #                 break
+            
+    #         if bObsoleteSvCampaignFound:
+    #             if sSvCampaignCode == 'NVR_BRAND_SEARCH_MOB' or sSvCampaignCode == 'NV_PS_BRSEARCH_MOB':
+    #                 dictRst['source'] = 'naver'
+    #                 dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
+    #                 dictRst['medium'] = 'display'
+    #                 dictRst['campaign1st'] = 'BRS'
+    #                 dictRst['campaign2nd'] = 'MOB'
+    #             elif sSvCampaignCode == 'NVR_BRAND_SEARCH_PC' or sSvCampaignCode == 'NV_PS_BRSEARCH_PC':
+    #                 dictRst['source'] = 'naver'
+    #                 dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
+    #                 dictRst['medium'] = 'display'
+    #                 dictRst['campaign1st'] = 'BRS'
+    #                 dictRst['campaign2nd'] = 'PC'
+    #             else:
+    #                 aCampaignCode = sSvCampaignCode.split('_')
+    #                 # set source tag
+    #                 try:
+    #                     dictRst['source'] = self.__g_dictSourceAbbreviation[aCampaignCode[0]]
+    #                 except KeyError:
+    #                     dictRst['source'] = 'unknown'
+    #                     raise Exception('stop')
+
+    #                 # set media tag
+    #                 if  aCampaignCode[1] == 'PS':
+    #                     dictRst['rst_type'] = self.__g_dictResultTypeTag['PS']
+    #                     dictRst['medium'] = 'cpc'
+    #                 elif aCampaignCode[1] == 'NS':
+    #                     dictRst['rst_type'] = self.__g_dictResultTypeTag['PNS']
+    #                     dictRst['medium'] = 'organic'
+    #                     if aCampaignCode[2] == 'BLOG' or aCampaignCode[2] == 'BL':
+    #                         aCampaignCode[2] = 'BL'
+    #                     elif aCampaignCode[2] == 'EXAM': # this condition deals with balanceseat yr 2015, 2016 only
+    #                         aCampaignCode[2] = 'BL'
+    #                         aCampaignCode[3] = 'EXAM'
+    #                     elif aCampaignCode[2] == 'POWER': # this condition deals with balanceseat yr 2015, 2016 only
+    #                         aCampaignCode[2] = 'BL'
+    #                         aCampaignCode[3] = 'POWERBLOGGER'
+    #                     elif aCampaignCode[2] == 'CAFE':
+    #                         aCampaignCode[2] = 'CF'
+    #                     elif aCampaignCode[2] == 'KIN' or aCampaignCode[2] == 'PAGE':
+    #                         pass
+                    
+    #                 nCampaignCodeElem = len( aCampaignCode )
+    #                 if nCampaignCodeElem == 4: # ex) NVR_NS_KIN_20150724 > very seldom
+    #                     dictRst['campaign1st'] = aCampaignCode[2]
+    #                     dictRst['campaign2nd'] = aCampaignCode[3]
+    #                 elif nCampaignCodeElem == 5: # ex) NV_PS_WELCOMGUEST_00_00
+    #                     dictRst['campaign1st'] = aCampaignCode[2]
+    #                     dictRst['campaign2nd'] = aCampaignCode[3]
+    #                     dictRst['campaign3rd'] = aCampaignCode[4]
+    #                 elif nCampaignCodeElem == 6: # ex) NV_PS_WELCOM_GUEST_MAIN_01 > very seldom
+    #                     dictRst['campaign1st'] = aCampaignCode[2]
+    #                     dictRst['campaign2nd'] = aCampaignCode[3]
+    #                     dictRst['campaign3rd'] = aCampaignCode[4] + '_' + aCampaignCode[5]
+    #         else:
+    #             #self._printDebug('not a sv campaign code -> ' + sSvCampaignCode + ' @ ' + sDataFilename)
+    #             dictRst['campaign1st'] = sSvCampaignCode.strip()
+            
+    #         if( dictRst['campaign1st'].find('BR') > -1 ):
+    #             dictRst['brd'] = 1
+        
+    #     return dictRst
+
+    # def __analyzeSvCampaignCode(self, sSvCampaignCode):
+    #     dictRst = {'sv_code':'0','brd':'0'}
+    #     if sSvCampaignCode == '':
+    #         return dictRst
+        
+    #     sSvCampaignCode = sSvCampaignCode.upper()
+    #     dictRst['sv_code'] = sSvCampaignCode.split('_')
+        
+    #     for sBrdedkTag in self.__g_lstBrdedTag:
+    #         if sSvCampaignCode.find(sBrdedkTag) > -1:
+    #             dictRst['brd'] = '1'
+    #             break
+        
+    #     if dictRst['brd'] == '0':
+    #         for sRmkTag in self.__g_lstRmkTag:
+    #             if sSvCampaignCode.find(sRmkTag) > -1:
+    #                 dictRst['brd'] = '1'
+    #                 break
+    #     return dictRst
+
 #if __name__ == '__main__': # for console debugging
 #	oSvCampaignParser = SvCampaignParser()
 #	oSvCampaignParser.sendMsg('ddd')
