@@ -118,6 +118,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self.__g_sMode == 'retrieve':
             self._printDebug('-> ask new docs')
             self.__askNewToSvXeWebService()
+        elif self.__g_sMode == 'sql_transfer':
+            self._printDebug('-> transfer new docs to BI DB via SQL')
+            self.__transferNewToBiDb()
         elif self.__g_sMode == 'extract':
             self._printDebug('-> send new docs')
             self.__sendNewToDashboardServer()
@@ -125,12 +128,84 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
     
+    def __transferNewToBiDb(self):
+        """
+        transfer de-normalized table to BI db
+        """
+        # begin - ext bi denorm word count date range
+        dt_yesterday = datetime.now() - timedelta(1)
+        s_yesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
+        dict_date_range = {'s_wc_start_date': 'na', 's_wc_end_date': s_yesterday}
+        del dt_yesterday
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
+            o_sv_mysql.create_table_on_demand('_wc_word_cnt_denorm')  # for google data studio
+            lst_wc_date_range = o_sv_mysql.executeQuery('getWordCountDenormDateRange')
+        if lst_wc_date_range[0]['maxdate']:
+            dt_maxdate = lst_wc_date_range[0]['maxdate']
+            dt_startdate = dt_maxdate + timedelta(1)
+            s_startdate = dt_startdate.strftime('%Y%m%d')
+            if int(s_startdate) <= int(s_yesterday):
+                dict_date_range['s_wc_start_date'] = s_startdate
+        del lst_wc_date_range
+        # end - ext bi denorm word count date range
+
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            if not self._continue_iteration():
+                return
+            # retrieve word count
+            s_wc_end_date = datetime.strptime(dict_date_range['s_wc_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
+            if dict_date_range['s_wc_start_date'] == 'na':  # get whole wc
+                self._printDebug('get whole wc')
+                lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCountTo', s_wc_end_date)
+            else:
+                s_wc_start_date = datetime.strptime(dict_date_range['s_wc_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
+                self._printDebug('wc get from ' + s_wc_start_date + ' to ' + s_wc_end_date)
+                lst_word_cnt = o_sv_mysql.executeQuery('getWordCountFromTo', dict_date_range['s_wc_start_date'], s_wc_end_date)
+
+            if len(lst_word_cnt):
+                # retrieve dictionary if word count log exists
+                self._printDebug('get whole dictionary')
+                dict_dictionary = {}
+                lst_dictionary = o_sv_mysql.executeQuery('getAllDictionaryCompact')
+                for dict_single_word in lst_dictionary:
+                    if not self._continue_iteration():
+                        return
+                    dict_dictionary[dict_single_word['word_srl']] = {'word': dict_single_word['word'],
+                                                                    'b_ignore': dict_single_word['b_ignore']}
+                del lst_dictionary
+        nIdx = 0
+        nSentinel = len(lst_word_cnt)
+        if nSentinel:
+            self._printDebug('transfer word count via SQL')
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
+                lst_wc_date_range = o_sv_mysql.executeQuery('getWordCountDenormDateRange')
+                for dict_single_wc in lst_word_cnt:
+                    if not self._continue_iteration():
+                        return
+                    if dict_dictionary[dict_single_wc['word_srl']]['b_ignore'] == '0':
+                        o_sv_mysql.executeQuery('insertWordCountDenorm', dict_single_wc['log_srl'],
+                                               dict_dictionary[dict_single_wc['word_srl']]['word'],
+                                               dict_single_wc['cnt'], dict_single_wc['logdate'])
+                    self._printProgressBar(nIdx + 1, nSentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    nIdx += 1
+        del lst_word_cnt
+        del dict_dictionary
+
     def __sendNewToDashboardServer(self):
         """
         extract manipulated dictionary and word cnt of new docs to Dashboard Server
         # case 2: Bot Server sends manipulated dictionary and word count to a dashboard server
         """
-         # server give data to dashboard client case
+        # server give data to dashboard client case
         # bot server: may i help you?
         dictParams = {'c': [self.__g_dictMsg['MIHY']]} 
         oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
