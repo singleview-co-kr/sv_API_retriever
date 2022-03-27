@@ -90,6 +90,7 @@ class SvMySql(sv_object.ISvObject):
 
     def __del__(self):
         self.__g_sAppName = None
+        self.__g_sExtTargetHost = None
         self.__g_dictConfig = {}
         self.__g_oConn = None
         self.__g_oCursor = None
@@ -126,31 +127,39 @@ class SvMySql(sv_object.ISvObject):
         
         self.__g_sAbsolutePath += sSubPath
 
-    def initialize(self, dict_brand_info=None):
-        self.__g_oConfig = configparser.ConfigParser()
-        if dict_brand_info:  # set only ext database is requested
+    def initialize(self, dict_brand_info=None, s_ext_target_host=None):
+        o_config = configparser.ConfigParser()
+        if dict_brand_info:  # set only internally separted database is requested
             s_brand_db_config_path = os.path.join(settings.SV_STORAGE_ROOT, str(dict_brand_info['n_acct_id']),
                                                   str(dict_brand_info['n_brand_id']), 'database.config.ini')
             if os.path.isfile(s_brand_db_config_path):
-                self.__g_oConfig = configparser.ConfigParser()
-                self.__g_oConfig.read(s_brand_db_config_path)
+                o_config = configparser.ConfigParser()
+                o_config.read(s_brand_db_config_path)
                 # self.__g_sDbMode = 'pymysql'
-        
-        if 'SERVER' in self.__g_oConfig:  # .keys():  # use account specific DB
-            self.__g_dictConfig['db_hostname'] = self.__g_oConfig['SERVER']['db_hostname']
-            self.__g_dictConfig['db_port'] = int(self.__g_oConfig['SERVER']['db_port'])
-            self.__g_dictConfig['db_userid'] = self.__g_oConfig['SERVER']['db_userid']
-            self.__g_dictConfig['db_password'] = self.__g_oConfig['SERVER']['db_password']
-            self.__g_dictConfig['db_database'] = self.__g_oConfig['SERVER']['db_database']
-            self.__g_dictConfig['db_charset'] = self.__g_oConfig['SERVER']['db_charset']
-        else:  # use django DB
-            self.__g_dictConfig['db_hostname'] = config('db_hostname')
-            self.__g_dictConfig['db_port'] = int(config('db_port'))
-            self.__g_dictConfig['db_userid'] = config('db_userid')
-            self.__g_dictConfig['db_password'] = config('db_password')
-            self.__g_dictConfig['db_database'] = config('db_database')
-            self.__g_dictConfig['db_charset'] = config('db_charset')
+        if s_ext_target_host is None:
+            if 'SERVER' in o_config:  # use account specific DB
+                self.__g_dictConfig['db_hostname'] = o_config['SERVER']['db_hostname']
+                self.__g_dictConfig['db_port'] = int(o_config['SERVER']['db_port'])
+                self.__g_dictConfig['db_userid'] = o_config['SERVER']['db_userid']
+                self.__g_dictConfig['db_password'] = o_config['SERVER']['db_password']
+                self.__g_dictConfig['db_database'] = o_config['SERVER']['db_database']
+                self.__g_dictConfig['db_charset'] = o_config['SERVER']['db_charset']
+            else:  # use django DB
+                self.__g_dictConfig['db_hostname'] = config('db_hostname')
+                self.__g_dictConfig['db_port'] = int(config('db_port'))
+                self.__g_dictConfig['db_userid'] = config('db_userid')
+                self.__g_dictConfig['db_password'] = config('db_password')
+                self.__g_dictConfig['db_database'] = config('db_database')
+                self.__g_dictConfig['db_charset'] = config('db_charset')
+        elif s_ext_target_host == 'BI_SERVER':
+            self.__g_dictConfig['db_hostname'] = o_config['BI_SERVER']['db_hostname']
+            self.__g_dictConfig['db_port'] = int(o_config['BI_SERVER']['db_port'])
+            self.__g_dictConfig['db_userid'] = o_config['BI_SERVER']['db_userid']
+            self.__g_dictConfig['db_password'] = o_config['BI_SERVER']['db_password']
+            self.__g_dictConfig['db_database'] = o_config['BI_SERVER']['db_database']
+            self.__g_dictConfig['db_charset'] = o_config['BI_SERVER']['db_charset']
         # self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
+        del o_config
         self.__connect()
 
         # if self.__g_sAppName:  # for django app mode
@@ -178,12 +187,13 @@ class SvMySql(sv_object.ISvObject):
         if 'retrieve_reserved_tag' not in self.__g_dictRegEx:
             self.__g_dictRegEx['retrieve_reserved_tag'] = re.compile(r"(?<=[{][{]).*?(?=[}][}])")
 
-        s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', '')  # to end with '/'
-        for _, _, files in os.walk(s_schema_path_abs):
-            for filename in files:
-                if not filename.startswith('_'):
-                    sTableName = re.sub(".sql", "", filename )
-                    self.__createTable(sTableName)
+        if s_ext_target_host is None:  # do not create default table if ext bi db mode
+            s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', '')  # to end with '/'
+            for _, _, files in os.walk(s_schema_path_abs):
+                for filename in files:
+                    if not filename.startswith('_'):
+                        sTableName = re.sub(".sql", "", filename )
+                        self.__createTable(sTableName)
 
     def set_tbl_prefix(self, s_table_prefix):
         if s_table_prefix is not None:
