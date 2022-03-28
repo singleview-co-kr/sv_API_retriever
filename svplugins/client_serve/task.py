@@ -24,7 +24,9 @@
 
 # standard library
 import logging
-import datetime
+# import datetime
+from datetime import datetime
+from datetime import timedelta
 import sys
 import os
 import configparser # https://docs.python.org/3/library/configparser.html
@@ -59,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 28th, Mar 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -80,37 +82,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sReplaceYearMonth = None
         self.__g_sTblPrefix = None
         self.__g_dictMsg = {}
-
-    def __postHttpResponse(self, sTargetUrl, dictParams):
-        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
-        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
-        oSvHttp = sv_http.SvHttpCom(sTargetUrl)
-        oResp = oSvHttp.postUrl( dictParams )
-        oSvHttp.close()
-        del oSvHttp
-        if oResp['error'] == -1:
-            sTodo = oResp['variables']['todo']
-            if sTodo:
-                self._printDebug('HTTP response raised exception!!')
-                raise Exception(sTodo)
-        else:
-            return oResp
-
-    def __translateMsgCode(self, nMsgKey):
-        for sMsg, nKey in self.__g_dictMsg.items():
-            if nKey == nMsgKey:
-                return sMsg
-        
-    def __getKeyConfig(self, sSvAcctId, sAcctTitle):
-        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
-        try:
-            with open(sKeyConfigPath) as f:
-                self.__g_oConfig.read_file(f)
-        except FileNotFoundError:
-            self._printDebug( 'key.config.ini not exist')
-            return # raise Exception('stop')
-
-        self.__g_oConfig.read(sKeyConfigPath)
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -137,7 +108,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        self.__getKeyConfig(s_sv_acct_id, s_brand_id)
+        self.__get_key_config(s_sv_acct_id, s_brand_id)
 
         if self.__g_sTargetUrl is None:
             if 'server' in self.__g_oConfig:
@@ -147,27 +118,100 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._task_post_proc(self._g_oCallback)
                 return
 
-        self._printDebug('-> communication begin')
-        if self.__g_sMode == 'update':
-            self.__updatePeriod()
-        elif self.__g_sMode == 'listen':
+        self._printDebug('-> communic1ation begin')
+        if self.__g_sMode == 'add_ga_media_sql':
+            self.__add_new_ga_media_sql()
+        elif self.__g_sMode == 'update_ga_media_sql':
             pass
+        elif self.__g_sMode == 'add_ga_media_encrypted':
+            self.__add_new_ga_media_encrypted()
+        elif self.__g_sMode == 'update_ga_media_encrypted':
+            self.__update_period_ga_media_encrypted()
         else:
-            self.__addNew()
+            self._printDebug('weird mode desinated')
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
+    
+    def __add_new_ga_media_sql(self):
+        """
+        transfer compiled_ga_media_daily table to BI db
+        """
+        # begin - ext bi denorm word count date range
+        dt_yesterday = datetime.now() - timedelta(1)
+        s_yesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
+        dict_date_range = {'s_start_date': 'na', 's_end_date': s_yesterday}
+        del dt_yesterday
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.client_serve')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
+            o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
+            lst_wc_date_range = o_sv_mysql.executeQuery('getBiDateRange')
+        if lst_wc_date_range[0]['maxdate']:
+            dt_maxdate = lst_wc_date_range[0]['maxdate']
+            dt_startdate = dt_maxdate + timedelta(1)
+            s_startdate = dt_startdate.strftime('%Y%m%d')
+            if int(s_startdate) <= int(s_yesterday):
+                dict_date_range['s_start_date'] = s_startdate
+        del lst_wc_date_range
+        # end - ext bi denorm word count date range
+
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.client_serve')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            if not self._continue_iteration():
+                return
+            if dict_date_range['s_start_date'] != 'na':
+                s_start_date = dict_date_range['s_start_date']
+                s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
+                self._printDebug('get from ' + s_start_date)
+                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogFrom', s_start_date)
+            else:
+                self._printDebug('get whole')
+                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogGross')
+        n_idx = 0
+        n_sentinel = len(lst_compiled_log)
+        if n_sentinel:
+            self._printDebug('transfer word count via SQL')
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.client_serve')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
+                for dict_single_log in lst_compiled_log:
+                    if not self._continue_iteration():
+                        return
+                    o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
+                                            dict_single_log['log_srl'], dict_single_log['media_ua'],
+                                            dict_single_log['media_term'], dict_single_log['media_source'],
+                                            dict_single_log['media_rst_type'], dict_single_log['media_media'],
+                                            dict_single_log['media_brd'], dict_single_log['media_camp1st'],
+                                            dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
+                                            dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
+                                            dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
+                                            dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
+                                            dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
+                                            dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
+                                            dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
+                                            dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
+                                            dict_single_log['in_site_registrations'], dict_single_log['logdate'])
+                    self._printProgressBar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    n_idx += 1
+        elif n_sentinel == 0:
+            self._printDebug('stop transferring - no more data to update')
+            return
         
-    def __addNew(self):
+    def __add_new_ga_media_encrypted(self):
         # server give data to dashboard client case
         # bot server: may i help you?
         dictParams = {'c': [self.__g_dictMsg['MIHY']]} 
-        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)        
+        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)        
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) == 'LMKL': # dashboard client: let me know new data with required info
+        if self.__translate_msg_code(nMsgKey) == 'LMKL': # dashboard client: let me know new data with required info
             dictRetrievalDateRange = oResp['variables']['d']
             dictParams = {'c': [self.__g_dictMsg['IWSY']], 'd': oResp['variables']['d']} # I will send you what you request
-            oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
-        elif self.__translateMsgCode(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
+            oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+        elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
             self._printDebug('stop communication 1')
             return
 
@@ -175,7 +219,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
 
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
+        if self.__translate_msg_code(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
             self._printDebug('stop communication 2')
             return
 
@@ -190,7 +234,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # parse respond about retrieval date range
             try:
                 sStartDate = dictRetrievalDateRange['start_date']
-                sStartDate = datetime.datetime.strptime(sStartDate, '%Y%m%d').strftime('%Y-%m-%d')
+                sStartDate = datetime.strptime(sStartDate, '%Y%m%d').strftime('%Y-%m-%d')
                 self._printDebug('get from ' + sStartDate)
                 lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogFrom', sStartDate)
             except ValueError: # if sStartDate == 'na'
@@ -221,24 +265,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             lstSingleRow.append(dictSingleRow[sColTitle])
 
                     lstRows.append(lstSingleRow)
-                    nThisChunkBytes = self.__getObjSize(lstSingleRow)
+                    nThisChunkBytes = self.__get_obj_size(lstSingleRow)
                     nGrossSizeBytesToSync = nGrossSizeBytesToSync + nThisChunkBytes
                     if nGrossSizeBytesToSync + nThisChunkBytes > self.__g_nMaxBytesToSend: # "+ nThisChunkBytes" means to estimate to add following chunk
                         dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+                        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
                         
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
                         self._printDebug('transmit and initialize')
                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+                oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
                 self._printDebug('transmit residual')
                 self._printDebug('-> resp of sending new data')
                 self._printDebug(oResp)
         return
 
-    def __updatePeriod(self):
+    def __update_period_ga_media_encrypted(self):
         # server replace data in dashboard client case
         if self.__g_sReplaceYearMonth == None:
             self._printDebug('stop -> invalid yyyymm')
@@ -254,18 +298,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         # bot server: Plz Update Period
         dictParams = {'c': [self.__g_dictMsg['PUP']]} 
-        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) == 'LMKP': # dashboard client: Let me know Period
+        if self.__translate_msg_code(nMsgKey) == 'LMKP': # dashboard client: Let me know Period
             self._printDebug('Let me know Period')
             dictParams = {'c': [self.__g_dictMsg['WLYK']], 'd':  self.__g_sReplaceYearMonth} # I will send you what you request
-            oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
-        elif self.__translateMsgCode(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
+            oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+        elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
             self._printDebug('stop -> stop communication 1')
             return
 
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
+        if self.__translate_msg_code(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
             self._printDebug('stop communication 2')
             return
         
@@ -304,24 +348,54 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             lstSingleRow.append(dictSingleRow[sColTitle])
 
                     lstRows.append(lstSingleRow)
-                    nThisChunkBytes = self.__getObjSize(lstSingleRow)
+                    nThisChunkBytes = self.__get_obj_size(lstSingleRow)
                     nGrossSizeBytesToSync = nGrossSizeBytesToSync + nThisChunkBytes
                     if nGrossSizeBytesToSync + nThisChunkBytes > self.__g_nMaxBytesToSend: # "+ nThisChunkBytes" means to estimate to add following chunk
                         dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
                         
-                        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+                        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
                         self._printDebug('transmit and initialize')
                                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+                oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
                 self._printDebug('transmit residual')
                 self._printDebug('-> resp of sending new data')
                 self._printDebug(oResp)
         return
 
-    def __getObjSize(self, obj):
+    def __post_http_response(self, sTargetUrl, dictParams):
+        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
+        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
+        oSvHttp = sv_http.SvHttpCom(sTargetUrl)
+        oResp = oSvHttp.postUrl( dictParams )
+        oSvHttp.close()
+        del oSvHttp
+        if oResp['error'] == -1:
+            sTodo = oResp['variables']['todo']
+            if sTodo:
+                self._printDebug('HTTP response raised exception!!')
+                raise Exception(sTodo)
+        else:
+            return oResp
+
+    def __translate_msg_code(self, nMsgKey):
+        for sMsg, nKey in self.__g_dictMsg.items():
+            if nKey == nMsgKey:
+                return sMsg
+        
+    def __get_key_config(self, sSvAcctId, sAcctTitle):
+        sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
+        try:
+            with open(sKeyConfigPath) as f:
+                self.__g_oConfig.read_file(f)
+        except FileNotFoundError:
+            self._printDebug( 'key.config.ini not exist')
+            return # raise Exception('stop')
+        self.__g_oConfig.read(sKeyConfigPath)
+
+    def __get_obj_size(self, obj):
         ''' https://stackoverflow.com/questions/13530762/how-to-know-bytes-size-of-python-object-like-arrays-and-dictionaries-the-simp '''
         marked = {id(obj)}
         obj_q = [obj]

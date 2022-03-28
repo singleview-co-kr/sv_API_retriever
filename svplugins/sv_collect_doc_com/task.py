@@ -24,7 +24,8 @@
 
 # standard library
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 import os
 import configparser # https://docs.python.org/3/library/configparser.html
@@ -58,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 27th, Mar 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -117,18 +118,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('-> communication begin')
         if self.__g_sMode == 'retrieve':
             self._printDebug('-> ask new docs')
-            self.__askNewToSvXeWebService()
+            self.__ask_sv_xe_web_service()
         elif self.__g_sMode == 'sql_transfer':
             self._printDebug('-> transfer new docs to BI DB via SQL')
-            self.__transferNewToBiDb()
+            self.__transfer_new_2_bi_db()
         elif self.__g_sMode == 'extract':
             self._printDebug('-> send new docs')
-            self.__sendNewToDashboardServer()
+            self.__send_new_2_dashboard_server()
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
     
-    def __transferNewToBiDb(self):
+    def __transfer_new_2_bi_db(self):
         """
         transfer de-normalized table to BI db
         """
@@ -187,7 +188,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-                lst_wc_date_range = o_sv_mysql.executeQuery('getWordCountDenormDateRange')
+                # lst_wc_date_range = o_sv_mysql.executeQuery('getWordCountDenormDateRange')
                 for dict_single_wc in lst_word_cnt:
                     if not self._continue_iteration():
                         return
@@ -195,12 +196,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         o_sv_mysql.executeQuery('insertWordCountDenorm', dict_single_wc['log_srl'],
                                                dict_dictionary[dict_single_wc['word_srl']]['word'],
                                                dict_single_wc['cnt'], dict_single_wc['logdate'])
-                    self._printProgressBar(nIdx + 1, nSentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    self._printProgressBar(nIdx, nSentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
                     nIdx += 1
         del lst_word_cnt
         del dict_dictionary
 
-    def __sendNewToDashboardServer(self):
+    def __send_new_2_dashboard_server(self):
         """
         extract manipulated dictionary and word cnt of new docs to Dashboard Server
         # case 2: Bot Server sends manipulated dictionary and word count to a dashboard server
@@ -269,7 +270,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictParams = {'c': [self.__g_dictMsg['HYA']], 'd':  dict_rst}  # here you are
         oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
 
-    def __askNewToSvXeWebService(self):
+    def __ask_sv_xe_web_service(self):
         """
         collect plain text of new docs from SvWebService
         # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
