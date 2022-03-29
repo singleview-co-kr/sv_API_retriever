@@ -106,7 +106,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        self.__getKeyConfig(s_sv_acct_id, s_brand_id)
+        self.__get_key_config(s_sv_acct_id, s_brand_id)
         if self.__g_sTargetUrl is None:
             if 'server' in self.__g_oConfig:
                 self.__g_sTargetUrl = self.__g_oConfig['server']['sv_doc_host_url']
@@ -134,14 +134,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # server give data to dashboard client case
         # bot server: may i help you?
         dictParams = {'c': [self.__g_dictMsg['MIHY']]} 
-        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         
         self._printDebug('rsp of MIHY')
         if not self._continue_iteration():
             return
 
         n_msg_key = oResp['variables']['a'][0]
-        if self.__translateMsgCode(n_msg_key ) == 'LMKL':
+        if self.__translate_msg_code(n_msg_key ) == 'LMKL':
             dict_date_range = oResp['variables']['d']
             self._printDebug(dict_date_range['wc_start_date'])
             if dict_date_range['wc_start_date'] == 'na':
@@ -193,7 +193,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug(len(dict_rst['lst_word_cnt']))
         self._printDebug(len(dict_rst['lst_dictionary']))
         dictParams = {'c': [self.__g_dictMsg['HYA']], 'd':  dict_rst}  # here you are
-        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
 
     def __ask_sv_xe_web_service(self):
         """
@@ -225,13 +225,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_date_param = {'s_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
         dictParams = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
-        oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         if not self._continue_iteration():
             return
 
         self._printDebug('rsp of LMKL')
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) == 'ALD':
+        if self.__translate_msg_code(nMsgKey) == 'ALD':
             #self._printDebug( 'in resp of add latest data' ) 
             dictRetrieveStuff = oResp['variables']['d']
             if dictRetrieveStuff['aDocSrls'] != 'na':
@@ -250,13 +250,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
                     self._printDebug('begin - doc sync')
                     dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                    oResp = self.__postHttpResponse(self.__g_sTargetUrl, dictParams)
+                    oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
             #if type(dictRetrieveStuff['aComSrls']) == list and len(dictRetrieveStuff['aComSrls']):
             #    self._printDebug('begin - comment sync')
             #    dictParams = {'c': [self.__g_dictMsg['GMCL']], 'd': dictRetrieveStuff['aComSrls']} #  give me comment list  -> data: com_srls
-            #    oResp = self.__postHttpResponse( self.__g_sTargetUrl, dictParams )
+            #    oResp = self.__post_http( self.__g_sTargetUrl, dictParams )
             #    # self._printDebug( type(dictRetrieveStuff['aComSrls']) )
-        elif self.__translateMsgCode(nMsgKey) == 'FIN': # nothing to sync
+        elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
             self._printDebug('stop communication 1')
             return
 
@@ -265,7 +265,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self._printDebug('rsp of ALD')
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translateMsgCode(nMsgKey) != 'HYA': # here you are
+        if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
             self._printDebug('stop communication 2')
             return
 
@@ -282,7 +282,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, n_sv_doc_srl, s_title, s_content, dt_regdate)
         return
     
-    def __postHttpResponse(self, sTargetUrl, dictParams):
+    def __post_http(self, sTargetUrl, dictParams):
         dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
         dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
         oSvHttp = sv_http.SvHttpCom(sTargetUrl)
@@ -296,12 +296,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             return oResp
 
-    def __translateMsgCode(self, nMsgKey):
+    def __translate_msg_code(self, nMsgKey):
         for sMsg, nKey in self.__g_dictMsg.items():
             if nKey == nMsgKey:
                 return sMsg
         
-    def __getKeyConfig(self, sSvAcctId, sAcctTitle):
+    def __get_key_config(self, sSvAcctId, sAcctTitle):
         sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
         try:
             with open(sKeyConfigPath) as f:

@@ -168,7 +168,7 @@ class SvGaMediaLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getBiDateRange')
+            lst_wc_date_range = o_sv_mysql.executeQuery('getCompiledGaMediaDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)

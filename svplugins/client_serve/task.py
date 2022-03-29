@@ -43,6 +43,7 @@ if __name__ == '__main__': # for console debugging
     import settings
     import ga_media_log
     import word_cloud
+    import edi_log
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
@@ -51,6 +52,7 @@ else: # for platform running
     from django.conf import settings
     from svplugins.client_serve import ga_media_log
     from svplugins.client_serve import word_cloud
+    from svplugins.client_serve import edi_log
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -130,13 +132,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_ga_media_log.proc_ga_media_log(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_wc_sql']:
-            self._printDebug('-> transfer word cloud to BI DB via SQL')
+            self._printDebug('-> transfer de-normed word cloud to BI DB via SQL')
             o_ga_media_log = word_cloud.SvWordCloud()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_ga_media_log.proc_word_cloud(self.__g_sMode)
             del o_ga_media_log
-
+        elif self.__g_sMode in ['add_edi_sql']:
+            self._printDebug('-> transfer de-normed edi daily log to BI DB via SQL')
+            o_ga_media_log = edi_log.SvEdiLog()
+            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_ga_media_log.proc_edi_log(self.__g_sMode)
+            del o_ga_media_log
         elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class
             self.__add_new_ga_media_encrypted()
         elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class
@@ -150,12 +158,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # server give data to dashboard client case
         # bot server: may i help you?
         dictParams = {'c': [self.__g_dictMsg['MIHY']]} 
-        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)        
+        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)        
         nMsgKey = oResp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) == 'LMKL': # dashboard client: let me know new data with required info
             dictRetrievalDateRange = oResp['variables']['d']
             dictParams = {'c': [self.__g_dictMsg['IWSY']], 'd': oResp['variables']['d']} # I will send you what you request
-            oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+            oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
             self._printDebug('stop communication 1')
             return
@@ -214,14 +222,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     nGrossSizeBytesToSync = nGrossSizeBytesToSync + nThisChunkBytes
                     if nGrossSizeBytesToSync + nThisChunkBytes > self.__g_nMaxBytesToSend: # "+ nThisChunkBytes" means to estimate to add following chunk
                         dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
-                        
+                        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
                         self._printDebug('transmit and initialize')
                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+                oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                 self._printDebug('transmit residual')
                 self._printDebug('-> resp of sending new data')
                 self._printDebug(oResp)
@@ -238,17 +245,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
-            self._printDebug( 'stop -> invalid yyyymm' )
+            self._printDebug('stop -> invalid yyyymm')
             return
 
         # bot server: Plz Update Period
         dictParams = {'c': [self.__g_dictMsg['PUP']]} 
-        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         nMsgKey = oResp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) == 'LMKP': # dashboard client: Let me know Period
             self._printDebug('Let me know Period')
             dictParams = {'c': [self.__g_dictMsg['WLYK']], 'd':  self.__g_sReplaceYearMonth} # I will send you what you request
-            oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+            oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
             self._printDebug('stop -> stop communication 1')
             return
@@ -272,7 +279,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
             nRecCount = len(lstRetrievedCompiledLog )
             if nRecCount == 0:
-                self._printDebug( 'stop communication - no more data to update' )
+                self._printDebug('stop communication - no more data to update')
                 raise Exception('stop')
             elif nRecCount > 0:
                 # get column info
@@ -297,19 +304,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if nGrossSizeBytesToSync + nThisChunkBytes > self.__g_nMaxBytesToSend: # "+ nThisChunkBytes" means to estimate to add following chunk
                         dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
                         
-                        oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+                        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
                         self._printDebug('transmit and initialize')
                                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
-                oResp = self.__post_http_response(self.__g_sTargetUrl, dictParams)
+                oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                 self._printDebug('transmit residual')
                 self._printDebug('-> resp of sending new data')
                 self._printDebug(oResp)
         return
 
-    def __post_http_response(self, sTargetUrl, dictParams):
+    def __post_http(self, sTargetUrl, dictParams):
         dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
         dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
         oSvHttp = sv_http.SvHttpCom(sTargetUrl)

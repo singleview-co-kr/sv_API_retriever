@@ -27,8 +27,6 @@ import sys
 import logging
 from datetime import datetime
 from datetime import timedelta
-import calendar
-import re
 
 # singleview library
 if __name__ == 'word_cloud': # for console debugging
