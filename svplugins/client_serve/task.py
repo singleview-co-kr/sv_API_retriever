@@ -24,9 +24,7 @@
 
 # standard library
 import logging
-# import datetime
 from datetime import datetime
-from datetime import timedelta
 import sys
 import os
 import configparser # https://docs.python.org/3/library/configparser.html
@@ -43,12 +41,16 @@ if __name__ == '__main__': # for console debugging
     import sv_object
     import sv_plugin
     import settings
+    import ga_media_log
+    import word_cloud
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
     from django.conf import settings
+    from svplugins.client_serve import ga_media_log
+    from svplugins.client_serve import word_cloud
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -88,7 +90,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTargetUrl = self._g_dictParam['target_host_url']
         if self._g_dictParam['mode'] != None:
             self.__g_sMode = self._g_dictParam['mode']
-        if self._g_dictParam['mode'] == 'update':
+        if self._g_dictParam['mode'] in ['update_ga_media_sql', 'update_ga_media_encrypted']:
             self.__g_sReplaceYearMonth = self._g_dictParam['yyyymm']
 
         # begin - get Protocol message dictionary
@@ -118,88 +120,31 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._task_post_proc(self._g_oCallback)
                 return
 
-        self._printDebug('-> communic1ation begin')
-        if self.__g_sMode == 'add_ga_media_sql':
-            self.__add_new_ga_media_sql()
-        elif self.__g_sMode == 'update_ga_media_sql':
-            pass
-        elif self.__g_sMode == 'add_ga_media_encrypted':
+        self._printDebug('-> communication begin')
+        if self.__g_sMode in ['add_ga_media_sql', 'update_ga_media_sql']:
+            self._printDebug('-> transfer ga media log to BI DB via SQL')
+            o_ga_media_log = ga_media_log.SvGaMediaLog()
+            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration,
+                                    self.__g_sReplaceYearMonth)
+            o_ga_media_log.proc_ga_media_log(self.__g_sMode)
+            del o_ga_media_log
+        elif self.__g_sMode in ['add_wc_sql']:
+            self._printDebug('-> transfer word cloud to BI DB via SQL')
+            o_ga_media_log = word_cloud.SvWordCloud()
+            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_ga_media_log.proc_word_cloud(self.__g_sMode)
+            del o_ga_media_log
+
+        elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class
             self.__add_new_ga_media_encrypted()
-        elif self.__g_sMode == 'update_ga_media_encrypted':
+        elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class
             self.__update_period_ga_media_encrypted()
         else:
             self._printDebug('weird mode desinated')
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
-    
-    def __add_new_ga_media_sql(self):
-        """
-        transfer compiled_ga_media_daily table to BI db
-        """
-        # begin - ext bi denorm word count date range
-        dt_yesterday = datetime.now() - timedelta(1)
-        s_yesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
-        dict_date_range = {'s_start_date': 'na', 's_end_date': s_yesterday}
-        del dt_yesterday
-        with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.client_serve')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-            o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getBiDateRange')
-        if lst_wc_date_range[0]['maxdate']:
-            dt_maxdate = lst_wc_date_range[0]['maxdate']
-            dt_startdate = dt_maxdate + timedelta(1)
-            s_startdate = dt_startdate.strftime('%Y%m%d')
-            if int(s_startdate) <= int(s_yesterday):
-                dict_date_range['s_start_date'] = s_startdate
-        del lst_wc_date_range
-        # end - ext bi denorm word count date range
-
-        with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.client_serve')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            if not self._continue_iteration():
-                return
-            if dict_date_range['s_start_date'] != 'na':
-                s_start_date = dict_date_range['s_start_date']
-                s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
-                self._printDebug('get from ' + s_start_date)
-                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogFrom', s_start_date)
-            else:
-                self._printDebug('get whole')
-                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogGross')
-        n_idx = 0
-        n_sentinel = len(lst_compiled_log)
-        if n_sentinel:
-            self._printDebug('transfer word count via SQL')
-            with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.set_app_name('svplugins.client_serve')
-                o_sv_mysql.initialize(self._g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-                for dict_single_log in lst_compiled_log:
-                    if not self._continue_iteration():
-                        return
-                    o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
-                                            dict_single_log['log_srl'], dict_single_log['media_ua'],
-                                            dict_single_log['media_term'], dict_single_log['media_source'],
-                                            dict_single_log['media_rst_type'], dict_single_log['media_media'],
-                                            dict_single_log['media_brd'], dict_single_log['media_camp1st'],
-                                            dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
-                                            dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
-                                            dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
-                                            dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
-                                            dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
-                                            dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
-                                            dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
-                                            dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
-                                            dict_single_log['in_site_registrations'], dict_single_log['logdate'])
-                    self._printProgressBar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
-                    n_idx += 1
-        elif n_sentinel == 0:
-            self._printDebug('stop transferring - no more data to update')
-            return
         
     def __add_new_ga_media_encrypted(self):
         # server give data to dashboard client case
@@ -324,7 +269,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.client_serve')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            
             lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
             nRecCount = len(lstRetrievedCompiledLog )
             if nRecCount == 0:
