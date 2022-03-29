@@ -53,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 29th, Mar 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -257,14 +257,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             nCost = float(row[11]) * nFxRate
 
                         try:
-                            nConvCnt = float(row[12])
+                            nConvCnt = float(row[13])
                         except IndexError:
                             nConvCnt = 0
                         try:
                             if sCurrentFxCode == 'KRW':
-                                nConvAmnt = int(row[13])
+                                nConvAmnt = int(row[12])
                             else:
-                                nConvAmnt = float(row[13]) * nFxRate
+                                nConvAmnt = float(row[12]) * nFxRate
                         except IndexError:
                             nConvAmnt = 0
                     
