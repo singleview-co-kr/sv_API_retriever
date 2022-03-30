@@ -99,10 +99,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
 
-        if self.__g_sMode is None:
-            self._printDebug('you should designate mode')
-            self._task_post_proc(self._g_oCallback)
-            return
+        # if self.__g_sMode is None:
+        #     self._printDebug('you should designate mode')
+        #     self._task_post_proc(self._g_oCallback)
+        #     return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
