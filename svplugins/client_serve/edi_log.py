@@ -146,7 +146,6 @@ class SvEdiLog():
         retrieve specific period for Google Data Studio
         """
         self.__print_debug('start edi extraction')
-
         # begin - ext bi denorm word count date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)

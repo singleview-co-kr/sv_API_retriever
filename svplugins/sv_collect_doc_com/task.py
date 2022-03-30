@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 27th, Mar 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 31st, Mar 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -116,84 +116,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
         
         self._printDebug('-> communication begin')
-        if self.__g_sMode == 'retrieve':
-            self._printDebug('-> ask new docs')
-            self.__ask_sv_xe_web_service()
-        elif self.__g_sMode == 'extract':
-            self._printDebug('-> send new docs')
-            self.__send_new_2_dashboard_server()
+        # if self.__g_sMode == 'retrieve':
+        self._printDebug('-> ask new docs')
+        self.__ask_sv_xe_web_service()
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
-    
-    def __send_new_2_dashboard_server(self):
-        """
-        extract manipulated dictionary and word cnt of new docs to Dashboard Server
-        # case 2: Bot Server sends manipulated dictionary and word count to a dashboard server
-        """
-        # server give data to dashboard client case
-        # bot server: may i help you?
-        dictParams = {'c': [self.__g_dictMsg['MIHY']]} 
-        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-        
-        self._printDebug('rsp of MIHY')
-        if not self._continue_iteration():
-            return
-
-        n_msg_key = oResp['variables']['a'][0]
-        if self.__translate_msg_code(n_msg_key ) == 'LMKL':
-            dict_date_range = oResp['variables']['d']
-            self._printDebug(dict_date_range['wc_start_date'])
-            if dict_date_range['wc_start_date'] == 'na':
-                self._printDebug('extract whole wc')
-            if dict_date_range['dictionary_start_date'] == 'na':
-                self._printDebug('extract whole dictionary')
-            with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
-                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                s_end_start_date = dict_date_range['wc_end_date']
-                s_wc_end_date = (datetime.strptime(s_end_start_date, '%Y%m%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-
-                try:
-                    if not self._continue_iteration():
-                        return
-                    s_wc_start_date = dict_date_range['wc_start_date']
-                    s_wc_start_date = datetime.strptime(s_wc_start_date, '%Y%m%d').strftime('%Y-%m-%d')
-                    self._printDebug('wc get from ' + s_wc_start_date + ' to ' + s_wc_end_date)
-                    lst_word_cnt = o_sv_mysql.executeQuery('getWordCountFromTo', s_wc_start_date, s_wc_end_date)
-                except ValueError: # if sStartDate == 'na'
-                    self._printDebug('get whole wc')
-                    lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCountTo', s_wc_end_date)
-
-                # retrieve dictionary
-                s_dictionary_end_date = dict_date_range['dictionary_end_date']
-                s_dictionary_end_date = datetime.strptime(s_dictionary_end_date, '%Y%m%d').strftime('%Y-%m-%d')
-                try:
-                    if not self._continue_iteration():
-                        return
-                    s_dictionary_start_date = dict_date_range['dictionary_start_date']
-                    s_dictionary_start_date = datetime.strptime(s_dictionary_start_date, '%Y%m%d').strftime('%Y-%m-%d')
-                    self._printDebug('dictionary get from ' + s_wc_start_date)
-                    lst_dictionary = o_sv_mysql.executeQuery('getDictionaryFrom', s_dictionary_start_date)
-                except ValueError: # if sStartDate == 'na'
-                    self._printDebug('get whole dictionary')
-                    lst_dictionary = o_sv_mysql.executeQuery('getAllDictionary')
-        
-        if not self._continue_iteration():
-            return
-
-        for dict_row in lst_word_cnt:
-            dict_row['logdate'] = dict_row['logdate'].strftime("%Y%m%d%H%M%S")
-        for dict_row in lst_dictionary:
-            dict_row['regdate'] = dict_row['regdate'].strftime("%Y%m%d%H%M%S")
-
-        dict_rst = {'lst_word_cnt': lst_word_cnt, 'lst_dictionary': lst_dictionary}
-        del lst_word_cnt, lst_dictionary
-        self._printDebug(len(dict_rst['lst_word_cnt']))
-        self._printDebug(len(dict_rst['lst_dictionary']))
-        dictParams = {'c': [self.__g_dictMsg['HYA']], 'd':  dict_rst}  # here you are
-        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
 
     def __ask_sv_xe_web_service(self):
         """
@@ -314,9 +242,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    # CLI example -> python3.7 task.py config_loc=1/1 mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
-    # CLI example -> python3.7 task.py config_loc=1/1 mode=extract target_host_url=http://testserver.co.kr/extract/port/345/345371/
-    # sv_collect_doc_com mode=retrieve target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
+    # CLI example -> python3.7 task.py config_loc=1/1 target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
+    # sv_collect_doc_com target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

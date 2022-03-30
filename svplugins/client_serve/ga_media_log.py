@@ -217,7 +217,7 @@ class SvGaMediaLog():
                                             dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
                                             dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
                                             dict_single_log['in_site_registrations'], dict_single_log['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga media data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
             self.__print_debug('stop transferring - no more data to update')
