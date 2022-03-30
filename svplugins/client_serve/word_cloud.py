@@ -128,9 +128,9 @@ class SvWordCloud():
                     dict_dictionary[dict_single_word['word_srl']] = {'word': dict_single_word['word'],
                                                                     'b_ignore': dict_single_word['b_ignore']}
                 del lst_dictionary
-        nIdx = 0
-        nSentinel = len(lst_word_cnt)
-        if nSentinel:
+        n_idx = 0
+        n_sentinel = len(lst_word_cnt)
+        if n_sentinel:
             self.__print_debug('transfer word count via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -144,7 +144,7 @@ class SvWordCloud():
                         o_sv_mysql.executeQuery('insertWordCountDenorm', dict_single_wc['log_srl'],
                                                dict_dictionary[dict_single_wc['word_srl']]['word'],
                                                dict_single_wc['cnt'], dict_single_wc['logdate'])
-                    self.__print_progress_bar(nIdx, nSentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
-                    nIdx += 1
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    n_idx += 1
         del lst_word_cnt
         del dict_dictionary
