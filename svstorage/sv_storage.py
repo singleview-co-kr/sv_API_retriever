@@ -168,6 +168,10 @@ class SvStorage():
             dict_rst['s_msg'] = 'plz validate storage first before get file'
             del dict_req_file
             return dict_rst
+        if dict_req_file['secured_filename'] is None:
+            dict_rst['b_err'] = True
+            dict_rst['s_msg'] = 'invalid file request'
+            return dict_rst
         s_path_abs = os.path.join(s_path_abs, dict_req_file['secured_filename'])
         if os.path.exists(s_path_abs) and os.path.isfile(s_path_abs):
             dict_rst['b_err'] = False
