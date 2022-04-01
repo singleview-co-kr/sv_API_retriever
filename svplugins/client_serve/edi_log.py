@@ -37,6 +37,7 @@ if __name__ == 'edi_log': # for console debugging
     import sv_hypermart_model
 else: # for platform running
     from svcommon import sv_mysql
+    from svcommon import sv_hypermart_model
 
 
 class SvEdiLog():
@@ -168,9 +169,11 @@ class SvEdiLog():
         # end - ext bi denorm word count date range
         dict_date_range = {'s_start_date': datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d'),
                            's_end_date':  datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')}
+        
         lst_mart = ['Emart', 'Ltmart']
         for s_mart_title in lst_mart:
-            self.__print_debug('transfer ' + s_mart_title + ' EDI via SQL')
+            self.__print_debug('transfer ' + s_mart_title + ' EDI from ' + dict_date_range['s_start_date'] + 
+                                ' to ' + dict_date_range['s_end_date'] + ' via SQL')
             s_log_cnt_query = 'getEdi{s_mart_title}LogCountByPeriod'.format(s_mart_title=s_mart_title)
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
