@@ -384,6 +384,14 @@ class SvHypermartGeoInfo():
         {'id': 287, 'hypermart_name': 'Lottemart', 'branch_code': '985', 'name': '김포온라인센터', 'branch_type': 'Online', 'do_name': '온라인', 'si_name': '온라인', 'gu_gun': '온라인', 'dong_myun_ri': '온라인', 'latitude': None, 'longitude': None},
         {'id': 288, 'hypermart_name': 'Lottemart', 'branch_code': '449', 'name': '비바건강마켓 남양주진접점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '남양주시', 'gu_gun': None, 'dong_myun_ri': ' 진접읍 부평리', 'latitude': '37.7562265', 'longitude': '127.200309'},
         {'id': 289, 'hypermart_name': 'Emart', 'branch_code': '1167', 'name': '에코시티점', 'branch_type': 'Offline', 'do_name': '전라북도', 'si_name': '전주시', 'gu_gun': '덕진구', 'dong_myun_ri': None, 'latitude': '35.8734116', 'longitude': '127.123715'},
+        {'id': 290, 'hypermart_name': 'Emart', 'branch_code': '8201', 'name': '몰리센트럴시티', 'branch_type': 'Offline', 'do_name': '서울', 'si_name': '서울특별시', 'gu_gun': '서초구', 'dong_myun_ri': '반포동', 'latitude': '37.5043439', 'longitude': '127.003599'},
+        {'id': 291, 'hypermart_name': 'Emart', 'branch_code': '8210', 'name': '몰리스STF하남점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '신장동', 'latitude': '37.5454092', 'longitude': '127.223737'},
+        {'id': 292, 'hypermart_name': 'Emart', 'branch_code': '8214', 'name': '몰리스STF고양점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '고양시', 'gu_gun': '덕양구', 'dong_myun_ri': '동산동', 'latitude': '37.6476807', 'longitude': '126.896455'},
+        {'id': 293, 'hypermart_name': 'Emart', 'branch_code': '8216', 'name': '몰리스STF부천옥길점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '부천시', 'gu_gun': None, 'dong_myun_ri': '옥길동', 'latitude': '37.4615688', 'longitude': '126.813955'},
+        {'id': 294, 'hypermart_name': 'Emart', 'branch_code': '8217', 'name': '몰리스STF안성점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '안성시', 'gu_gun': None, 'dong_myun_ri': '진사리', 'latitude': '36.9943473', 'longitude': '127.147307'},
+        {'id': 295, 'hypermart_name': 'Emart', 'branch_code': '8204', 'name': '몰리스T월평점', 'branch_type': 'Offline', 'do_name': '대전', 'si_name': '대전광역시', 'gu_gun': '서구', 'dong_myun_ri': '월평동', 'latitude': '36.3576768', 'longitude': '127.362976'},
+        {'id': 296, 'hypermart_name': 'Emart', 'branch_code': '8209', 'name': '몰리스센텀점', 'branch_type': 'Offline', 'do_name': '부산', 'si_name': '부산광역시', 'gu_gun': '해운대구', 'dong_myun_ri': '우동', 'latitude': '35.1698887', 'longitude': '129.128295'},
+        {'id': 297, 'hypermart_name': 'Emart', 'branch_code': '8215', 'name': '몰리스STF위례점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '학암동', 'latitude': '37.4801236', 'longitude': '127.148382'},
     ]
     
     def __init__(self):

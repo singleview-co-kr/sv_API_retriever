@@ -11,7 +11,7 @@ from datetime import datetime
 if __name__ == 'edi_model': # for console debugging
     import sv_hypermart_model
 else: # for platform running
-    pass
+    from svcommon import sv_hypermart_model
 
 
 class SvEdiExcel:

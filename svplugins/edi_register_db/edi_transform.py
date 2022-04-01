@@ -23,16 +23,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 # standard library
-# import os
-# import csv
-# from pathlib import Path
 
 # singleview library
 if __name__ == 'edi_transform': # for console debugging
-    # import edi_model
     import sv_hypermart_model
 else: # for platform running
-    pass
+    from svcommon import sv_hypermart_model
 
 
 class TransformEdiDb:
@@ -47,8 +43,11 @@ class TransformEdiDb:
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
         self.__g_oSvDb = None
         self.__g_dictSkuInfoById = {}
-        # self.__g_sExtractFilenamePrefix = None
         self.__g_bDebugMode = False
+
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
         super().__init__()
 
     def __enter__(self):
@@ -56,19 +55,27 @@ class TransformEdiDb:
         return self
 
     def __del__(self):
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ unconditionally calling desctructor """
         return self
 
+    def init_var(self, f_print_debug, f_print_progress_bar, f_continue_iteration):
+        self.__continue_iteration = f_continue_iteration
+        self.__print_debug = f_print_debug
+        self.__print_progress_bar = f_print_progress_bar
+
     def initialize(self, o_sv_mysql, dict_param):
         self.__g_oSvDb = o_sv_mysql
         if not self.__g_oSvDb:
-            raise Exception('invalid db handler')
+            self.__print_debug('invalid db handler')
+            # raise Exception('invalid db handler')
 
         b_excel_pivot = False
-        b_google_data_studio_edi = False
         b_aws_quicksight = False
         b_oracle_analytics_cloud = False
 
@@ -78,9 +85,6 @@ class TransformEdiDb:
         if 'b_excel_pivot' in dict_param:
             if dict_param['b_excel_pivot']:
                 b_excel_pivot = True
-        if 'b_google_data_studio_edi' in dict_param:
-            if dict_param['b_google_data_studio_edi']:
-                b_google_data_studio_edi = True
         if 'b_aws_quicksight' in dict_param:
             if dict_param['b_aws_quicksight']:
                 b_aws_quicksight = True
@@ -97,19 +101,17 @@ class TransformEdiDb:
         # self.__g_oSvDb.set_reserved_tag_value({'brand_id': dict_param['n_brand_id']})
 
         # self.__g_sExtractFilenamePrefix = dict_param['s_extract_filename_prefix']
-        print('start extract_db()')
+        self.__print_debug('start extract_db()')
         self.__extract_branch_and_skus(dict_param)
         if b_excel_pivot:
-            self.__extract_excel_pivot(dict_param)
-        if b_google_data_studio_edi:
             self.__extract_excel_pivot(dict_param)
         if b_oracle_analytics_cloud:
             self.__extract_for_oac_desktop(dict_param)
         if b_aws_quicksight:
             self.__extract_for_aws_quicksight(dict_param)
-        print('finish extract_db()')
-        return 'Done!'
-        
+        self.__print_debug('finish extract_db()')
+        # return 'Done!'
+
     def __extract_branch_and_skus(self, dict_param):
         """
         retrieve branches and skus info
@@ -223,11 +225,11 @@ class TransformEdiDb:
         :param dict_param:
         :return:
         """
-        print('start excel extraction')
+        self.__print_debug('start excel extraction')
         self.__g_oSvDb.create_table_on_demand('_edi_daily_log_denorm')
         # self.__g_oSvDb.truncate_table('_edi_daily_log_denorm')
         if not dict_param['s_period_start'] or not dict_param['s_period_end']:
-            print('excel extraction failure - no period selected')
+            self.__print_debug('excel extraction failure - no period selected')
             return
         dict_param_tmp = {'s_period_start': dict_param['s_period_start'],
                           's_period_end': dict_param['s_period_end']}
@@ -284,42 +286,25 @@ class TransformEdiDb:
                         n_amnt = dict_single_log['amnt'] * -1
                     else:
                         n_amnt = dict_single_log['amnt']
-                    if dict_param['b_google_data_studio_edi']:
-                        if self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati']:
-                            s_latitude_longitude = self.__g_dictBranchInfoById[dict_single_log['branch_id']]['lati'] + ',' + \
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['longi']
-                        else:
-                            s_latitude_longitude = None
-                        self.__g_oSvDb.executeQuery('insertEdiDailyLogDenorm',
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                                                    self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                                                    dict_single_log['qty'], n_amnt,
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
-                                                    s_latitude_longitude,
-                                                    dict_single_log['logdate'])
-                    # else:  # excel csv mode
-                    #     lst_final_data_cols = [self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                    #                            self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                    #                            dict_single_log['logdate'].year,
-                    #                            dict_single_log['logdate'].month,
-                    #                            dict_single_log['logdate'].day,
-                    #                            b_refund,
-                    #                            dict_single_log['qty'],
-                    #                            dict_single_log['amnt']]
-                    #     if self.__g_bDebugMode:
-                    #         lst_final_data_cols = [dict_single_log['id']] + lst_final_data_cols
-                    #     writer.writerow(lst_final_data_cols)
+                    
+                    # excel csv mode
+                    # lst_final_data_cols = [self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
+                    #                         self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
+                    #                         dict_single_log['logdate'].year,
+                    #                         dict_single_log['logdate'].month,
+                    #                         dict_single_log['logdate'].day,
+                    #                         b_refund,
+                    #                         dict_single_log['qty'],
+                    #                         dict_single_log['amnt']]
+                    # if self.__g_bDebugMode:
+                    #     lst_final_data_cols = [dict_single_log['id']] + lst_final_data_cols
+                    # writer.writerow(lst_final_data_cols)
                 del lst_log_period
         # f.close()
         # end - extraction by mart
         # del dict_param_tmp
         # specific period for excel pivoting end
-        print('excel extraction succeed')
+        self.__print_debug('excel extraction succeed')
 
     def __extract_for_oac_desktop(self, dict_param):
         """
@@ -329,7 +314,7 @@ class TransformEdiDb:
         :param dict_param:
         :return:
         """
-        print('start - OAC desktop extraction')
+        self.__print_debug('start - OAC desktop extraction')
         dict_param_tmp = {'s_req_sku_set': dict_param['s_req_sku_set'], 'n_owner_id': dict_param['n_owner_id']}
         lst_log_count = self.__g_oSvDb.executeDynamicQuery('getEmartLogCountByItemId', dict_param_tmp)
         n_lst_log_count = lst_log_count[0]['count(*)']
@@ -386,7 +371,7 @@ class TransformEdiDb:
                         del lst_final_data_cols
                     del lst_rst
         except Exception as e:
-            print(e)
+            self.__print_debug(e)
 
         # write gross GA-media daily log info csv
         dict_tag = {'brand_id': dict_param['n_brand_id']}
@@ -428,7 +413,7 @@ class TransformEdiDb:
                     if n_limit >= n_lst_log_count:
                         n_limit = n_lst_log_count
 
-                    print(dict_param_tmp['n_offset'])
+                    # print(dict_param_tmp['n_offset'])
                     lst_rst = self.__g_oSvDb.executeDynamicQuery('getGaMediaDailyLog', dict_param_tmp)
 
                     # |@| may occurs error on AWS quick sight
@@ -469,8 +454,8 @@ class TransformEdiDb:
                         del lst_final_data_cols
                     del lst_rst
         except Exception as e:
-            print(e)
-        print('finish - OAC extraction')
+            self.__print_debug(e)
+        self.__print_debug('finish - OAC extraction')
 
     def __extract_for_aws_quicksight(self, dict_param):
         """
@@ -479,7 +464,7 @@ class TransformEdiDb:
         :param dict_param:
         :return:
         """
-        print('start - QWS quicksight extraction')
+        self.__print_debug('start - QWS quicksight extraction')
         dict_tag = {'brand_id': dict_param['n_brand_id']}
         self.__g_oSvDb.set_reserved_tag_value(dict_tag)
 
@@ -549,16 +534,16 @@ class TransformEdiDb:
                         writer.writerow(lst_final_data_cols)
                     del lst_final_data_cols
             except Exception as e:
-                print(e)
+                self.__print_debug(e)
         del lst_rst
-        print('finish - QWS quicksight extraction')
+        self.__print_debug('finish - QWS quicksight extraction')
 
     def clear(self):
         self.__g_oSvDb = None
         self.__g_sExtractFilenamePrefix = None
         self.__g_bDebugMode = False
         self.__g_dictBranchInfoById.clear()
-        print('ExtractDb::clear() called')
+        # self.__print_debug('ExtractDb::clear() called')
         return
 
     def __get_quarter(self, dt):

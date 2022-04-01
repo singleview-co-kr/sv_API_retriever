@@ -53,13 +53,16 @@ else:
     from svcommon import sv_object
     from svcommon import sv_plugin
     from svstorage import sv_storage
+    from svplugins.edi_register_db import edi_model
+    from svplugins.edi_register_db import edi_extract
+    from svplugins.edi_register_db import edi_transform
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Apr 2022')
         self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None,
                                   'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -177,6 +180,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_param = {'b_google_data_studio_edi': True,
                       's_period_start': s_start_yyyymmdd,
                       's_period_end': s_end_yyyymmdd}
+        self.__oEdiTransformer.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
         self.__oEdiTransformer.initialize(self.__oSvMysql, dict_param)
 
     def __register_db(self, dict_rst):
@@ -184,6 +188,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
+        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiExtractor.transform_csv_to_db()
         # unset unzip file
@@ -195,6 +200,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
+        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiExtractor.add_new_sku_info(self._g_dictParam['new_sku_id'])
 
@@ -226,6 +232,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_mart_rst
         del o_edi_model
 
+        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip, lst_edi_file_info)
         self.__oEdiExtractor.transfer_excel_to_csv()
         dict_rst = self.__oEdiExtractor.check_new_entity()

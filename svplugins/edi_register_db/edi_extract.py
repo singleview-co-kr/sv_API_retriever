@@ -33,7 +33,8 @@ if __name__ == 'edi_extract': # for console debugging
     import edi_model
     import sv_hypermart_model
 else: # for platform running
-    pass
+    from svcommon import sv_hypermart_model
+    from svplugins.edi_register_db import edi_model
 
 
 class ExtractEdiExcel:
@@ -50,6 +51,10 @@ class ExtractEdiExcel:
         self.__g_lstCsvTransferFile = []
         self.__g_dictSkuInfo = {}  # handling sku info
         self.__g_dictBranchInfo = {}  # handling hyper mart branch info
+
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
         super().__init__()
 
     def __enter__(self):
@@ -57,6 +62,9 @@ class ExtractEdiExcel:
         return self
 
     def __del__(self):
+        self.__continue_iteration = None
+        self.__print_debug = None
+        self.__print_progress_bar = None
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -66,7 +74,9 @@ class ExtractEdiExcel:
     def initialize(self, o_sv_mysql, s_path_abs_unzip, lst_edi_file_info=None):
         self.__g_oSvDb = o_sv_mysql
         if not self.__g_oSvDb:
-            raise Exception('invalid db handler')
+            self.__print_debug('invalid db handler')
+            # raise Exception('invalid db handler')
+            
         self.__g_sActEdiFileFullPath = s_path_abs_unzip
         # begin - set csv transferring filename
         self.__g_dictEdiCsvFileMap = {
@@ -85,7 +95,7 @@ class ExtractEdiExcel:
             self.__g_lstCsvTransferFile.clear()  # clear lst info to prevent short-term duplicated work
             for dict_single_edi in lst_edi_file_info:
                 if dict_single_edi['status'] != sv_hypermart_model.ProgressStatus.UPLOADED:
-                    print(dict_single_edi['s_filename'] + ' is already on transforming')
+                    self.__print_debug(dict_single_edi['s_filename'] + ' is already on transforming')
                     continue
                 if dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.SvHyperMartType.EMART):
                     if dict_single_edi['n_edi_data_type'] == int(sv_hypermart_model.EdiDataType.ESTIMATION) or \
@@ -96,6 +106,11 @@ class ExtractEdiExcel:
                         dict_single_edi['n_hyper_mart'] == sv_hypermart_model.SvHyperMartType.HOMEPLUS:
                     self.__g_lstCsvTransferFile.append(dict_single_edi)
         return
+
+    def init_var(self, f_print_debug, f_print_progress_bar, f_continue_iteration):
+        self.__continue_iteration = f_continue_iteration
+        self.__print_debug = f_print_debug
+        self.__print_progress_bar = f_print_progress_bar
 
     def transfer_excel_to_csv(self):
         # begin - unset old csv file
@@ -111,19 +126,19 @@ class ExtractEdiExcel:
             s_csv_file_id = str(dict_single_edi['n_hyper_mart']) + '_' + str(dict_single_edi['n_edi_data_type'])
             s_csv_file_path = self.__g_dictEdiCsvFileMap[s_csv_file_id]['s_csv_filename']
             if dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.SvHyperMartType.EMART):
-                print('emart xls -> csv detected')
+                self.__print_debug('emart xls -> csv detected')
                 o_emart_excel.set_edi_data_year(dict_single_edi['n_edi_data_year'])
                 o_emart_excel.load_file(self.__g_sActEdiFileFullPath, dict_single_edi['s_filename'], b_data_year_est=False)
                 o_emart_excel.to_csv(s_csv_file_path)
                 self.__g_dictEdiCsvFileMap[s_csv_file_id]['b_db_proc'] = True
             elif dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.SvHyperMartType.LOTTEMART):
-                print('lmart xls -> csv detected')
+                self.__print_debug('lmart xls -> csv detected')
                 o_lmart_excel.load_file(self.__g_sActEdiFileFullPath, dict_single_edi['s_filename'])
                 o_lmart_excel.get_edi_data_year()
                 o_lmart_excel.to_csv(s_csv_file_path)
                 self.__g_dictEdiCsvFileMap[s_csv_file_id]['b_db_proc'] = True
             elif dict_single_edi['n_hyper_mart'] == int(sv_hypermart_model.SvHyperMartType.HOMEPLUS):
-                print('homeplus xls -> csv detected')
+                self.__print_debug('homeplus xls -> csv detected')
         del o_emart_excel
         del o_lmart_excel
         return
@@ -134,8 +149,8 @@ class ExtractEdiExcel:
         self.__get_hypermart_old_sku_info()
 
         if not self.__g_dictBranchInfo:
-            print('invalid hypermart branch info')
-            raise Exception('invalid hypermart branch info')
+            self.__print_debug('invalid hypermart branch info')
+            return # raise Exception('invalid hypermart branch info')
 
         for s_csv_file_id, dict_csv_file_info in self.__g_dictEdiCsvFileMap.items():
             if not dict_csv_file_info['b_db_proc']:
@@ -146,21 +161,21 @@ class ExtractEdiExcel:
                 lst_file_info = s_csv_file_id.split('_')  # [0]=SvHyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
                 if lst_file_info[0] == sv_hypermart_model.SvHyperMartType.EMART:
-                    print('emart csv detected -> check new entity ')
+                    self.__print_debug('emart csv detected -> check new entity ')
                     return self.__emart_check_new(s_csv_file_path)
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.LOTTEMART:
-                    print('lmart csv detected -> check new entity')
+                    self.__print_debug('lmart csv detected -> check new entity')
                     return self.__lmart_check_new(s_csv_file_path)
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.HOMEPLUS:
-                    print('HP csv detected -> check new entity')
-                    print(s_csv_file_path + ' goes HP registering')
+                    self.__print_debug('HP csv detected -> check new entity')
+                    self.__print_debug(s_csv_file_path + ' goes HP registering')
     
     def add_new_sku_info(self, s_serialized_appending_skus):
         """ check new branch, SKU to notify user """
         self.__get_hypermart_branch_info()
         self.__get_hypermart_old_sku_info()
         if not self.__g_dictBranchInfo:
-            print('invalid hypermart branch info')
+            self.__print_debug('invalid hypermart branch info')
             raise Exception('invalid hypermart branch info')
         for s_csv_file_id, dict_csv_file_info in self.__g_dictEdiCsvFileMap.items():
             s_csv_file_path = dict_csv_file_info['s_csv_filename']
@@ -169,23 +184,23 @@ class ExtractEdiExcel:
                 lst_file_info = s_csv_file_id.split('_')  # [0]=SvHyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
                 if lst_file_info[0] == sv_hypermart_model.SvHyperMartType.EMART:
-                    print('emart csv -> db detected')
+                    self.__print_debug('emart csv -> db detected')
                     dict_rst = self.__emart_check_new(s_csv_file_path)
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.LOTTEMART:
-                    print('lmart csv -> db detected')
+                    self.__print_debug('lmart csv -> db detected')
                     dict_rst = self.__lmart_check_new(s_csv_file_path)
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.HOMEPLUS:
-                    print('HP csv -> db detected')
-                    print(s_csv_file_path + ' goes HP registering')
+                    self.__print_debug('HP csv -> db detected')
+                    self.__print_debug(s_csv_file_path + ' goes HP registering')
         
         lst_brand_sku = s_serialized_appending_skus.split(',')
         for s_unique_sku_id, s_first_detect_date in dict_rst['dict_new_sku'].items():
             lst_sku_info = s_unique_sku_id.split('||')
             if lst_sku_info[1] in lst_brand_sku:
-                print('accept ' + lst_sku_info[1] + ' ' + lst_sku_info[2])
+                self.__print_debug('accept ' + lst_sku_info[1] + ' ' + lst_sku_info[2])
                 self.__add_hypermart_sku_info(1, lst_sku_info[0], lst_sku_info[1], lst_sku_info[2], s_first_detect_date)
             else:
-                print('deny ' + lst_sku_info[1] + ' ' + lst_sku_info[2])
+                self.__print_debug('deny ' + lst_sku_info[1] + ' ' + lst_sku_info[2])
                 self.__add_hypermart_sku_info(0, lst_sku_info[0], lst_sku_info[1], lst_sku_info[2], s_first_detect_date)
 
     def transform_csv_to_db(self):
@@ -193,8 +208,8 @@ class ExtractEdiExcel:
         self.__get_hypermart_branch_info()
         self.__get_hypermart_old_sku_info(b_accepted=True)
         if not self.__g_dictBranchInfo:
-            print('invalid hypermart branch info')
-            raise Exception('invalid hypermart branch info')
+            self.__print_debug('invalid hypermart branch info')
+            return # raise Exception('invalid hypermart branch info')
 
         for s_csv_file_id, dict_csv_file_info in self.__g_dictEdiCsvFileMap.items():
             # if not dict_csv_file_info['b_db_proc']:
@@ -205,14 +220,14 @@ class ExtractEdiExcel:
                 lst_file_info = s_csv_file_id.split('_')  # [0]=SvHyperMartType, [1]=.EdiDataType
                 lst_file_info = [int(x) for x in lst_file_info]  # convert string to int
                 if lst_file_info[0] == sv_hypermart_model.SvHyperMartType.EMART:
-                    print('emart csv -> db detected')
+                    self.__print_debug('emart csv -> db detected')
                     self.__emart_csv_to_db(s_csv_file_path, lst_file_info[1])
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.LOTTEMART:
-                    print('lmart csv -> db detected')
+                    self.__print_debug('lmart csv -> db detected')
                     self.__lmart_csv_to_db(s_csv_file_path)
                 elif lst_file_info[0] == sv_hypermart_model.SvHyperMartType.HOMEPLUS:
-                    print('HP csv -> db detected')
-                    print(s_csv_file_path + ' goes HP registering')
+                    self.__print_debug('HP csv -> db detected')
+                    self.__print_debug(s_csv_file_path + ' goes HP registering')
 
         # edi file status update and file remove
         # lst_path = os.path.split(os.path.abspath(self.__g_oUploadedFile.uploaded_file.path))
@@ -243,7 +258,7 @@ class ExtractEdiExcel:
     def clear(self):
         self.__g_dictSkuInfo.clear()
         self.__g_dictBranchInfo.clear()
-        print('ExtractEdiExcel::clear() called')
+        self.__print_debug('ExtractEdiExcel::clear() called')
         return
 
     def __add_hypermart_sku_info(self, b_accept, s_mart_type, s_mart_item_code, s_mart_sku_name, s_first_detect_date):
@@ -284,8 +299,8 @@ class ExtractEdiExcel:
                 n_branch_id = self.__g_dictBranchInfo[s_unique_branch_id]
             else:
                 s_branch_name = line[3].replace(' ', '')
-                print('new branch detected ' + line[2] + ' ' + s_branch_name)
-                raise Exception('new branch detected ' + line[2] + ' ' + s_branch_name)  # need user define Exception
+                self.__print_debug('new branch detected ' + line[2] + ' ' + s_branch_name)
+                return # raise Exception('new branch detected ' + line[2] + ' ' + s_branch_name)  # need user define Exception
             
             # check an existing log
             lst_rst = self.__g_oSvDb.executeQuery('getEmartLogByItemBranchDate', n_sku_id, n_branch_id, line[5])
@@ -300,14 +315,14 @@ class ExtractEdiExcel:
                 n_log_id = lst_rst[0]['id']
                 if lst_rst[0]['qty'] != 0:
                     if n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
-                        print('denied: duplicated emart qty for log id -> ' + str(n_log_id) + ' on date ' +
+                        self.__print_debug('denied: duplicated emart qty for log id -> ' + str(n_log_id) + ' on date ' +
                               str(line[5]) + ' qty -> ' + str(line[4]))
                         continue
                     elif n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
                         s_query_stmt = 'updateEmartDailyAmntLog'
                 elif lst_rst[0]['amnt'] != 0:
                     if n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
-                        print('denied: duplicated emart amnt for log id -> ' + str(n_log_id) + ' on date ' +
+                        self.__print_debug('denied: duplicated emart amnt for log id -> ' + str(n_log_id) + ' on date ' +
                               str(line[5]) + ' amnt -> ' + str(line[4]))
                         continue
                     elif n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
@@ -319,7 +334,7 @@ class ExtractEdiExcel:
             else:
                 raise Exception('data corrupted')  # need user define Exception
             if i % 50000 == 0:
-                print('beacon:' + str(i))
+                self.__print_debug('beacon:' + str(i))
             # if i == 50:  # for shorten test
             #    break
         f.close()
@@ -351,7 +366,7 @@ class ExtractEdiExcel:
                 n_branch_id = self.__g_dictBranchInfo[s_unique_branch_id]
             else:
                 s_branch_name = line[0].replace(' ', '')
-                print('new branch detected ' + line[1] + ' ' + s_branch_name)
+                self.__print_debug('new branch detected ' + line[1] + ' ' + s_branch_name)
                 raise Exception('new branch detected ' + line[1] + ' ' + s_branch_name)  # need user define Exception
 
             s_since_logdate = line[7]
@@ -361,26 +376,26 @@ class ExtractEdiExcel:
             lst_since_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
                                                         s_since_logdate, s_since_logdate)
             if len(lst_since_rst) >= 1:  # deny adding log
-                print('denied: duplicated qty for log id -> ' + str(lst_since_rst[0]['id']) + ' on since date ' + str(
+                self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_since_rst[0]['id']) + ' on since date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
             lst_to_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
                                                      s_to_logdate, s_to_logdate)
             if len(lst_to_rst) >= 1:  # deny adding log
-                print('denied: duplicated qty for log id -> ' + str(lst_to_rst[0]['id']) + ' on to date ' + str(
+                self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_to_rst[0]['id']) + ' on to date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
             lst_range_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateOut', n_sku_id, n_branch_id,
                                                         s_since_logdate, s_to_logdate)
             if len(lst_range_rst) >= 1:  # deny adding log
-                print('denied: duplicated qty for log id -> ' + str(lst_range_rst[0]['id']) + ' on range date ' + str(
+                self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_range_rst[0]['id']) + ' on range date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
             # add new -> owner_id`, `item_id`, `branch_id`, `qty`, `original_amnt(판매액)`, `amnt(공급액)`, `since_logdate`, `logdate`
             self.__g_oSvDb.executeQuery('insertLtmartDailyLog', n_sku_id, n_branch_id, line[5], line[6],
                                         line[9], s_since_logdate, s_to_logdate)
             if i % 50000 == 0:
-                print('beacon:' + str(i))
+                self.__print_debug('beacon:' + str(i))
             # if i == 50:  # for shorten test
             #    break
         f.close()
@@ -434,7 +449,7 @@ class ExtractEdiExcel:
                 else:
                     dict_new_sku[s_unique_sku_id] = line[7]
             if i % 50000 == 0:
-                print('beacon:' + str(i))
+                self.__print_debug('beacon:' + str(i))
             # if i == 50:  # for shorten test
             #    break
         f.close()
@@ -472,7 +487,7 @@ class ExtractEdiExcel:
                     dict_new_sku[s_unique_sku_id] = line[5]
 
             if i % 50000 == 0:
-                print('beacon:' + str(i))
+                self.__print_debug('beacon:' + str(i))
             # if i == 50:  # for shorten test
             #    break
         f.close()
