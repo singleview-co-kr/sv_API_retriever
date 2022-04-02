@@ -129,7 +129,7 @@ class SvGaMediaLog():
         n_idx = 0
         n_sentinel = len(lst_compiled_log)
         if n_sentinel:
-            self.__print_debug('transfer word count via SQL')
+            self.__print_debug('transfer ga media via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
@@ -162,7 +162,7 @@ class SvGaMediaLog():
         """
         transfer compiled_ga_media_daily table to BI db
         """
-        # begin - ext bi denorm word count date range
+        # begin - ext bi denorm ga media date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
@@ -176,7 +176,7 @@ class SvGaMediaLog():
             if int(s_startdate) <= int(self.__g_sYesterday):
                 self.__g_dictDateRange['s_start_date'] = s_startdate
         del lst_wc_date_range
-        # end - ext bi denorm word count date range
+        # end - ext bi denorm ga media date range
 
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -195,7 +195,7 @@ class SvGaMediaLog():
         n_idx = 0
         n_sentinel = len(lst_compiled_log)
         if n_sentinel:
-            self.__print_debug('transfer word count via SQL')
+            self.__print_debug('transfer ga media via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')

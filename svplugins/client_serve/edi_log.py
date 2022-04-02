@@ -146,8 +146,8 @@ class SvEdiLog():
         """
         retrieve specific period for Google Data Studio
         """
-        self.__print_debug('start edi extraction')
-        # begin - ext bi denorm word count date range
+        self.__print_debug('start EDI extraction')
+        # begin - ext bi denorm EDI date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
@@ -166,7 +166,7 @@ class SvEdiLog():
             if int(s_startdate) <= int(self.__g_sYesterday):
                 self.__g_dictDateRange['s_start_date'] = s_startdate
         del lst_wc_date_range
-        # end - ext bi denorm word count date range
+        # end - ext bi denorm EDI date range
         dict_date_range = {'s_start_date': datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d'),
                            's_end_date':  datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')}
         
