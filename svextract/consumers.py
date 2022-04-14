@@ -149,14 +149,14 @@ class PluginConsole(WebsocketConsumer):
         self.__g_dictPluginThread[s_plugin_unique_id][s_plugin_name].b_run = True
 
     def __cb_thread_done(self, s_plugin_name):
-        self.print_msg_socket('begin __cb_thread_done:' + s_plugin_name)
+        # self.print_msg_socket('begin __cb_thread_done:' + s_plugin_name)
         # s_brand_name = self.scope["url_route"]["kwargs"]["brand_name"]
         sv_acct_id = self.scope["url_route"]["kwargs"]["sv_acct_id"]
         sv_brand_id = self.scope["url_route"]["kwargs"]["sv_brand_id"]
         s_plugin_unique_id = sv_acct_id + '_' + sv_brand_id
         try:
             self.__g_dictPluginThread[s_plugin_unique_id][s_plugin_name].b_run = False
-            self.print_msg_socket('end __cb_thread_done:' + s_plugin_name)
+            # self.print_msg_socket('end __cb_thread_done:' + s_plugin_name)
             self.print_msg_socket(s_plugin_name + ' has been finished')
         except KeyError:  # plugin name not specified
             self.__halt_all_thread(s_plugin_unique_id)
