@@ -134,9 +134,9 @@ class PluginConsole(WebsocketConsumer):
                 oJob.set_my_name(s_plugin_name)
                 oJob.parse_command(lst_command)
                 o_plugin_thread = ThreadWithTrace(target=oJob.do_task, args=(self.__cb_thread_done,))
-                self.print_msg_socket('begin - ignite')
+                # self.print_msg_socket('begin - ignite')
                 o_plugin_thread.start()
-                self.print_msg_socket('end - ignite')
+                # self.print_msg_socket('end - ignite')
         except Exception as err: # prevent websocket disconnection
             self.print_msg_socket(str(err))
         # except ImportError as err:
