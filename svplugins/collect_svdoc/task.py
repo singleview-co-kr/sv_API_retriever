@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 31st, Mar 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 17th, Apr 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -130,7 +130,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
         if not self._continue_iteration():
@@ -167,7 +167,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
                 with sv_mysql.SvMySql() as o_sv_mysql:
                     o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                    o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+                    o_sv_mysql.set_app_name('svplugins.collect_svdoc')
                     o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                     dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
                     lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
@@ -200,7 +200,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.sv_collect_doc_com')
+            o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for dict_single_doc in oResp['variables']['d']:
                 n_sv_doc_srl = dict_single_doc['document_srl']
@@ -243,11 +243,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 if __name__ == '__main__': # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1 target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
-    # sv_collect_doc_com target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
+    # collect_svdoc target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
-            oJob.set_my_name('sv_collect_doc_com')
+            oJob.set_my_name('collect_svdoc')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
