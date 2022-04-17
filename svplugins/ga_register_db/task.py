@@ -178,7 +178,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return
 
     def __proc_transaction_log(self, s_data_path):
-        print('proc_transaction_log')
+        # print('proc_transaction_log')
         # traverse directory and categorize data files
         lst_transaction_log = []
         lst_data_file = os.listdir(s_data_path)

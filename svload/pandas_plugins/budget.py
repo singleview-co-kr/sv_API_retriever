@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 # 매출 목표는 ERP 정보를 사람이 직접 참고하는 것이 더 현실적임
 class Budget:
-    __g_bPeriodDebugMode = False
+    # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     # .svcommon.sv_campaign_parser 와 병합 검토
     __g_dictBudgetType = {1: {'title': 'GOOGLE_ADS', 'media_rst_type': 'PS', 'media_source': 'google',
@@ -46,8 +46,11 @@ class Budget:
         del self.__g_oSvDb
         pass
 
-    def activate_debug(self):
-        self.__g_bPeriodDebugMode = True
+    # def activate_debug(self):
+    #     self.__g_bPeriodDebugMode = True
+
+    def get_budget_type_dict(self):
+        return self.__g_dictBudgetType
 
     def get_budget_amnt_by_period(self, n_brand_id, dt_start, dt_end):
         """

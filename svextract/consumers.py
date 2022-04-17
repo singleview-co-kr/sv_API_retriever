@@ -154,16 +154,16 @@ class PluginConsole(WebsocketConsumer):
         sv_acct_id = self.scope["url_route"]["kwargs"]["sv_acct_id"]
         sv_brand_id = self.scope["url_route"]["kwargs"]["sv_brand_id"]
         s_plugin_unique_id = sv_acct_id + '_' + sv_brand_id
-        try:
+        if s_plugin_name in self.__g_dictPluginThread[s_plugin_unique_id]:
             self.__g_dictPluginThread[s_plugin_unique_id][s_plugin_name].b_run = False
             # self.print_msg_socket('end __cb_thread_done:' + s_plugin_name)
             self.print_msg_socket(s_plugin_name + ' has been finished')
-        except KeyError:  # plugin name not specified
-            self.__halt_all_thread(s_plugin_unique_id)
+        # else:
+        #     self.__halt_all_thread(s_plugin_unique_id)
     
     def __halt_all_thread(self, s_plugin_unique_id=None):
         if s_plugin_unique_id:
-            self.print_msg_socket('An weird error occured\nTrying to halt all taks for ' + str(s_plugin_unique_id))
+            self.print_msg_socket('Trying to halt all task for ' + str(s_plugin_unique_id))
             for s_plugin_name, _ in self.__g_dictPluginThread[s_plugin_unique_id].items():
                 self.__g_dictPluginThread[s_plugin_unique_id][s_plugin_name].b_run = False
                 self.print_msg_socket(s_plugin_name + ' has been finished')
