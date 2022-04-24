@@ -65,9 +65,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 28th, Mar 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, Apr 2022')
         
-        self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None})
+        self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -94,6 +94,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_sMode = self._g_dictParam['mode']
         if self._g_dictParam['mode'] in ['update_ga_media_sql', 'update_ga_media_encrypted']:
             self.__g_sReplaceYearMonth = self._g_dictParam['yyyymm']
+        elif self._g_dictParam['mode'] in ['add_wc_sql']:
+            s_top_n_cnt = self._g_dictParam['top_n_cnt']
 
         # begin - get Protocol message dictionary
         oSvHttp = sv_http.SvHttpCom('')
@@ -136,7 +138,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_ga_media_log = word_cloud.SvWordCloud()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
-            o_ga_media_log.proc_word_cloud(self.__g_sMode)
+            o_ga_media_log.proc_word_cloud(self.__g_sMode, s_top_n_cnt)
             del o_ga_media_log
         elif self.__g_sMode in ['add_edi_sql']:
             self._printDebug('-> transfer de-normed edi daily log to BI DB via SQL')
@@ -380,4 +382,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [config_loc] [target_host_url] params are required for console execution.')
+        print('warning! [config_loc] [mode] params are required for console execution.')

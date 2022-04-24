@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 17th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, Apr 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -204,10 +204,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for dict_single_doc in oResp['variables']['d']:
                 n_sv_doc_srl = dict_single_doc['document_srl']
+                n_sv_module_srl = dict_single_doc['module_srl']
                 s_title = dict_single_doc['title'].replace(u'\xa0', u'')
                 s_content = dict_single_doc['content'].replace(u'\xa0', u'')
                 dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
-                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, n_sv_doc_srl, s_title, s_content, dt_regdate)
+                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
+                    n_sv_doc_srl, n_sv_module_srl, s_title, s_content, dt_regdate)
         return
     
     def __post_http(self, sTargetUrl, dictParams):

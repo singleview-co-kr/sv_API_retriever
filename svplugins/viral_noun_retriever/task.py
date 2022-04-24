@@ -57,7 +57,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, Apr 2022')
         self._g_dictParam.update({'mode': None, 'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -248,7 +248,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         n_word_srl = lst_rst[0]['id']
                         self.__g_dictRegisteredNouns[s_word] = {'word_srl': n_word_srl, 'b_ignore': 0}
 
-                    o_sv_mysql.executeQuery('insertWordCnt', dict_row['referral'], dict_row['document_srl'], n_word_srl, n_cnt, dict_row['logdate'])
+                    o_sv_mysql.executeQuery('insertWordCnt', dict_row['referral'], dict_row['document_srl'], dict_row['module_srl'], n_word_srl, n_cnt, dict_row['logdate'])
                 del counter_noun_count
                 # set document processed to avoid duplicated analyze
                 o_sv_mysql.executeQuery('updateDocProcedByLogSrl', dict_row['log_srl'])

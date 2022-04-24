@@ -1,3 +1,3 @@
-SELECT `log_srl`, `word_srl`, `cnt`, `logdate`
+SELECT `module_srl`, `word_srl`, `cnt`, `logdate`
 FROM `wc_word_cnt`
 WHERE `logdate` >= %s and `logdate` <= %s
