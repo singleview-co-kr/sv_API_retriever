@@ -59,11 +59,11 @@ else: # for platform running
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sFbApiVersion = 'v12.0'
+    __g_sFbApiVersion = 'v13.0'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 14th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
 
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -74,12 +74,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             with open(s_fb_biz_config_file) as f:
                 self.__g_oConfig.read_file(f)
-                self.__g_bAvailable = True
+                b_available = True
         except IOError:
             self._printDebug('slack_config.ini does not exist')
             # raise IOError('failed to initialize SvSlack')
 
-        if self.__g_bAvailable:
+        if b_available:
             self.__g_oConfig.read(s_fb_biz_config_file)
         
         self.__g_sFbBizAid = None
@@ -171,7 +171,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('toggle period compress mode')
                 b_period_compress_toggle = True
         
-        # sAccessToken = fb_biz_config.ACCESS_TOKEN
         self.__g_sAdAccountId = 'act_' + self.__g_sFbBizAid
         FacebookAdsApi.init(access_token=self.__g_oConfig['COMMON']['ACCESS_TOKEN'], api_version=self.__g_sFbApiVersion)
         self.__g_lstAd = []

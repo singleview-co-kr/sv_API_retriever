@@ -39,6 +39,7 @@ from datetime import timedelta
 import os
 import sys
 import csv
+import configparser # https://docs.python.org/3/library/configparser.html
 
 # sys.path.append('/usr/lib/python3.6/site-packages/facebook_business') # Replace this with the place you installed facebookads using pip
 #sys.path.append('/opt/homebrew/lib/python2.7/site-packages/facebook_business-3.0.0-py2.7.egg-info') # same as above
@@ -48,6 +49,10 @@ from facebook_business.adobjects.adaccount import AdAccount
 from facebook_business.adobjects.ad import Ad
 from facebook_business.adobjects.adcreative import AdCreative
 
+# 3rd party library
+from decouple import config 
+
+
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
@@ -56,25 +61,37 @@ if __name__ == '__main__': # for console debugging
     import sv_plugin
     import settings
     sys.path.append('../../conf') # singleview config
-    import fb_biz_config
 else: # for platform running
     from svcommon import sv_object
     from svcommon import sv_plugin
     # singleview config
-    from conf import fb_biz_config
     from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+    __g_sFbApiVersion = 'v13.0'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 18th, Mar 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
+        self.__g_oConfig = configparser.ConfigParser()
+        s_fb_biz_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'fb_biz_config.ini')
+        try:
+            with open(s_fb_biz_config_file) as f:
+                self.__g_oConfig.read_file(f)
+                b_available = True
+        except IOError:
+            self._printDebug('slack_config.ini does not exist')
+            # raise IOError('failed to initialize SvSlack')
+
+        if b_available:
+            self.__g_oConfig.read(s_fb_biz_config_file)
+
         self.__g_sDataFirstDate = None
         self.__g_sDataLastDate = None
 
@@ -145,9 +162,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # raise Exception('completed')
             return
 
-        sAccessToken = fb_biz_config.ACCESS_TOKEN
         sAdAccountId = 'act_'+sFbBizAid
-        FacebookAdsApi.init(access_token=sAccessToken, api_version='v12.0')
+        FacebookAdsApi.init(access_token=self.__g_oConfig['COMMON']['ACCESS_TOKEN'], api_version=self.__g_sFbApiVersion)
         lstAd = []
         sAdCreativeFilepath = os.path.join(sDownloadPath, 'ad_creative.tsv')
         try:
@@ -174,7 +190,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self._printDebug(err.api_error_message() + '\n' + \
                                     'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
                                     'token right select: ads_management, ads_read, read_insights -> get token\n' + \
-                                    'paste new token into /conf/fb_biz_config.py')
+                                    'paste new token into /conf/fb_biz_config.ini')
                 else:
                     self._printDebug(err)
                 return
