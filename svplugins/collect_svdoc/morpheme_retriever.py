@@ -157,7 +157,6 @@ class SvMorphRetriever():
             self.__print_debug(lst_noun)
         else:
             self.__print_debug('weird')
-            self._task_post_proc(self._g_oCallback)
             return
         
         try:
