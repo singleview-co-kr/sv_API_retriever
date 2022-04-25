@@ -24,10 +24,11 @@
 
 # standard library
 import logging
-from datetime import datetime
-from datetime import timedelta
-from dateutil.relativedelta import relativedelta
+# from datetime import datetime
+# from datetime import timedelta
+# from dateutil.relativedelta import relativedelta
 import os
+import re
 import configparser # https://docs.python.org/3/library/configparser.html
 import sys
 
@@ -35,21 +36,20 @@ import sys
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
     sys.path.append('../../svdjango')
-    import sv_http
-    import sv_mysql
     import sv_object
     import sv_plugin
     import settings
+    import sv_doc_collection
+    import morpheme_retriever
 else: # for platform running
-    from svcommon import sv_http
-    from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
     from django.conf import settings
+    from svplugins.collect_svdoc import sv_doc_collection
+    from svplugins.collect_svdoc import morpheme_retriever
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sFirstDateOfTheUniv = '20000101'
     __g_dictSource = {
         'singleview_estudio': 1,
         'twitter': 2,
@@ -59,38 +59,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
         self.__g_oConfig = configparser.ConfigParser()
-        self._g_dictParam.update({'target_host_url':None, 'mode':None})
+        self._g_dictParam.update({'mode':None, 
+                                    'target_host_url':None,  # for sv doc retrieval
+                                    'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None  # for morpeheme analysis
+                                })
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
-        self.__g_sTblPrefix = None
-        self.__g_sTargetUrl = None
-        self.__g_sMode = None
-        self.__g_dictMsg = {}
     
     def __del__(self):
         """ never place self._task_post_proc() here 
             __del__() is not executed if try except occurred """
-        self.__g_sTblPrefix = None
-        self.__g_sTargetUrl = None
-        self.__g_sMode = None
-        self.__g_dictMsg = {}
         self.__g_oConfig = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
-        self.__g_sTargetUrl = self._g_dictParam['target_host_url']
-        self.__g_sMode = self._g_dictParam['mode']
+        s_target_host_url = self._g_dictParam['target_host_url']
+        s_mode = self._g_dictParam['mode']
 
-        # begin - get Protocol message dictionary
-        oSvHttp = sv_http.SvHttpCom('')
-        self.__g_dictMsg = oSvHttp.getMsgDict()
-        oSvHttp.close()
-        del oSvHttp
-        # end - get Protocol message dictionary
+        s_comma_sep_words = self._g_dictParam['words']
+        s_start_yyyymmdd = self._g_dictParam['start_yyyymmdd']
+        s_end_yyyymmdd = self._g_dictParam['end_yyyymmdd']
 
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
@@ -99,137 +91,44 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return
 
-        # if self.__g_sMode is None:
-        #     self._printDebug('you should designate mode')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
+        if s_mode is None:
+            self._printDebug('you should designate mode')
+            self._task_post_proc(self._g_oCallback)
+            return
+
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
-        self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        s_tbl_prefix = dict_acct_info['tbl_prefix']
         self.__get_key_config(s_sv_acct_id, s_brand_id)
-        if self.__g_sTargetUrl is None:
-            if 'server' in self.__g_oConfig:
-                self.__g_sTargetUrl = self.__g_oConfig['server']['sv_doc_host_url']
-            else:
-                self._printDebug('stop -> invalid sv_doc_host_url')
-                self._task_post_proc(self._g_oCallback)
-                return
         
-        self._printDebug('-> communication begin')
-        # if self.__g_sMode == 'retrieve':
-        self._printDebug('-> ask new docs')
-        self.__ask_sv_xe_web_service()
+        if s_mode == 'retrieve':
+            if s_target_host_url is None:
+                if 'server' in self.__g_oConfig:
+                    s_target_host_url = self.__g_oConfig['server']['sv_doc_host_url']
+                else:
+                    self._printDebug('stop -> invalid sv_doc_host_url')
+                    self._task_post_proc(self._g_oCallback)
+                    return
+            o_sv_doc_collector = sv_doc_collection.SvDocCollection()
+            o_sv_doc_collector.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
+                                        self._printDebug, self._printProgressBar, self._continue_iteration,
+                                        self.__g_oConfig, self.__g_dictSource, s_target_host_url)
+            o_sv_doc_collector.collect_sv_doc()
+            del o_sv_doc_collector
+        elif s_mode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
+            o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
+            o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
+                                        self._printDebug, self._printProgressBar, self._continue_iteration,
+                                        self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+                                        s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd)
+            o_sv_morpheme_retriever.do_task()
+            del o_sv_morpheme_retriever
+        else:
+            self._printDebug('weird')
+            self._task_post_proc(self._g_oCallback)
+            return
 
-        self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
-
-    def __ask_sv_xe_web_service(self):
-        """
-        collect plain text of new docs from SvWebService
-        # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
-        """
-        with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.collect_svdoc')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
-        if not self._continue_iteration():
-            return
-
-        dt_last_sync_date = lst_latest_doc_date[0]['maxdate']
-        del lst_latest_doc_date
-        if dt_last_sync_date is None:
-            s_begin_date_to_sync = self.__g_sFirstDateOfTheUniv
-        else:
-            dt_date_to_sync = dt_last_sync_date + timedelta(1)
-            s_begin_date_to_sync = dt_date_to_sync.strftime("%Y%m%d")
-            del dt_date_to_sync
-        # s_date_to_sync = '20210707'
-        dt_yesterday = datetime.today() - relativedelta(days=1)
-        s_end_date_to_sync = dt_yesterday.strftime("%Y%m%d")
-        if int(s_begin_date_to_sync) > int(s_end_date_to_sync):
-            self._printDebug('begin_date is later than end_date')
-            return
-
-        dict_date_param = {'s_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
-        dictParams = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
-        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-        if not self._continue_iteration():
-            return
-
-        self._printDebug('rsp of LMKL')
-        nMsgKey = oResp['variables']['a'][0]
-        if self.__translate_msg_code(nMsgKey) == 'ALD':
-            #self._printDebug( 'in resp of add latest data' ) 
-            dictRetrieveStuff = oResp['variables']['d']
-            if dictRetrieveStuff['aDocSrls'] != 'na':
-                # check already registered doc_srl
-                lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
-                with sv_mysql.SvMySql() as o_sv_mysql:
-                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                    o_sv_mysql.set_app_name('svplugins.collect_svdoc')
-                    o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                    dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
-                    lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
-                del dict_param
-                for dict_rec in lst_duplicated_doc_srls:
-                    dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
-
-                if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
-                    self._printDebug('begin - doc sync')
-                    dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                    oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-            #if type(dictRetrieveStuff['aComSrls']) == list and len(dictRetrieveStuff['aComSrls']):
-            #    self._printDebug('begin - comment sync')
-            #    dictParams = {'c': [self.__g_dictMsg['GMCL']], 'd': dictRetrieveStuff['aComSrls']} #  give me comment list  -> data: com_srls
-            #    oResp = self.__post_http( self.__g_sTargetUrl, dictParams )
-            #    # self._printDebug( type(dictRetrieveStuff['aComSrls']) )
-        elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
-            self._printDebug('stop communication 1')
-            return
-
-        if not self._continue_iteration():
-            return
-
-        self._printDebug('rsp of ALD')
-        nMsgKey = oResp['variables']['a'][0]
-        if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
-            self._printDebug('stop communication 2')
-            return
-
-        n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
-        with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.collect_svdoc')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            for dict_single_doc in oResp['variables']['d']:
-                n_sv_doc_srl = dict_single_doc['document_srl']
-                n_sv_module_srl = dict_single_doc['module_srl']
-                s_title = dict_single_doc['title'].replace(u'\xa0', u'')
-                s_content = dict_single_doc['content'].replace(u'\xa0', u'')
-                dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
-                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
-                    n_sv_doc_srl, n_sv_module_srl, s_title, s_content, dt_regdate)
-        return
-    
-    def __post_http(self, sTargetUrl, dictParams):
-        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
-        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
-        oSvHttp = sv_http.SvHttpCom(sTargetUrl)
-        oResp = oSvHttp.postUrl(dictParams)
-        oSvHttp.close()
-        if oResp['error'] == -1:
-            sTodo = oResp['variables']['todo']
-            if sTodo:
-                self._printDebug('HTTP response raised exception!!')
-                raise Exception(sTodo)
-        else:
-            return oResp
-
-    def __translate_msg_code(self, nMsgKey):
-        for sMsg, nKey in self.__g_dictMsg.items():
-            if nKey == nMsgKey:
-                return sMsg
         
     def __get_key_config(self, sSvAcctId, sAcctTitle):
         sKeyConfigPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'key.config.ini')
