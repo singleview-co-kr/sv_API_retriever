@@ -44,6 +44,7 @@ if __name__ == '__main__': # for console debugging
     import ga_media_log
     import word_cloud
     import edi_log
+    import sv_adr
 else: # for platform running
     from svcommon import sv_http
     from svcommon import sv_mysql
@@ -53,6 +54,7 @@ else: # for platform running
     from svplugins.client_serve import ga_media_log
     from svplugins.client_serve import word_cloud
     from svplugins.client_serve import edi_log
+    from svplugins.client_serve import sv_adr
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -65,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Apr 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -147,6 +149,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_ga_media_log.proc_edi_log(self.__g_sMode)
             del o_ga_media_log
+        elif self.__g_sMode in ['add_sv_adr_sql']:
+            self._printDebug('-> transfer de-normed sv addr log to BI DB via SQL')
+            o_sv_addr_log = sv_adr.SvAddress()
+            o_sv_addr_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_sv_addr_log.proc_sv_addr_log(self.__g_sMode)
+            del o_sv_addr_log
         elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class
             self.__add_new_ga_media_encrypted()
         elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class

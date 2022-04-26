@@ -24,11 +24,7 @@
 
 # standard library
 import logging
-# from datetime import datetime
-# from datetime import timedelta
-# from dateutil.relativedelta import relativedelta
 import os
-import re
 import configparser # https://docs.python.org/3/library/configparser.html
 import sys
 
