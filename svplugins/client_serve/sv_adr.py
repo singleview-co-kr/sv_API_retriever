@@ -119,8 +119,6 @@ class SvAddress():
                 self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
                 lst_sv_addr = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
 
-        # print(lst_sv_addr)
-        # return
         n_idx = 0
         n_sentinel = len(lst_sv_addr)
         if n_sentinel:
@@ -132,10 +130,12 @@ class SvAddress():
                 for dict_single_wc in lst_sv_addr:
                     if not self.__continue_iteration():
                         return
+                    s_addr_full = dict_single_wc['addr_do'] + ' ' + dict_single_wc['addr_si'] + ' ' + \
+                                    dict_single_wc['addr_gu_gun'] + ' ' + dict_single_wc['addr_dong_myun_eup']
                     o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
-                                        dict_single_wc['addr_full'], 
                                         dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
-                                        dict_single_wc['addr_dong_myun_eup'], dict_single_wc['logdate'])
+                                        dict_single_wc['addr_dong_myun_eup'], s_addr_full,
+                                        dict_single_wc['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         del lst_sv_addr

@@ -202,8 +202,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if lst_addr[0].isdigit():  # catch postcode
                     s_postcode = lst_addr[0]
                     del lst_addr[0]
-                s_full_addr = ' '.join(lst_addr)
-                o_sv_addr_parser.parse(s_full_addr)
+                o_sv_addr_parser.parse(' '.join(lst_addr))
                 dict_addr_parsed = o_sv_addr_parser.get_header()
                 # print(dict_addr_parsed)
                 dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
@@ -212,7 +211,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     o_sv_mysql.executeQuery('insertAdrLog', n_sv_doc_srl, n_sv_module_srl, s_postcode,
                                         str(dict_addr_parsed['do']), str(dict_addr_parsed['si']),
                                         str(dict_addr_parsed['gu_gun']), str(dict_addr_parsed['dong_myun_eup']), 
-                                        s_full_addr, s_addr, dt_regdate)
+                                        s_addr, dt_regdate)
                 del dict_addr_parsed
         del o_sv_addr_parser
         return
