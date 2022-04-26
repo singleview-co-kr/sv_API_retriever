@@ -32,8 +32,10 @@ from datetime import timedelta
 if __name__ == 'sv_adr': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
+    import sv_addr_parser
 else: # for platform running
     from svcommon import sv_mysql
+    from svcommon import sv_addr_parser
 
 
 class SvAddress():
@@ -119,6 +121,12 @@ class SvAddress():
                 self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
                 lst_sv_addr = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
 
+        o_sv_addr_parser = sv_addr_parser.SvAddrParser()
+        dict_standardize_metropolis = o_sv_addr_parser.get_metropolis_dict()
+        del o_sv_addr_parser
+
+        lst_standardize_metropolis = dict_standardize_metropolis.values()
+        # return
         n_idx = 0
         n_sentinel = len(lst_sv_addr)
         if n_sentinel:
@@ -130,8 +138,20 @@ class SvAddress():
                 for dict_single_wc in lst_sv_addr:
                     if not self.__continue_iteration():
                         return
-                    s_addr_full = dict_single_wc['addr_do'] + ' ' + dict_single_wc['addr_si'] + ' ' + \
-                                    dict_single_wc['addr_gu_gun'] + ' ' + dict_single_wc['addr_dong_myun_eup']
+                    s_addr_full = None
+                    if dict_single_wc['addr_do'] in lst_standardize_metropolis:
+                        if dict_single_wc['addr_si'] != 'None':
+                            s_addr_full = dict_single_wc['addr_si']
+                    else:
+                        if dict_single_wc['addr_do'] != 'None':
+                            s_addr_full = dict_single_wc['addr_do']
+                        if dict_single_wc['addr_si'] != 'None':
+                            s_addr_full += ' ' + dict_single_wc['addr_si']
+                    
+                    if dict_single_wc['addr_gu_gun'] != 'None':
+                        s_addr_full += ' ' + dict_single_wc['addr_gu_gun']
+                    if dict_single_wc['addr_dong_myun_eup'] != 'None':
+                        s_addr_full += ' ' + dict_single_wc['addr_dong_myun_eup']
                     o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
                                         dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
                                         dict_single_wc['addr_dong_myun_eup'], s_addr_full,
@@ -139,3 +159,4 @@ class SvAddress():
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         del lst_sv_addr
+        del dict_standardize_metropolis

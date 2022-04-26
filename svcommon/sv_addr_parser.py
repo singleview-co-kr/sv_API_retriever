@@ -132,6 +132,10 @@ class SvAddrParser(sv_object.ISvObject):
         self.__standardize_header()
         return self.__g_dictAddrParsed
 
+    def get_metropolis_dict(self):
+        """ svplugins/client_serve.sv_adr.ph에서 호출 """
+        return self.__g_dictStandardizeMetropolis
+        
     def __standardize_header(self):
         """ 한국 주소는 도,시,(구),동,번지 / 도,시,(군),면/읍,리  로 분류되는 체제로 나뉨
         도, 시, 구/군, 동/면/읍, 번지/리 """
