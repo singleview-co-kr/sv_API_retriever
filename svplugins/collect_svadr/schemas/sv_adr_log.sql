@@ -7,7 +7,8 @@ CREATE TABLE `sv_adr_log` (
   `addr_si` varchar(8) NOT NULL,
   `addr_gu_gun` varchar(20) DEFAULT NULL,
   `addr_dong_myun_eup` varchar(20) DEFAULT NULL,
-  `addr` varchar(200) DEFAULT NULL,
+  `addr_full` varchar(200) DEFAULT NULL,
+  `addr_raw` varchar(200) DEFAULT NULL,
   `logdate` DATE NOT NULL,
   `regdate` DATETIME DEFAULT NOW(),
   PRIMARY KEY (`log_srl`)

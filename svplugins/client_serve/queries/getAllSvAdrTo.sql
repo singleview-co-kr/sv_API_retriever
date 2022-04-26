@@ -1,3 +1,3 @@
-SELECT `document_srl`, `postcode`, `addr_do`, `addr_si`, `addr_gu_gun`, `addr_dong_myun_eup`, `logdate`
+SELECT `document_srl`, `addr_full`, `logdate`
 FROM `sv_adr_log`
 WHERE `logdate` <= %s

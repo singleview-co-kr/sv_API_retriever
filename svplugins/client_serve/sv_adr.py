@@ -86,9 +86,7 @@ class SvAddress():
         """
         transfer de-normalized table to BI db
         """
-        lst_word_srl_to_trans = None
-        lst_word_cnt = None
-        dict_dictionary = None
+        lst_sv_addr = None
         # begin - ext bi denorm word count date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -115,30 +113,25 @@ class SvAddress():
             s_end_date = datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
             if self.__g_dictDateRange['s_start_date'] == 'na':  # get whole wc
                 self.__print_debug('get whole sv addr')
-                lst_word_cnt = o_sv_mysql.executeQuery('getAllSvAdrTo', s_end_date)
+                lst_sv_addr = o_sv_mysql.executeQuery('getAllSvAdrTo', s_end_date)
             else:
                 s_start_date = datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
-                lst_word_cnt = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
-        
-        # {'document_srl': 5907, 'addr_do': '경기도', 'addr_si': '수원시', 'addr_gu_gun': '영통구', 'addr_dong_myun_eup': '영통동', 'logdate': datetime.date(2019, 5, 26)},
+                lst_sv_addr = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
+
         n_idx = 0
-        n_sentinel = len(lst_word_cnt)
+        n_sentinel = len(lst_sv_addr)
         if n_sentinel:
             self.__print_debug('transfer sv adr via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-                for dict_single_wc in lst_word_cnt:
+                for dict_single_wc in lst_sv_addr:
                     if not self.__continue_iteration():
                         return
                     o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
-                                        dict_single_wc['postcode'], 
-                                        dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
-                                        dict_single_wc['addr_dong_myun_eup'], dict_single_wc['logdate'])
+                                        dict_single_wc['addr_full'], dict_single_wc['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
                     n_idx += 1
-        del lst_word_srl_to_trans
-        del lst_word_cnt
-        del dict_dictionary
+        del lst_sv_addr
