@@ -90,7 +90,6 @@ class SvMySql(sv_object.ISvObject):
 
     def __del__(self):
         self.__g_sAppName = None
-        self.__g_sExtTargetHost = None
         self.__g_dictConfig = {}
         self.__g_oConn = None
         self.__g_oCursor = None
@@ -144,13 +143,16 @@ class SvMySql(sv_object.ISvObject):
                 self.__g_dictConfig['db_password'] = o_config['SERVER']['db_password']
                 self.__g_dictConfig['db_database'] = o_config['SERVER']['db_database']
                 self.__g_dictConfig['db_charset'] = o_config['SERVER']['db_charset']
-            else:  # use django DB
+            else:  # use django DB  
                 self.__g_dictConfig['db_hostname'] = config('db_hostname')
                 self.__g_dictConfig['db_port'] = int(config('db_port'))
                 self.__g_dictConfig['db_userid'] = config('db_userid')
                 self.__g_dictConfig['db_password'] = config('db_password')
                 self.__g_dictConfig['db_database'] = config('db_database')
                 self.__g_dictConfig['db_charset'] = config('db_charset')
+                #### begin - python dbs.py init to run daemonocle ########
+                self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')  
+                #### end - python dbs.py init to run daemonocle ########
         elif s_ext_target_host == 'BI_SERVER':
             self.__g_dictConfig['db_hostname'] = o_config['BI_SERVER']['db_hostname']
             self.__g_dictConfig['db_port'] = int(o_config['BI_SERVER']['db_port'])
@@ -158,10 +160,8 @@ class SvMySql(sv_object.ISvObject):
             self.__g_dictConfig['db_password'] = o_config['BI_SERVER']['db_password']
             self.__g_dictConfig['db_database'] = o_config['BI_SERVER']['db_database']
             self.__g_dictConfig['db_charset'] = o_config['BI_SERVER']['db_charset']
-        # self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')
         del o_config
         self.__connect()
-
         # if self.__g_sAppName:  # for django app mode
         #     s_project_path = str(Path(__file__).resolve().parent.parent)
         #     self.__g_sAppAbsPath = os.path.join(s_project_path, self.__g_sAppName)
