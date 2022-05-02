@@ -392,6 +392,7 @@ class SvHypermartGeoInfo():
         {'id': 295, 'hypermart_name': 'Emart', 'branch_code': '8204', 'name': '몰리스T월평점', 'branch_type': 'Offline', 'do_name': '대전', 'si_name': '대전광역시', 'gu_gun': '서구', 'dong_myun_ri': '월평동', 'latitude': '36.3576768', 'longitude': '127.362976'},
         {'id': 296, 'hypermart_name': 'Emart', 'branch_code': '8209', 'name': '몰리스센텀점', 'branch_type': 'Offline', 'do_name': '부산', 'si_name': '부산광역시', 'gu_gun': '해운대구', 'dong_myun_ri': '우동', 'latitude': '35.1698887', 'longitude': '129.128295'},
         {'id': 297, 'hypermart_name': 'Emart', 'branch_code': '8215', 'name': '몰리스STF위례점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '학암동', 'latitude': '37.4801236', 'longitude': '127.148382'},
+        {'id': 298, 'hypermart_name': 'Emart', 'branch_code': '1177', 'name': '쓱고우논현점', 'branch_type': 'Offline', 'do_name': '서울', 'si_name': '서울특별시', 'gu_gun': '강남구', 'dong_myun_ri': '논현동', 'latitude': '37.5078828', 'longitude': '127.023324'},
     ]
     
     def __init__(self):
