@@ -258,6 +258,13 @@ class SvMySql(sv_object.ISvObject):
         #     raise e
         return self.__arrange_query_rst(s_sql_filename, s_query_type)
 
+    def commit(self):
+        """
+        update stmt on dbs.py requires explicit commit(); dont know why
+        """
+        if self.__g_oConn:
+            self.__g_oConn.commit()
+
     def __execute_query(self, s_sql_compiled, params=None):
         """
         execute query
@@ -295,7 +302,7 @@ class SvMySql(sv_object.ISvObject):
                 else:
                     self.__g_oCursor.execute(s_sql_compiled)
             else:
-                print(e) 
+                print(e)
                 # logger.debug(e)
             # raise e
             

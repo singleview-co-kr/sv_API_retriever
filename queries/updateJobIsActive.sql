@@ -1,3 +1,3 @@
-UPDATE `svnvcrawl_job`
+UPDATE `svdaemon_job`
 SET is_active=%s
-WHERE job_srl=%s
+WHERE id=%s

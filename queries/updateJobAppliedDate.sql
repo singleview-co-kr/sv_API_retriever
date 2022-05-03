@@ -1,3 +1,3 @@
-UPDATE `svnvcrawl_job`
-SET application_date=%s
-WHERE job_srl=%s
+UPDATE `svdaemon_job`
+SET dt_applied=now()
+WHERE id=%s

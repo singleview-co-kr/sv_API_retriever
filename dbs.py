@@ -22,16 +22,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# doing by schedule bot
-import sys
-
 # standard library
+import sys
 import time
-from datetime import datetime
+# from datetime import datetime
 import logging  #https://docs.python.org/3.3/howto/logging.html
 import logging.config  #https://docs.python.org/3.3/howto/logging.html
-import os
-import signal
+# import os
+# import signal
 
 # 3rd party library
 import daemonocle  # https://programtalk.com/vs2/?source=python/6398/daemonocle/tests/test_actions.py
@@ -40,7 +38,6 @@ import click # command line interface related
 from daemonocle.cli import DaemonCLI # command line interface related; connected with daemonocle
 from apscheduler.schedulers.background import BackgroundScheduler # APscheduler
 import apscheduler.events as events
-import simplejson as json
 from decouple import config
 
 # singleview library
@@ -114,7 +111,7 @@ def cb_shutdown(message, code):
     logging.info(__file__ + ' v' + g_sVersion + ' has been shutdown')
     logging.debug(message)
     o_slack = sv_slack.SvSlack('dbs')
-    o_slack.sendMsg('bot has been shutdown')
+    # o_slack.sendMsg('bot has been shutdown')
     del o_slack
 
 @click.command(cls=DaemonCLI, daemon_class=setSvDaemon, daemon_params={'shutdown_callback': cb_shutdown, 'pidfile': './misc/dbs.pid'})
@@ -165,7 +162,7 @@ def _start_scheduler():
     g_oScheduler.add_listener(_my_listener, events.EVENT_JOB_EXECUTED | events.EVENT_JOB_ERROR)
     g_oScheduler.start()
     o_slack = sv_slack.SvSlack('dbs')
-    o_slack.sendMsg('bot has been started')
+    # o_slack.sendMsg('bot has been started')
     del o_slack
 
 def _my_listener(event):
@@ -178,17 +175,18 @@ def _my_listener(event):
     #o_logger.debug(event.exception) # raised event code defined by sys.exit(); normal completion designates None
     if str(event.exception) == sv_events.EVENT_JOB_SHOULD_BE_REMOVED:
         o_logger.debug('######_my_listener will remove job, id: ' + event.job_id + ' ##########')
-        o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
+        # o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
         g_oScheduler.remove_job(event.job_id)
     elif str(event.exception) == sv_events.EVENT_JOB_COMPLETED:
         o_logger.debug('######_my_listener will remove job, id: ' + event.job_id + ' ##########')
-        o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
+        # o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
         g_oScheduler.remove_job(event.job_id)
         o_logger.debug('######_my_listener will togle job, id: ' + event.job_id + ' from table ##########')
-        o_slack.sendMsg('_my_listener has togled job, id: ' + event.job_id + ' from table' )
+        # o_slack.sendMsg('_my_listener has togled job, id: ' + event.job_id + ' from table' )
         with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.initialize()
-            o_sv_mysql.executeQuery('updateJobIsActive', 'N', event.job_id )
+            o_sv_mysql.executeQuery('updateJobIsActive', 0, event.job_id)
+            o_sv_mysql.commit()
 
     # if event.code == events.EVENT_JOB_EXECUTED or str(event.exception) == sv_events.EVENT_JOB_COMPLETED:
     #     _arouse_dbo(event.job_id)
@@ -232,239 +230,125 @@ def _sync_job_from_mysql():
         x,y,z -- any -- Fire on any matching expression; can combine any number of any of the above expressions
     """
     o_logger = logging.getLogger(__file__)
-    try:
-        with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
-            o_sv_mysql.initialize()
-            lst_raw_mysql_jobs = o_sv_mysql.executeQuery('getJobList', 'Y')
+    with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+        o_sv_mysql.initialize()
+        lst_raw_mysql_jobs = o_sv_mysql.executeQuery('getJobList', 1)  # 1 means active
+        # [{'id': 1, 'sv_acct_id': 1, 'sv_brand_id': 1, 's_job_title': 'twitter collection', 's_plugin_name': 'integrate_db', 
+        # 's_plugin_params': '', 's_trigger_type': 'i', 's_trigger_params': 'seconds=10', 'date_start': datetime.date(2022, 5, 1), 
+        # 'date_end': None, 'dt_mod': None, 'dt_applied': None}]
 
-            # remove any job existed in Mysql but application_date is earlier than modification_date; remove updated job to add newly
-            for dict_mysql_job in lst_raw_mysql_jobs:
-                if dict_mysql_job['modification_date']:
-                    nModificationDate = int(dict_mysql_job['modification_date'].replace('-', ''))
-                else:
-                    nModificationDate = 0
+    # remove any job existed in Mysql but application_date is earlier than modification_date; remove updated job to add newly
+    for dict_mysql_job in lst_raw_mysql_jobs:
+        n_modified_date = 0
+        n_applied_date = 0
+        if dict_mysql_job['dt_mod']:
+            n_modified_date = int(dict_mysql_job['dt_mod'].strftime('%Y%m%d'))
+        if dict_mysql_job['dt_applied']:
+            n_applied_date = int(dict_mysql_job['dt_applied'].strftime('%Y%m%d'))
+        
+        if n_modified_date > n_applied_date:
+            o_logger.debug(str(dict_mysql_job['id']) + ' should be updated')
+            try:
+                g_oScheduler.remove_job(str(dict_mysql_job['id']))
+            except Exception as inst:
+                o_logger.debug(inst) # print debug msg and ignore if job is not existed
 
-                if dict_mysql_job['application_date']:
-                    nApplicationDate = int(dict_mysql_job['application_date'].replace('-', ''))
-                else:
-                    nApplicationDate = 0
-                
-                if nModificationDate > nApplicationDate:
-                    o_logger.debug(str(dict_mysql_job['job_srl'])+' should be updated')
-                    try:
-                        g_oScheduler.remove_job(str(dict_mysql_job['job_srl']))
-                    except Exception as inst:
-                        o_logger.debug(inst) # print debug msg and ignore if job is not existed
-            
-            # arrange job list retrieved from Mysql
-            dictJobsInMysql = {}
-            for dict_mysql_job in lst_raw_mysql_jobs:
-                dict_mysql_job[str(dict_mysql_job['job_srl'])] = dict_mysql_job['job_title']
-                dictJobsInMysql[str(dict_mysql_job['job_srl'])] = dict_mysql_job['job_title']
-            
-            dictJobs = g_oScheduler.get_jobs() 
-            dicJobsInSqlite = {}
-            for job in dictJobs:
-                dicJobsInSqlite[job.id] = job.name
-            
-            # remove any job existed in Sqllite but not in Mysql
-            for jobIdInSqlite in dicJobsInSqlite.keys():
-                o_logger.debug(jobIdInSqlite)
-                try:
-                    dictJobsInMysql[jobIdInSqlite]
-                except KeyError:
-                    o_logger.debug(jobIdInSqlite + ' is not existed in dict_mysql_job - will be deleted')
-                    g_oScheduler.remove_job(jobIdInSqlite)
-                else:
-                    o_logger.debug(jobIdInSqlite + ' exists in dict_mysql_job - pass')
-
-            # add any job existed in Mysql but not in Sqllite
-            for s_mysql_job in dictJobsInMysql:
-                if s_mysql_job in dicJobsInSqlite:
-                    o_logger.debug(s_mysql_job + ' exists in jobIdInSqlite - pass')
-                else:
-                    o_logger.debug(s_mysql_job + ' is not existed in jobIdInSqlite - will be added')
-                    for dictRow in lst_raw_mysql_jobs:
-                        if str(s_mysql_job) == str(dictRow['job_srl']):
-                            sPluginName = dictRow['plugin_name']
-                            oSvPluginValidation = sv_plugin.svPluginValidation()
-                            dictValidation = oSvPluginValidation.validatePlugin( sPluginName )
-                            if dictValidation['validation']: #add job if valid
-                                sTriggerType = dictRow['job_trigger_type']
-                                oTriggerParams = _parse_trigger_params(sTriggerType, dictRow['trigger_params'])
-                                # http://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
-                                u_id = str(dictRow['job_srl'])
-                                u_name = dictRow['job_title']
-                                u_start_date = dictRow['start_date'] or '1970-01-01'
-                                u_end_date = dictRow['end_date'] or '2200-12-31'
-                                if sTriggerType == 'interval':
-                                    o_logger.debug(oTriggerParams)
-                                    u_wks = int(oTriggerParams['weeks'])
-                                    u_days = int(oTriggerParams['days'])
-                                    u_hrs = int(oTriggerParams['hours'])
-                                    u_mins = int(oTriggerParams['minutes'])
-                                    u_secs = int(oTriggerParams['seconds'])
-                                    # http://apscheduler.readthedocs.io/en/latest/modules/triggers/interval.html
-                                    g_oScheduler.add_job(sv_plugin.svPluginJob, 'interval', [sPluginName, dictRow['plugin_params']],
-                                        weeks = u_wks, days = u_days, hours = u_hrs, minutes = u_mins, seconds = u_secs, 
-                                        id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
-                                elif sTriggerType == 'cron':
-                                    o_logger.debug(oTriggerParams)
-                                    u_yr = oTriggerParams['year']
-                                    u_mo = oTriggerParams['month']
-                                    u_wk = oTriggerParams['week']
-                                    u_dow = oTriggerParams['day_of_week']
-                                    u_day = oTriggerParams['day']
-                                    u_hr = oTriggerParams['hour']
-                                    u_min = oTriggerParams['minute']
-                                    u_sec = oTriggerParams['second']
-                                    # http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
-                                    g_oScheduler.add_job(sv_plugin.svPluginJob, 'cron', [sPluginName, dictRow['plugin_params']],
-                                        year = u_yr, month = u_mo, week = u_wk, day_of_week = u_dow, day = u_day, hour = u_hr, minute = u_min, second = u_sec,
-                                        id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
-                                                        
-                                sCurDatetime = datetime.today().strftime("%Y%m%d%H%M%S")
-                                o_sv_mysql.executeQuery('updateJobAppliedDate', sCurDatetime, dictRow['job_srl'])
-                                o_logger.debug(u_name + ' with ' + sTriggerType + ' trigger has been added')
-                            else:
-                                o_logger.debug("plugin '%s' not implemented" % sPluginName)
-                # try:
-                #     dicJobsInSqlite[s_mysql_job] 
-                # except KeyError: 
-                #     o_logger.debug(s_mysql_job + ' is not existed in jobIdInSqlite - will be added')
-                #     for dictRow in lst_raw_mysql_jobs:
-                #         if str(s_mysql_job) == str(dictRow['job_srl']):
-                #             sPluginName = dictRow['plugin_name']
-                #             oSvPluginValidation = sv_plugin.svPluginValidation()
-                #             dictValidation = oSvPluginValidation.validatePlugin( sPluginName )
-                #             #####################
-                #             #return
-                #             ######################
-                #             if dictValidation['validation']: #add job if valid
-                #                 sTriggerType = dictRow['job_trigger_type']
-                #                 oTriggerParams = _parse_trigger_params(sTriggerType, dictRow['trigger_params'])
-                #                 # http://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
-                #                 u_id = str(dictRow['job_srl'])
-                #                 u_name = dictRow['job_title']
-                #                 u_start_date = dictRow['start_date'] or '1970-01-01'
-                #                 u_end_date = dictRow['end_date'] or '2200-12-31'
-                #                 if sTriggerType == 'interval':
-                #                     o_logger.debug(oTriggerParams)
-                #                     u_wks = int(oTriggerParams['weeks'])
-                #                     u_days = int(oTriggerParams['days'])
-                #                     u_hrs = int(oTriggerParams['hours'])
-                #                     u_mins = int(oTriggerParams['minutes'])
-                #                     u_secs = int(oTriggerParams['seconds'])
-                #                     # http://apscheduler.readthedocs.io/en/latest/modules/triggers/interval.html
-                #                     g_oScheduler.add_job(sv_plugin.svPluginJob, 'interval', [sPluginName, dictRow['plugin_params']],
-                #                         weeks = u_wks, days = u_days, hours = u_hrs, minutes = u_mins, seconds = u_secs, 
-                #                         id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
-                #                 elif sTriggerType == 'cron':
-                #                     o_logger.debug(oTriggerParams)
-                #                     u_yr = oTriggerParams['year']
-                #                     u_mo = oTriggerParams['month']
-                #                     u_wk = oTriggerParams['week']
-                #                     u_dow = oTriggerParams['day_of_week']
-                #                     u_day = oTriggerParams['day']
-                #                     u_hr = oTriggerParams['hour']
-                #                     u_min = oTriggerParams['minute']
-                #                     u_sec = oTriggerParams['second']
-                #                     # http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
-                #                     g_oScheduler.add_job(sv_plugin.svPluginJob, 'cron', [sPluginName, dictRow['plugin_params']],
-                #                         year = u_yr, month = u_mo, week = u_wk, day_of_week = u_dow, day = u_day, hour = u_hr, minute = u_min, second = u_sec,
-                #                         id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
-                                                        
-                #                 sCurDatetime = datetime.today().strftime("%Y%m%d%H%M%S")
-                #                 o_sv_mysql.executeQuery('updateJobAppliedDate', sCurDatetime, dictRow['job_srl'])
-                #                 o_logger.debug(u_name + ' with ' + sTriggerType + ' trigger has been added')
-                #             else:
-                #                 o_logger.debug("plugin '%s' not implemented" % sPluginName)
-                # else:
-                #     o_logger.debug(s_mysql_job + ' exists in jobIdInSqlite - pass')
-    except IOError as err:
-        o_logger.debug(err)
-        raise Exception(err) # exit immediately with exit code 127
-
-def _parse_trigger_params(s_trig_type, s_json):
-    dict_params = {}
-    _tmp_dict_params = json.loads(s_json)
-    if s_trig_type == 'interval':
-        dict_trig_param_map = {'interval_wk':'weeks', 'interval_day':'days', 'interval_hour':'hours', 'interval_min':'minutes', 'interval_sec':'seconds'}
-    elif s_trig_type == 'cron':
-        dict_trig_param_map = {'cron_year':'year', 'cron_month':'month', 'cron_week':'week', 'cron_day':'day', 'cron_day_of_week':'day_of_week', 'cron_hour':'hour', 'cron_minute':'minute', 'cron_second':'second'}
-    for key, value in dict_trig_param_map.items():
-        if key in _tmp_dict_params:
-            dict_params[value] = _tmp_dict_params[key]
+    # arrange job list retrieved from Mysql
+    dict_jobs_in_mysql = {}
+    for dict_mysql_job in lst_raw_mysql_jobs:
+        dict_mysql_job[str(dict_mysql_job['id'])] = dict_mysql_job['s_job_title']
+        dict_jobs_in_mysql[str(dict_mysql_job['id'])] = dict_mysql_job['s_job_title']
+    
+    dict_running_jobs = g_oScheduler.get_jobs() 
+    dict_jobs_in_sqlite = {}
+    for job in dict_running_jobs:
+        dict_jobs_in_sqlite[job.id] = job.name
+    del dict_running_jobs
+    
+    # remove any job existed in Sqllite but not in Mysql
+    for s_job_id_in_sqlite in dict_jobs_in_sqlite.keys():
+        try:
+            dict_jobs_in_mysql[s_job_id_in_sqlite]
+        except KeyError:
+            o_logger.debug(s_job_id_in_sqlite + ' is not existed in dict_mysql_job - will be deleted')
+            g_oScheduler.remove_job(s_job_id_in_sqlite)
         else:
-            if s_trig_type == 'interval':
-                dict_params[value] = 0
-            elif s_trig_type == 'cron':
-                dict_params[value] = None			
-        # try:
-        #     _tmp_dict_params[key]
-        # except KeyError as inst:
-        #     if s_trig_type == 'interval':
-        #         dict_params[value] = 0
-        #     elif s_trig_type == 'cron':
-        #         dict_params[value] = None			
-        # else: 
-        #     dict_params[value] = _tmp_dict_params[key]
-    return dict_params
+            o_logger.debug(s_job_id_in_sqlite + ' exists in dict_mysql_job - pass')
+
+    # add any job existed in Mysql but not in Sqllite
+    dict_trigger_type = {'i': 'interval', 'c': 'cron'}  # should be streamlined with svdaemon.models
+    o_svplugin_validation = sv_plugin.SvPluginValidation()
+    for s_mysql_job in dict_jobs_in_mysql:
+        if s_mysql_job in dict_jobs_in_sqlite:
+            o_logger.debug(s_mysql_job + ' exists in jobIdInSqlite - pass')
+            continue
+        o_logger.debug(s_mysql_job + ' is not existed in jobIdInSqlite - will be added')
+        for dict_row in lst_raw_mysql_jobs:
+            if s_mysql_job == str(dict_row['id']):
+                if o_svplugin_validation.validate(dict_row['s_plugin_name']): #add job if valid
+                    dict_trigger_params = _parse_trigger_params(dict_row['s_trigger_type'], dict_row['s_trigger_params'])
+                    # o_logger.debug(dict_trigger_params)
+                    # http://apscheduler.readthedocs.io/en/latest/modules/schedulers/base.html
+                    u_id = str(dict_row['id'])
+                    u_name = dict_row['s_job_title']
+                    u_start_date = dict_row['date_start'] or '1970-01-01'
+                    u_end_date = dict_row['date_end'] or '2200-12-31'
+                    s_config_loc_param = 'config_loc=' + str(dict_row['sv_acct_id']) + '/' + str(dict_row['sv_brand_id'])
+                    if dict_row['s_trigger_type'] == 'i':  # interval trigger
+                        u_wks = int(dict_trigger_params['weeks'])
+                        u_days = int(dict_trigger_params['days'])
+                        u_hrs = int(dict_trigger_params['hours'])
+                        u_mins = int(dict_trigger_params['minutes'])
+                        u_secs = int(dict_trigger_params['seconds'])
+                        # http://apscheduler.readthedocs.io/en/latest/modules/triggers/interval.html
+                        g_oScheduler.add_job(sv_plugin.svPluginDaemonJob, 'interval', 
+                            [dict_row['s_plugin_name'], s_config_loc_param, dict_row['s_plugin_params']],
+                            weeks = u_wks, days = u_days, hours = u_hrs, minutes = u_mins, seconds = u_secs, 
+                            id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date)
+                    elif dict_row['s_trigger_type'] == 'c':  # cron trigger
+                        u_yr = dict_trigger_params['year']
+                        u_mo = dict_trigger_params['month']
+                        u_wk = dict_trigger_params['week']
+                        u_dow = dict_trigger_params['day_of_week']
+                        u_day = dict_trigger_params['day']
+                        u_hr = dict_trigger_params['hour']
+                        u_min = dict_trigger_params['minute']
+                        u_sec = dict_trigger_params['second']
+                        # http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
+                        g_oScheduler.add_job(sv_plugin.svPluginDaemonJob, 'cron', 
+                            [dict_row['s_plugin_name'], s_config_loc_param, dict_row['s_plugin_params']],
+                            year = u_yr, month = u_mo, week = u_wk, day_of_week = u_dow, day = u_day, hour = u_hr, minute = u_min, second = u_sec,
+                            id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
+                    with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
+                        o_sv_mysql.initialize()
+                        o_sv_mysql.executeQuery('updateJobAppliedDate', dict_row['id'])
+                        o_sv_mysql.commit()  # update stmt on dbs.py requires explicit commit(); dont know why
+                    
+                    o_logger.debug(u_name + ' with ' + dict_trigger_type[dict_row['s_trigger_type']] + ' trigger has been added')
+                    del dict_trigger_params
+                else:
+                    o_logger.debug("plugin '%s' not valid" % dict_row['s_plugin_name'])                
+    del o_svplugin_validation
+    del lst_raw_mysql_jobs
+    del dict_jobs_in_sqlite
+    del dict_jobs_in_mysql
+
+def _parse_trigger_params(s_trig_type, s_trigger_params):
+    """ should be streamlined with svdaemon.models """
+    if s_trig_type == 'i':  # TriggerType.INTERVAL:
+        dict_trig_param = {'weeks':0, 'days':0, 'hours':0, 'minutes':0, 'seconds':0}
+        for s_line in s_trigger_params.splitlines():
+            lst_param = s_line.split('=')
+            if lst_param[0] in dict_trig_param.keys():
+                dict_trig_param[lst_param[0]] = lst_param[1]
+    elif s_trig_type == 'c':  # TriggerType.CRON:
+        dict_trig_param = {'year':0, 'month':0, 'week':0, 'day':0, 'day_of_week':0, 'hour':0, 'minute':0, 'second':0}
+        for s_line in s_trigger_params.splitlines():
+            lst_param = s_line.split('=')
+            if lst_param[0] in dict_trig_param.keys():
+                dict_trig_param[lst_param[0]] = lst_param[1]
+    return dict_trig_param
+
 
 if __name__ == '__main__':
     main()
-    
-# def _arouse_dbo(nParentJobId):
-#     o_logger = logging.getLogger(__file__)
-#     try:
-#         # with open(basic_config.ABSOLUTE_PATH_BOT+ '/misc/dbo.pid', 'r') as myfile:
-#         with open(config('ABSOLUTE_PATH_BOT') + '/misc/dbo.pid', 'r') as myfile:
-#             sPid = myfile.read()
-#             nPid = int(sPid)
-#     except FileNotFoundError:
-#         nPid = 0
-
-#     # if dbo.py PID exists
-#     #o_logger.debug(nPid)
-#     if nPid > 0:
-#         o_slack = sv_slack.SvSlack('dbs')
-#         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-#             lstRootJob = oSvMysql.executeQuery('getJobBySrl', nParentJobId )
-#             #o_logger.debug(lstRootJob)
-#             sCallerPluginName = lstRootJob[0]['plugin_name']
-#             sCallerPluginParams = lstRootJob[0]['plugin_params']
-        
-#             # check if caller plugin is valid
-#             oSvPluginValidation = sv_plugin.svPluginValidation()
-#             dictCallerValidation = oSvPluginValidation.validatePlugin( sCallerPluginName )
-#             if dictCallerValidation['validation']:
-#                 lstFollowupJobPluginName = dictCallerValidation['followup_job']
-#                 #o_logger.debug(lstFollowupJobPluginName)				
-                
-#                 if lstFollowupJobPluginName[0] is not 'no':
-#                     bValidFollwupJobPlugin = True
-#                     for sFollowupJobPluginName in lstFollowupJobPluginName:
-#                         o_logger.debug(sFollowupJobPluginName)
-#                         dictFollowupJobValidation = oSvPluginValidation.validatePlugin( sFollowupJobPluginName )
-#                         # check if followup plugin is valid
-#                         if dictFollowupJobValidation['validation'] is False:
-#                             #o_logger.debug(dictFollowupJobValidation)
-#                             bValidFollwupJobPlugin = False
-                    
-#                     if bValidFollwupJobPlugin:
-#                         try:
-#                             sCurDatetimeStamp = time.strftime('%Y%m%d%H%M%S')
-#                             oSvMysql.executeQuery('insertHandoverOnDbs', nParentJobId, sCallerPluginName, sCallerPluginParams, sCurDatetimeStamp )
-#                             time.sleep(0.5)
-#                             os.kill(nPid, signal.SIGUSR1)
-#                             o_logger.debug('SIGUSR1 has been sent to ' + sPid)
-#                         except ProcessLookupError:
-#                             o_logger.debug('dbo.py has been called but is not running...')
-#                             o_slack.sendMsg('dbo.py has been called but is not running...')
-#                     else:
-#                         g_oScheduler.remove_job(nParentJobId)
-#                         o_logger.debug('######_arouse_dbo has removed job, id: ' + nParentJobId + ' as its followup.conf contains wrong definition ##########')
-#                         o_slack.sendMsg('_arouse_dbo has removed job, id: ' + nParentJobId + ' as its followup.conf contains wrong definition')
-#                 else:
-#                     o_logger.debug('no follow up')
-#                     o_slack.sendMsg('no follow up')

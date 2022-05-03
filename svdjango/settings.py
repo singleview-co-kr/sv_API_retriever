@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'widget_tweaks',  # for login template
     'crispy_forms',  # for bundle upload form
+    'svdaemon.apps.SvdaemonConfig',
     'svload.apps.SvloadConfig',
     'svextract.apps.SvextractConfig',
     'svupload.apps.SvuploadConfig',  # for template

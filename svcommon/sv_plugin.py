@@ -29,6 +29,11 @@ from abc import abstractmethod
 import threading
 import time
 
+import os
+from os import listdir
+import logging
+import importlib
+
 # 3rd party library
 from decouple import config  # https://pypi.org/project/python-decouple/
 
@@ -36,8 +41,10 @@ from decouple import config  # https://pypi.org/project/python-decouple/
 if __name__ == 'sv_plugin': # for console debugging
     sys.path.append('../../svcommon')
     import sv_api_config_parser
+    import sv_events
 else:
     from svcommon import sv_api_config_parser
+    from svcommon import sv_events
 
 class ISvPlugin(ABC):
     _g_sAbsRootPath = None
@@ -49,7 +56,6 @@ class ISvPlugin(ABC):
     def __init__(self):
         self._g_sPluginName = None
         self._g_oCallback = None  # callback for self desturction
-        # self._g_sSvBrandId = None
 
     def __enter__(self):
         """ grammtical method to use with "with" statement """
@@ -116,6 +122,118 @@ class ISvPlugin(ABC):
             lst_acct_info = self._g_dictParam['config_loc'].split('/')
             self._g_dictSvAcctInfo['n_acct_id'] = lst_acct_info[0]
             self._g_dictSvAcctInfo['n_brand_id'] = lst_acct_info[1]
+
+
+class svPluginDaemonJob():
+    """ for dbs.py only """
+    __g_oLogger = None
+
+    def __init__(self, *lst_plugin_params):
+        # https://docs.python.org/3.6/library/importlib.html
+        logging.info('svPluginDaemonJob has been started')
+        
+        s_plugin_title = lst_plugin_params[0]
+        s_config_loc_param = lst_plugin_params[1]
+        s_extra_param = lst_plugin_params[2]
+        # raise SvErrorHandler('remove') # raise event code to remove job if the connected method is invalid
+        lst_command = s_extra_param.split(' ')
+        lst_command.append(s_config_loc_param)
+        try:
+            o_job_plugin = importlib.import_module('svplugins.' + s_plugin_title + '.task')
+            with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
+                self.__print_debug(o_job.__class__.__name__ + ' has been initiated')
+                o_job.set_my_name(s_plugin_title)
+                o_job.parse_command(lst_command)
+                o_job.do_task(None)
+                
+        except AttributeError: # if task module does not have svJobPlugin
+            self.__print_debug('plugin does not have correct method -> remove job')
+            raise SvErrorHandler('remove')
+        except ModuleNotFoundError:
+            self.__print_debug('plugin is not existed -> remove job')
+            raise SvErrorHandler('remove')
+        except Exception as err:
+            nIdx = 0
+            for e in err.args:
+                if e == 'stop' or e == 'wait': # handle HTTP err response from XE
+                    self.__print_debug('handle HTTP err response from XE: ' + e)
+                    raise SvErrorHandler(e)
+                elif e == 'completed': # handle completed exception signal from each job
+                    self.__print_debug('raised completed job!')
+                    raise SvErrorHandler(e)
+                try:
+                    self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ' + e)
+                except TypeError:
+                    self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ')
+                    self.__print_debug( e)
+                nIdx += 1
+            raise SvErrorHandler('remove')
+        finally:
+            pass
+
+    def __print_debug(self, s_msg):
+        if __name__ == '__main__' or __name__ == 'sv_plugin':
+            print(s_msg)
+        else:
+            if self.__g_oLogger is not None:
+                self.__g_oLogger.debug(s_msg)
+
+
+class SvPluginValidation():
+    # __g_oLogger = None
+
+    def __init__(self):
+        # self.__g_oLogger = logging.getLogger(__file__)
+        pass
+        
+    def validate(self, s_plugin_name):
+        """ find the module directory in /svplugins folder """
+        if s_plugin_name in listdir(os.path.join(config('ABSOLUTE_PATH_BOT'), 'svplugins')):
+            return True
+        return False
+
+
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+class SvErrorHandler(Error):
+    """Raised when the http ['variables']['todo'] is set """
+    __g_oLogger = None
+
+    def __init__(self, s_todo):
+        self.__g_oLogger = logging.getLogger(__file__)
+        # create logger
+        logging.basicConfig(
+            filename= config('ABSOLUTE_PATH_BOT') + '/log/SvErrorHandler.log',
+            level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s',
+        )
+        logging.info('svPluginDaemonJob has been started')
+        
+        if s_todo == 'stop':
+            self.__print_debug('should stop job and wait next schedule')
+            sys.exit(sv_events.EVENT_JOB_SHOULD_BE_STOPPED) # sys.exit() signal in sv_http module does not reach to scheduler, as this module is not called directly
+        elif s_todo == 'wait': # might be removed????
+            self.__print_debug('wait 3 seconds till problem solved')
+            time.sleep(3)
+        elif s_todo == 'remove':
+            self.__print_debug('remove job immediately')
+            sys.exit(sv_events.EVENT_JOB_SHOULD_BE_REMOVED) # raise event code to remove job if the connected method is invalid
+        elif s_todo == 'completed':
+            self.__print_debug('remove and toggle job table')
+            sys.exit(sv_events.EVENT_JOB_COMPLETED) # raise event code to remove job if the connected method is invalid
+        elif s_todo == 'time_sync':
+            self.__print_debug('stop scheduler')
+        else:
+            self.__print_debug('general error occured')
+
+    def __print_debug(self, s_msg):
+        if __name__ == '__main__':
+            print(s_msg)
+        else:
+            if self.__g_oLogger is not None:
+                self.__g_oLogger.debug(s_msg)
+
 
 # if __name__ == '__main__': # for console debugging
 # 	pass
