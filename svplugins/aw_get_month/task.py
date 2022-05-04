@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 28th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -85,11 +85,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         if 'adw_cid' not in dict_acct_info:
             self._printDebug('stop -> no google ads API info')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
@@ -125,7 +131,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
             self._printDebug('invalid yyyymm')
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         sStartDateRetrieval = self.__g_sRetrieveMonth + '01'
         sEndDateRetrieval = self.__g_sRetrieveMonth + str(lstMonthRange[1])
@@ -140,7 +149,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictDateQueue.update({sDate:0})
 
         if len(dictDateQueue) == 0:
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('stop')
+            else:
+                return
         
         # set device dictionary
         dict_googleads_v6_device = {i.value: i.name for i in DeviceEnum.Device}
@@ -177,7 +189,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             except Exception as e:
                 self._printDebug('unknown exception occured while access googleads API')
                 self._printDebug(e)
-                return
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
             
             lst_logs = []
             for disp_campaign_batch in o_disp_campaign_resp:
@@ -203,7 +218,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         except Exception as e:
                             self._printDebug('unknown exception occured while access googleads API')
                             self._printDebug(e)
-                            return
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                raise Exception('remove')
+                            else:
+                                return
                         for txt_campaign_batch in o_txt_campaign_resp:
                             for o_txt_campaign_row in txt_campaign_batch.results:
                                 dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name

@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -96,7 +96,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'adw_cid' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         lst_google_ads = dict_acct_info['adw_cid']
@@ -124,7 +127,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
             self._printDebug('invalid yyyymm')
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         sStartDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-' + str(lstMonthRange[1])
@@ -236,7 +242,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         else:  # if unacceptable googleads campaign name
                             self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                             self._printDebug('weird googleads log!')
-                            return
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                raise Exception('remove')
+                            else:
+                                return
                     
                     sUa = self.__g_oSvCampaignParser.getUa(row[6])
                     sTerm = row[2]
@@ -319,7 +328,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
             self._printDebug( 'error: adw source directory does not exist!' )
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         if self.__g_sReplaceMonth == None:
             sArchiveDataPath = sDataPath +'/archive'

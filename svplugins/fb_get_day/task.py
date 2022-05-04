@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
 
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -102,11 +102,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         if 'fb_biz_aid' not in dict_acct_info:
             self._printDebug('stop -> no fb business API info')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
@@ -115,15 +121,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # if s_fb_biz_aid == '':
         if self.__g_sFbBizAid == '':
             self._printDebug('stop -> no business account id')
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         self._printDebug('fb_get_day plugin launched with acct id ' + self.__g_sFbBizAid)
         try:
             self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id)
-            pass
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         self._printDebug('fb_get_day plugin finished')
         self._task_post_proc(self._g_oCallback)

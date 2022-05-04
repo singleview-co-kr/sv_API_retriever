@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -93,7 +93,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
@@ -109,7 +112,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'transaction_id' not in dict_rst:
             self._printDebug('communication failed - stop')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         # lst_master_rpt = o_master_report.get_master_report_list()
@@ -126,12 +132,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         s_test_filepath = os.path.join(self.__g_sDownloadPathNew, 'write_test.tsv')
         try:
-            f = open(s_test_filepath, 'w')
+            open(s_test_filepath, 'w')
             os.remove(s_test_filepath)
         except PermissionError:
             self._printDebug('write on ' + self.__g_sDownloadPathNew + ' is not permitted')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
             
         self.__reirieveNvMasterReport(o_master_report, s_sv_acct_id, s_customer_id, dict_nvr_ad_acct['nvr_master_report'] )
         del o_master_report

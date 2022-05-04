@@ -73,7 +73,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -87,7 +87,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 b_available = True
         except IOError:
             self._printDebug('slack_config.ini does not exist')
-            # raise IOError('failed to initialize SvSlack')
 
         if b_available:
             self.__g_oConfig.read(s_fb_biz_config_file)
@@ -108,17 +107,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         if 'fb_biz_aid' not in dict_acct_info:
             self._printDebug('stop -> no fb business API info')
             self._task_post_proc(self._g_oCallback)
-            return    
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return    
 
         if self._g_dictParam['data_first_date'] is None or \
             self._g_dictParam['data_last_date'] is None:
             self._printDebug('you should designate data_first_date and data_last_date')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
 
@@ -128,7 +136,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if s_fb_biz_aid == '':
             self._printDebug('stop -> no business account id')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
         try:
@@ -136,6 +147,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         self._task_post_proc(self._g_oCallback)
         

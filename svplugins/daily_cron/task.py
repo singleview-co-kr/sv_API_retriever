@@ -56,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 17th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         # self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -77,7 +77,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         # begin - retrieve PS budget list for yesterday
         yesterday = datetime.now() - timedelta(1)
@@ -126,8 +129,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_job.do_task(self._g_oCallback)
             del o_job_plugin
             self._printDebug('sub task: ' + s_job_to_do + ' has been finished')
-        self._task_post_proc(self._g_oCallback)
         # end - execute jobs to do
+        self._task_post_proc(self._g_oCallback)
         return
 
 

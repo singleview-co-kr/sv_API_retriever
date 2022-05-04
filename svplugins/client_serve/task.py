@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -112,7 +112,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
@@ -124,7 +127,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 self._printDebug('stop -> invalid etl_host_url')
                 self._task_post_proc(self._g_oCallback)
-                return
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
 
         self._printDebug('-> communication begin')
         if self.__g_sMode in ['add_ga_media_sql', 'update_ga_media_sql']:
@@ -161,7 +167,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class
             self.__update_period_ga_media_encrypted()
         else:
-            self._printDebug('weird mode desinated')
+            self._printDebug('weird mode designated')
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
         

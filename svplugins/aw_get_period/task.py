@@ -61,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 28th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -83,17 +83,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         if 'adw_cid' not in dict_acct_info:
             self._printDebug('stop -> no google ads API info')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         if self._g_dictParam['data_first_date'] is None or \
             self._g_dictParam['data_last_date'] is None:
             self._printDebug('you should designate data_first_date and data_last_date')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
 
@@ -152,8 +161,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # if requested date is earlier than first date
         if dtDateDataRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0): 
             self._printDebug('meet first stat date -> remove the job and toggle the job table')
-            # raise Exception('completed')
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('completed')
+            else:
+                return
         sDataDateForMysql = dtDateDataRetrieval.strftime('%Y%m%d')
         self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
         # set device dictionary
@@ -187,7 +198,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except Exception as e:
             self._printDebug('unknown exception occured while access googleads API')
             self._printDebug(e)
-            return    
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return    
         lst_logs = []
         for disp_campaign_batch in o_disp_campaign_resp:
             for o_disp_campaign_row in disp_campaign_batch.results:
@@ -212,7 +226,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     except Exception as e:
                         self._printDebug('unknown exception occured while access googleads API')
                         self._printDebug(e)
-                        return    
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            raise Exception('remove')
+                        else:
+                            return        
                     for txt_campaign_batch in o_txt_campaign_resp:
                         for o_txt_campaign_row in txt_campaign_batch.results:
                             dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name

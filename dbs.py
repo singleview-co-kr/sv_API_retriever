@@ -25,11 +25,8 @@
 # standard library
 import sys
 import time
-# from datetime import datetime
 import logging  #https://docs.python.org/3.3/howto/logging.html
 import logging.config  #https://docs.python.org/3.3/howto/logging.html
-# import os
-# import signal
 
 # 3rd party library
 import daemonocle  # https://programtalk.com/vs2/?source=python/6398/daemonocle/tests/test_actions.py
@@ -55,7 +52,7 @@ if s_msg != 'pass':
 
 g_oScheduler = None
 g_sVersion = '1.3.2'
-g_sLastModifiedDate = '27th, Apr 2022'
+g_sLastModifiedDate = '5th, May 2022'
 g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
 
 class setSvDaemon(daemonocle.Daemon):
@@ -100,12 +97,6 @@ class setSvDaemon(daemonocle.Daemon):
         print('doing-by-schedule bot all rights reserved by singleview.co.kr')
         print('Version: '+ g_sVersion + ' modified on ' + g_sLastModifiedDate)
 
-    # def __get_logger(self):
-    #     """ this class seems to be created by different process with main(), that is configuration run by main() is not working in this code block 
-    #         main() is not executed even if you run the CLI [python3.6 crawler.py banana] """
-    #     # logging.config.fileConfig(basic_config.ABSOLUTE_PATH_BOT+'/conf/logging_dbs_exposure_action.conf') # https://docs.python.org/3.3/library/logging.config.html
-    #     logging.config.fileConfig(config('ABSOLUTE_PATH_BOT') + '/conf/logging_dbs_exposure_action.conf') # https://docs.python.org/3.3/library/logging.config.html
-    #     return logging.getLogger('exposure_action')
 
 def cb_shutdown(message, code):
     logging.info(__file__ + ' v' + g_sVersion + ' has been shutdown')
@@ -188,8 +179,6 @@ def _my_listener(event):
             o_sv_mysql.executeQuery('updateJobIsActive', 0, event.job_id)
             o_sv_mysql.commit()
 
-    # if event.code == events.EVENT_JOB_EXECUTED or str(event.exception) == sv_events.EVENT_JOB_COMPLETED:
-    #     _arouse_dbo(event.job_id)
     del o_slack
 
 def _sync_job_from_mysql():
@@ -233,9 +222,6 @@ def _sync_job_from_mysql():
     with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
         o_sv_mysql.initialize()
         lst_raw_mysql_jobs = o_sv_mysql.executeQuery('getJobList', 1)  # 1 means active
-        # [{'id': 1, 'sv_acct_id': 1, 'sv_brand_id': 1, 's_job_title': 'twitter collection', 's_plugin_name': 'integrate_db', 
-        # 's_plugin_params': '', 's_trigger_type': 'i', 's_trigger_params': 'seconds=10', 'date_start': datetime.date(2022, 5, 1), 
-        # 'date_end': None, 'dt_mod': None, 'dt_applied': None}]
 
     # remove any job existed in Mysql but application_date is earlier than modification_date; remove updated job to add newly
     for dict_mysql_job in lst_raw_mysql_jobs:

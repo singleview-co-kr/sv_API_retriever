@@ -60,7 +60,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -94,7 +94,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._g_dictParam['data_last_date'] is None:
             self._printDebug('you should designate data_first_date and data_last_date')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         self.__g_sDataFirstDate = self._g_dictParam['data_first_date'].replace('-','')
         self.__g_sDataLastDate = self._g_dictParam['data_last_date'].replace('-','')
 
@@ -103,7 +106,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
@@ -119,7 +125,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'transaction_id' not in dict_rst:
             self._printDebug('communication failed - stop')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         else:
             self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         

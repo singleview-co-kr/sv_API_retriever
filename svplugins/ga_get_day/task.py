@@ -64,7 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 22nd, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -109,7 +109,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'google_analytics' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         s_version = dict_acct_info['google_analytics']['s_version']
@@ -121,14 +124,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             except TypeError as error:
                 # Handle errors in constructing a query.
                 self._printDebug(('There was an error in constructing your query : %s' % error))
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
             except HttpError as error:
                 # Handle API errors.
                 self._printDebug(('Arg, there was an API error : %s : %s' % (error.resp.status, error._get_reason())))
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
             except AccessTokenRefreshError:
                 # Handle Auth errors.
                 self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
         elif s_version == 'ga4':
             self._printDebug('plugin is developing')
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         self._task_post_proc(self._g_oCallback)
         

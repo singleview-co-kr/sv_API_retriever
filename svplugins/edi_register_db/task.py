@@ -62,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None,
                                   'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -91,7 +91,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
 
@@ -108,7 +111,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_rst_storage
             self._printDebug(dict_rst_storage['s_msg'])
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         del dict_rst_storage
 
         dict_rst = self.__g_oSvStorage.get_uploaded_file(self.__g_nSvFileId)
@@ -116,14 +122,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__oSvMysql = None
             self._printDebug(dict_rst['s_msg'])
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         # print(sv_hypermart_model.EdiDataType.QTY_AMNT.label)
         if self.__g_sMode is None:
             self.__oSvMysql = None
             self._printDebug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_uploaded_filename = dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext']
         self._printDebug(s_uploaded_filename + ' will be extracted')
 
@@ -144,6 +156,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__transform_db()
         else:
             self._printDebug('error -> invalid mode')
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         
         self.__oEdiTransformer.clear()
         self.__oEdiExtractor.clear()

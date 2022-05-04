@@ -55,7 +55,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'target_host_url':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -93,7 +93,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         # if self.__g_sMode is None:
         #     self._printDebug('you should designate mode')
@@ -109,7 +112,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 self._printDebug('stop -> invalid sv_adr_host_url')
                 self._task_post_proc(self._g_oCallback)
-                return
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
         
         self._printDebug('-> communication begin')
         # if self.__g_sMode == 'retrieve':

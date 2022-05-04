@@ -55,7 +55,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, Apr 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'mode':None, 
                                     'target_host_url':None,  # for sv doc retrieval
@@ -85,12 +85,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
           'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         if s_mode is None:
             self._printDebug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
@@ -104,7 +110,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     self._printDebug('stop -> invalid sv_doc_host_url')
                     self._task_post_proc(self._g_oCallback)
-                    return
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        raise Exception('remove')
+                    else:
+                        return
             o_sv_doc_collector = sv_doc_collection.SvDocCollection()
             o_sv_doc_collector.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
                                         self._printDebug, self._printProgressBar, self._continue_iteration,
@@ -122,7 +131,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self._printDebug('weird')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
 
         self._task_post_proc(self._g_oCallback)
         
