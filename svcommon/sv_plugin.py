@@ -114,7 +114,6 @@ class ISvPlugin(ABC):
         return getattr(self._g_oThread, 'b_run', True)  # regading a console execution, return True if attr not existed
 
     def parse_command(self, lst_command):
-        print(lst_command)
         n_params = len(lst_command)
         if n_params >= 2:
             for i in range(1, n_params):
@@ -148,7 +147,6 @@ class svPluginDaemonJob():
         s_extra_param_without_eol = s_extra_param.replace("\r\n", " ")
         lst_command += s_extra_param_without_eol.split(' ')
         lst_command = [x for x in lst_command if x]  # remove empty entity after replace "\r\n" to " "
-        logging.info(lst_command)
         try:
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_title + '.task')
             with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
