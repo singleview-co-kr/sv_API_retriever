@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 26th, Feb 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 4th, May 2022')
         self._g_dictParam.update({'slack_ch_ttl':None})
 
     def __del__(self):
@@ -55,19 +55,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
 
-        # self.__g_oLogger = logging.getLogger(__file__)
-        # # create logger
-        # logging.basicConfig(
-        #     filename= '/home/w9721066/python/sv_API_retriever/log/slack_clear.log',
-        #     level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s',
-        # )
-        logging.info('slack_clear beacon111')
-        return
-
         if self._g_dictParam['slack_ch_ttl'] is None:
             self._printDebug('execution denied! -> you need to define slack_ch_ttl')
             self._task_post_proc(self._g_oCallback)
-            return
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
         s_slack_ch_title = self._g_dictParam['slack_ch_ttl']
         o_sv_slack = sv_slack.SvSlack(sCallingBot='dbs')
         

@@ -52,6 +52,8 @@ class ISvPlugin(ABC):
     _g_oThread = None  # AttributeError: 'svJobPlugin' object has no attribute '_g_oThread' if move to __init__
     _g_dictParam = {'config_loc':None}  # can't recognize attr if move to __init__
     _g_dictSvAcctInfo = {'n_acct_id':None, 'n_brand_id': None}  # can't recognize attr if move to __init__
+    """ to raise an exeception on the daemonocle running env """
+    _g_bDaemonEnv = False
 
     def __init__(self):
         self._g_sPluginName = None
@@ -68,6 +70,10 @@ class ISvPlugin(ABC):
     
     def set_my_name(self, s_plugin_name):
         self._g_sPluginName = s_plugin_name
+
+    def toggle_daemon_env(self):
+        """ for svPluginDaemonJob only """
+        self._g_bDaemonEnv = True
 
     def _task_pre_proc(self, o_callback):
         if o_callback:  # regarding an execution on a web console 
@@ -108,14 +114,15 @@ class ISvPlugin(ABC):
         return getattr(self._g_oThread, 'b_run', True)  # regading a console execution, return True if attr not existed
 
     def parse_command(self, lst_command):
+        print(lst_command)
         n_params = len(lst_command)
         if n_params >= 2:
             for i in range(1, n_params):
-                sArg = lst_command[i]
+                s_arg = lst_command[i]
                 for s_param_name in self._g_dictParam:
-                    n_pos = sArg.find(s_param_name + '=')
+                    n_pos = s_arg.find(s_param_name + '=')
                     if n_pos > -1:
-                        lst_param_pair = sArg.split('=')
+                        lst_param_pair = s_arg.split('=')
                         self._g_dictParam[s_param_name] = lst_param_pair[1]
         
         if 'config_loc' in self._g_dictParam.keys():
@@ -130,22 +137,26 @@ class svPluginDaemonJob():
 
     def __init__(self, *lst_plugin_params):
         # https://docs.python.org/3.6/library/importlib.html
-        logging.info('svPluginDaemonJob has been started')
-        
+        # logging.info('svPluginDaemonJob has been started')
         s_plugin_title = lst_plugin_params[0]
         s_config_loc_param = lst_plugin_params[1]
         s_extra_param = lst_plugin_params[2]
         # raise SvErrorHandler('remove') # raise event code to remove job if the connected method is invalid
-        lst_command = s_extra_param.split(' ')
+        lst_command = []  # make same cmd line like a console
+        lst_command.append(s_plugin_title)
         lst_command.append(s_config_loc_param)
+        s_extra_param_without_eol = s_extra_param.replace("\r\n", " ")
+        lst_command += s_extra_param_without_eol.split(' ')
+        lst_command = [x for x in lst_command if x]  # remove empty entity after replace "\r\n" to " "
+        logging.info(lst_command)
         try:
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_title + '.task')
             with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
                 self.__print_debug(o_job.__class__.__name__ + ' has been initiated')
                 o_job.set_my_name(s_plugin_title)
+                o_job.toggle_daemon_env()
                 o_job.parse_command(lst_command)
                 o_job.do_task(None)
-                
         except AttributeError: # if task module does not have svJobPlugin
             self.__print_debug('plugin does not have correct method -> remove job')
             raise SvErrorHandler('remove')
@@ -156,7 +167,7 @@ class svPluginDaemonJob():
             nIdx = 0
             for e in err.args:
                 if e == 'stop' or e == 'wait': # handle HTTP err response from XE
-                    self.__print_debug('handle HTTP err response from XE: ' + e)
+                    self.__print_debug('handle stop: ' + e)
                     raise SvErrorHandler(e)
                 elif e == 'completed': # handle completed exception signal from each job
                     self.__print_debug('raised completed job!')
@@ -165,14 +176,15 @@ class svPluginDaemonJob():
                     self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ' + e)
                 except TypeError:
                     self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ')
-                    self.__print_debug( e)
+                    self.__print_debug(e)
                 nIdx += 1
             raise SvErrorHandler('remove')
         finally:
-            pass
+            del lst_command
 
     def __print_debug(self, s_msg):
-        if __name__ == '__main__' or __name__ == 'sv_plugin':
+        # if __name__ == '__main__' or __name__ == 'sv_plugin':
+        if __name__ in ['__main__', 'sv_plugin']:
             print(s_msg)
         else:
             if self.__g_oLogger is not None:
@@ -180,11 +192,6 @@ class svPluginDaemonJob():
 
 
 class SvPluginValidation():
-    # __g_oLogger = None
-
-    def __init__(self):
-        # self.__g_oLogger = logging.getLogger(__file__)
-        pass
         
     def validate(self, s_plugin_name):
         """ find the module directory in /svplugins folder """
