@@ -274,7 +274,9 @@ class SvMySql(sv_object.ISvObject):
         """
         try:
             if params:
+                self._g_oLogger.debug('execute 1')
                 self.__g_oCursor.execute(s_sql_compiled, params)
+                self._g_oLogger.debug('execute 2')
             else:
                 self.__g_oCursor.execute(s_sql_compiled)
         # except utils.OperationalError as e:
@@ -303,8 +305,7 @@ class SvMySql(sv_object.ISvObject):
                     self.__g_oCursor.execute(s_sql_compiled)
             else:
                 print(e)
-                # logger.debug(e)
-            # raise e
+                self._g_oLogger.debug(e)
             
     def __getThreadId(self):
         """
