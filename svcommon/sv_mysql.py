@@ -106,8 +106,10 @@ class SvMySql(sv_object.ISvObject):
         :return:
         """
         sSubPath = ''
+        s_msg = 'weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name
         if s_app_name is None:
-            print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
+            print(s_msg)
+            self._g_oLogger.debug(s_msg)
             return
         if s_app_name.find('.') != -1:  # eg., transform.view
             self.__g_sAppName = s_app_name.split('.')[0]
@@ -122,7 +124,8 @@ class SvMySql(sv_object.ISvObject):
             else:
                 sSubPath += '/' + self.__g_sAppName
         else:
-            print('weird app name!  ' + __file__ + ':' + sys._getframe().f_code.co_name)
+            print(s_msg)
+            self._g_oLogger.debug(s_msg)
         
         self.__g_sAbsolutePath += sSubPath
 
@@ -204,6 +207,7 @@ class SvMySql(sv_object.ISvObject):
                 
     def set_reserved_tag_value(self, dict_tag):
         if not dict_tag:
+            self._g_oLogger.debug('invalid tag dictionary')
             raise Exception('invalid tag dictionary')
         for tag, value in dict_tag.items():
             self.__g_dictReservedTag[tag] = value
@@ -274,9 +278,7 @@ class SvMySql(sv_object.ISvObject):
         """
         try:
             if params:
-                self._g_oLogger.debug('execute 1')
                 self.__g_oCursor.execute(s_sql_compiled, params)
-                self._g_oLogger.debug('execute 2')
             else:
                 self.__g_oCursor.execute(s_sql_compiled)
         # except utils.OperationalError as e:
@@ -319,6 +321,7 @@ class SvMySql(sv_object.ISvObject):
 
     def __import_pysql(self, s_module_name):
         if self.__g_sAppName is None:
+            self._g_oLogger.debug('you request dynamic sql but import path is invalid')
             raise Exception('you request dynamic sql but import path is invalid')
 
         s_module_path = self.__g_sAppName + s_module_name
@@ -326,6 +329,7 @@ class SvMySql(sv_object.ISvObject):
             module = __import__(s_module_path, fromlist=[s_module_name])
             return getattr(module, s_module_name)()  # attention to () postfix
         except ModuleNotFoundError as e:
+            self._g_oLogger.debug(e)
             raise e
 
     def __compileDynamicSql(self, s_pysql_filename, dict_param):  # add new
@@ -346,6 +350,7 @@ class SvMySql(sv_object.ISvObject):
             s_sql_statement = f.read()
             f.close()
         except Exception as e:  # eg., sql file not found
+            self._g_oLogger.debug(e)
             raise e  # different with Exception(e)
         return self.__compileSql(s_sql_filename, s_sql_statement)
 
@@ -420,7 +425,8 @@ class SvMySql(sv_object.ISvObject):
         lst_first_chunk = s_sql_built.split(' ')
         try:
             s_query_type = lst_first_chunk[0].lower()
-        except Exception:
+        except Exception as e:
+            self._g_oLogger.debug(e)
             pass
         lst_first_chunk.clear()
         return s_query_type

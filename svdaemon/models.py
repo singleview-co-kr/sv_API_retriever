@@ -60,4 +60,4 @@ class Job(models.Model):
         unique_together = ('sv_brand', 's_job_title',)
 
     def __str__(self):
-        return self.s_job_title
+        return str(self.sv_acct) + ' - ' + str(self.sv_brand) + ' - ' + self.s_job_title
