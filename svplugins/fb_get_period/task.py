@@ -73,7 +73,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -173,9 +173,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         # if requested date is earlier than first date
         if dtDateDataRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0): 
-            self._printDebug('meet first stat date -> remove the job and toggle the job table')
-            # raise Exception('completed')
-            return
+            s_msg = 'meet first stat date -> remove the job and toggle the job table'
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                logging.info(s_msg)
+                raise Exception('completed')
+            else:
+                self._printDebug(s_msg)
+                return
 
         sAdAccountId = 'act_'+sFbBizAid
         FacebookAdsApi.init(access_token=self.__g_oConfig['COMMON']['ACCESS_TOKEN'], api_version=self.__g_sFbApiVersion)
@@ -202,13 +206,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     Ad.Field.creative,])
             except facebook_business.exceptions.FacebookRequestError as err:
                 if err.http_status() == 400 and err.get_message() == 'Call was not successful' and err.api_error_code() == 190:
-                    self._printDebug(err.api_error_message() + '\n' + \
-                                    'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
-                                    'token right select: ads_management, ads_read, read_insights -> get token\n' + \
-                                    'paste new token into /conf/fb_biz_config.ini')
+                    s_msg = err.api_error_message() + '\n' + \
+                            'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
+                            'token right select: ads_management, ads_read, read_insights -> get token\n' + \
+                            'paste new token into /conf/fb_biz_config.ini'
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        logging.info(s_msg)
+                        raise Exception('remove')
+                    else:
+                        self._printDebug(s_msg)
+                        return
                 else:
-                    self._printDebug(err)
-                return
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        logging.info(err)
+                        raise Exception('remove')
+                    else:
+                        self._printDebug(err)
+                        return
 
             for oAds in ads:
                 dictTempAd = {'id':oAds['id'], 'configured_status':oAds['configured_status'], 
@@ -387,10 +401,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             f.write(sDataDateToLog)
             f.close()
         except:
-            self._printDebug('FACEBOOK api has reported weird error while processing sv account id: ' + sSvAcctId)
-            # raise Exception('remove')
-            self._printDebug('remove')
-            return
+            s_msg = 'FACEBOOK api has reported weird error while processing sv account id: ' + sSvAcctId
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                logging.info(s_msg)
+                raise Exception('remove')
+            else:
+                self._printDebug(s_msg)
+                return
 
 
 if __name__ == '__main__': # for console debugging and execution

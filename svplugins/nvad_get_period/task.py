@@ -23,14 +23,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 # standard library
-import logging
-from datetime import datetime
-from datetime import timedelta
-import time
 import os
 import sys
 import csv
+import time
 import random
+import string
+import logging
+from datetime import datetime
+from datetime import timedelta
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -60,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -171,8 +172,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         
                         dtDelta = datetime.today() - dtDateStatRetrieval
                         if dtDelta.days > 365:
-                            self._printDebug('--> can not retrieve older than a year ago')
-                            return  # raise Exception('remove')
+                            s_msg = '--> can not retrieve older than a year ago'
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                logging.info(s_msg)
+                                raise Exception('remove')
+                            else:
+                                self._printDebug(s_msg)
+                                return
 
                         self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + str(dtDateStatRetrieval))
                         # if requested stat date is earlier than stat first date
@@ -227,9 +233,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if sRst == 'pass':
                     nPassedReportCnt += 1
             if nPassedReportCnt == len(dictMasterReportQueue): # if naver ad server answeres 'code': 11001 for all reports
-                self._printDebug('all reports have been passed -> remove the job and toggle the job table')
-                raise Exception('completed')
-            
+                s_msg = 'all reports have been passed -> remove the job and toggle the job table'
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    logging.info(s_msg)
+                    raise Exception('completed')
+                else:
+                    self._printDebug(s_msg)
+                    return
+
             if isDoneSomething == False:
                 self._printDebug('did nothing -> check whether job should be removed')
                 # https://godoftyping.wordpress.com/2015/04/19/python-%EB%82%A0%EC%A7%9C-%EC%8B%9C%EA%B0%84%EA%B4%80%EB%A0%A8-%EB%AA%A8%EB%93%88/
@@ -258,9 +269,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 isSomeReportMissed = True
                     
                     if isSomeReportMissed == False:
-                        self._printDebug('no more report remained -> remove the job and toggle the job table')
-                        # raise Exception('completed')
-                        return
+                        s_msg = 'no more report remained -> remove the job and toggle the job table'
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            logging.info(s_msg)
+                            raise Exception('completed')
+                        else:
+                            self._printDebug(s_msg)
+                            return
                 except NameError:
                     self._printDebug('deny to calculate day difference')
 
@@ -371,8 +386,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """
         n_length:  # number of characters in the string.  
         """
-        import string
-        import random # define the random module  
         # call random.choices() string module to find the string in Uppercase + numeric data.  
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k = n_length))    
 

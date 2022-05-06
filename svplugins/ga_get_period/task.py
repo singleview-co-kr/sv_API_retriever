@@ -66,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, May 2022')
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -230,9 +230,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 # if requested date is earlier than first date
                 if dtDateDataRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0):
-                    self._printDebug('retrieval date - ' + str(dtDateDataRetrieval) + ' meets first stat date -> remove the job and toggle the job table')
-                    self._printDebug('completed')
-                    return
+                    s_msg = 'retrieval date - ' + str(dtDateDataRetrieval) + ' meets first stat date -> remove the job and toggle the job table'
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        logging.info(s_msg)
+                        raise Exception('completed')
+                    else:
+                        self._printDebug(s_msg)
+                        return
 
                 sDataDate = dtDateDataRetrieval.strftime('%Y-%m-%d')
                 sDataDateForMysql =dtDateDataRetrieval.strftime('%Y%m%d')
@@ -274,26 +278,45 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 except HttpError as error:
                     # https://developers.google.com/analytics/devguides/reporting/core/v4/errors
                     if error.resp.reason in ['quotaExceeded']:
-                        self._printDebug('stop - daily or monthly quota exceeded')
-                        return
+                        s_msg = 'stop - daily or monthly quota exceeded'
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            logging.info(s_msg)
+                            raise Exception('remove')
+                        else:
+                            self._printDebug(s_msg)
+                            return
                     elif error.resp.reason in ['userRateLimitExceeded','internalServerError', 'backendError']:
                         if n_retry_backoff_cnt < 5:
-                            self._printDebug('start retrying with exponential back-off that GA recommends.')
-                            self._printDebug(error.resp)
+                            s_msg = 'start retrying with exponential back-off that GA recommends.'
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                logging.info(s_msg)
+                                logging.info(error.resp)
+                            else:
+                                self._printDebug(s_msg)
+                                self._printDebug(error.resp)
                             time.sleep((2 ** n_retry_backoff_cnt) + random.random())
                             n_retry_backoff_cnt += 1
                         else:
                             raise Exception('remove')
                 except Exception as e:
-                    self._printDebug(e)
-                    self._printDebug('GA api has reported weird error while processing sv account id: ' + sSvAcctId)
-                    self._printDebug('remove')  # raise Exception('remove' )
-                    return
+                    s_msg = 'GA api has reported weird error while processing sv account id: ' + sSvAcctId
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        logging.info(e)
+                        logging.info(s_msg)
+                        raise Exception('remove' )
+                    else:
+                        self._printDebug(e)
+                        self._printDebug(s_msg)
+                        return
         
         if isDoneSomething == False:
-            self._printDebug('no more report remained -> remove the job and toggle the job table sv account id: ' + sSvAcctId)
-            self._printDebug('completed')  # raise Exception('completed' )
-            return
+            s_msg = 'no more report remained -> remove the job and toggle the job table sv account id: ' + sSvAcctId
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                logging.info(s_msg)
+                raise Exception('completed' )
+            else:
+                self._printDebug(s_msg)
+                return
 
     def __getService(self, api_name, api_version, scope, client_secrets_path):
         """Get a service that communicates to a Google API.

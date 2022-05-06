@@ -35,7 +35,7 @@ import pymysql  # http://pythonstudy.xyz/python/article/202-MySQL-%EC%BF%BC%EB%A
 from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview config
-if __name__ == 'svcommon.sv_mysql': # for platform running
+if __name__ == 'svcommon.sv_mysql': # for websocket running
     from svcommon import sv_object
     from django.conf import settings
 elif __name__ == 'sv_mysql': # for plugin console debugging

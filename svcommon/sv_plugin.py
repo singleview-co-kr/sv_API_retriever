@@ -73,6 +73,13 @@ class ISvPlugin(ABC):
 
     def toggle_daemon_env(self):
         """ for svPluginDaemonJob only """
+        # https://www.b-list.org/weblog/2007/sep/22/standalone-django-scripts/
+        # https://stackoverflow.com/questions/15048963/alternative-to-the-deprecated-setup-environ-for-one-off-django-scripts
+        # begin - to avoid an exception below
+        # django.core.exceptions.ImproperlyConfigured: Requested setting SV_STORAGE_ROOT, but settings are not configured
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "svdjango.settings")
+        from django.conf import settings
+        # end - to avoid exception below
         self._g_bDaemonEnv = True
 
     def _task_pre_proc(self, o_callback):
