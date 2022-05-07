@@ -80,7 +80,7 @@ class SvEdiLog():
         self.__print_progress_bar = f_print_progress_bar
         self.__g_sTblPrefix = s_tbl_prefix
 
-    def proc_edi_log(self, s_mode):
+    def proc(self, s_mode):
         # python3.7 task.py config_loc=1/1 mode=add_edi_sql
         dt_yesterday = datetime.now() - timedelta(1)
         self.__g_sYesterday = datetime.strftime(dt_yesterday, '%Y%m%d')

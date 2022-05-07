@@ -74,7 +74,7 @@ class SvWordCloud():
         self.__print_progress_bar = f_print_progress_bar
         self.__g_sTblPrefix = s_tbl_prefix
 
-    def proc_word_cloud(self, s_mode, s_top_n_cnt=None):
+    def proc(self, s_mode, s_top_n_cnt=None):
         # python3.7 task.py config_loc=1/1 mode=add_wc_sql top_n_cnt=123
         if s_top_n_cnt:
             self.__g_sTopNcnt = int(s_top_n_cnt)
@@ -130,7 +130,7 @@ class SvWordCloud():
                 # retrieve dictionary if word count log exists
                 self.__print_debug('get whole dictionary')
                 dict_dictionary = {}
-                lst_dictionary = o_sv_mysql.executeQuery('getAllDictionaryCompact')
+                lst_dictionary = o_sv_mysql.executeQuery('getAllSvdocDictionary')
                 for dict_single_word in lst_dictionary:
                     if not self.__continue_iteration():
                         return

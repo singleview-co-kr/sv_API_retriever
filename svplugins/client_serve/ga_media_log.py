@@ -68,8 +68,8 @@ class SvGaMediaLog():
         self.__g_dictDateRange = None
 
     def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
-                    f_print_debug, f_print_progress_bar, f_continue_iteration
-                    ,s_replace_year_month):
+                    f_print_debug, f_print_progress_bar, f_continue_iteration,
+                    s_replace_year_month):
         self.__g_dictSvAcctInfo = dict_sv_acct_info
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -77,7 +77,7 @@ class SvGaMediaLog():
         self.__g_sTblPrefix = s_tbl_prefix
         self.__g_sReplaceYearMonth = s_replace_year_month
 
-    def proc_ga_media_log(self, s_mode):
+    def proc(self, s_mode):
         # python3.7 task.py config_loc=1/1 mode=add_ga_media_sql
         # python3.7 task.py config_loc=1/1 mode=update_ga_media_sql yyyymm=202201
         dt_yesterday = datetime.now() - timedelta(1)

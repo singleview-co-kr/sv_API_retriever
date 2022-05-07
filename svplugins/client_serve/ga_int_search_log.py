@@ -27,18 +27,17 @@ import sys
 import logging
 from datetime import datetime
 from datetime import timedelta
+import pandas as pd
 
 # singleview library
-if __name__ == 'sv_adr': # for console debugging
+if __name__ == 'ga_int_search_log': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
-    import sv_addr_parser
 else: # for platform running
     from svcommon import sv_mysql
-    from svcommon import sv_addr_parser
 
 
-class SvAddress():
+class SvGaIntSearchLog():
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -54,6 +53,7 @@ class SvAddress():
         self.__g_sYesterday = None
         self.__g_dictSvAcctInfo = None
         self.__g_dictDateRange = None
+        self.__g_sTopNcnt = 100  # default word cnt rank to transmit
         self._g_oLogger = logging.getLogger(__name__)
 
     def __del__(self):
@@ -64,6 +64,7 @@ class SvAddress():
         self.__g_sYesterday = None
         self.__g_dictSvAcctInfo = None
         self.__g_dictDateRange = None
+        self.__g_sTopNcnt = None
 
     def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
                     f_print_debug, f_print_progress_bar, f_continue_iteration):
@@ -74,28 +75,26 @@ class SvAddress():
         self.__g_sTblPrefix = s_tbl_prefix
 
     def proc(self, s_mode):
-        # python3.7 task.py config_loc=1/2 mode=add_sv_addr_sql
-
+        # python3.7 task.py config_loc=1/1 mode=add_ga_int_searcj_sql
         dt_yesterday = datetime.now() - timedelta(1)
         self.__g_sYesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
-        self.__g_dictDateRange = {'s_start_date': 'na', 's_end_date': self.__g_sYesterday}
         del dt_yesterday
-        # if s_mode == 'add_ga_media_sql':
-        #     self._add_ga_media_sql()
-        self.__add_new_2_bi_db()
+        self.__g_dictDateRange = {'s_start_date': 'na', 's_end_date': self.__g_sYesterday}
+        
+        if s_mode == 'add_ga_intsearch_sql':
+            self.__add_ga_int_search_sql()
 
-    def __add_new_2_bi_db(self):
+    def __add_ga_int_search_sql(self):
         """
-        transfer de-normalized table to BI db
+        transfer compiled_ga_intsearch_daily table to BI db
         """
-        lst_sv_addr = None
-        # begin - ext bi denorm word count date range
+        # begin - ext bi denorm ga media date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-            o_sv_mysql.create_table_on_demand('_sv_adr_log_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getSvAdrDenormDateRange')
+            o_sv_mysql.create_table_on_demand('_ga_intsearch_log_denorm')  # for google data studio
+            lst_wc_date_range = o_sv_mysql.executeQuery('getGaIntSearchDenormDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -103,60 +102,76 @@ class SvAddress():
             if int(s_startdate) <= int(self.__g_sYesterday):
                 self.__g_dictDateRange['s_start_date'] = s_startdate
         del lst_wc_date_range
-        # end - ext bi denorm word count date range
+        # end - ext bi denorm ga media date range
 
+        # begin - get ga internal search daily log
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
                 return
-            # retrieve word count
-            s_end_date = datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
-            if self.__g_dictDateRange['s_start_date'] == 'na':  # get whole wc
-                self.__print_debug('get whole sv addr')
-                lst_sv_addr = o_sv_mysql.executeQuery('getAllSvAdrTo', s_end_date)
+            if self.__g_dictDateRange['s_start_date'] != 'na':
+                s_start_date = self.__g_dictDateRange['s_start_date']
+                s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
+                self.__print_debug('get from ' + s_start_date)
+                lst_daily_log = o_sv_mysql.executeQuery('getGaIntSearchLogFrom', s_start_date)
             else:
-                s_start_date = datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
-                self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
-                lst_sv_addr = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
+                self.__print_debug('get whole')
+                lst_daily_log = o_sv_mysql.executeQuery('getGaIntSearchLogGross')
 
-        o_sv_addr_parser = sv_addr_parser.SvAddrParser()
-        dict_standardize_metropolis = o_sv_addr_parser.get_metropolis_dict()
-        del o_sv_addr_parser
-
-        lst_standardize_metropolis = dict_standardize_metropolis.values()
+            if len(lst_daily_log):
+                # retrieve dictionary if word count log exists
+                self.__print_debug('get whole dictionary')
+                dict_dictionary = {}
+                lst_dictionary = o_sv_mysql.executeQuery('getAllGaIntSearchDictionary')
+                for dict_single_word in lst_dictionary:
+                    if not self.__continue_iteration():
+                        return
+                    dict_dictionary[dict_single_word['word_srl']] = {'word': dict_single_word['word'],
+                                                                    'b_ignore': dict_single_word['b_ignore']}
+                del lst_dictionary
+        # end - get ga internal search daily log
+        
+        # print(dict_dictionary)
         # return
+
         n_idx = 0
-        n_sentinel = len(lst_sv_addr)
+        n_sentinel = len(lst_daily_log)
+
+        # regarding ignored word, retrieve doubled rank than requested 
         if n_sentinel:
-            self.__print_debug('transfer sv adr via SQL')
+            self.__print_debug('retrieve top ' + str(self.__g_sTopNcnt) + ' words for the period')
+            df_word_cnt = pd.DataFrame(lst_daily_log)
+            df_sum_by_word_srl = df_word_cnt.groupby(['word_srl']).sum()
+            del df_word_cnt
+            df_word_rank = df_sum_by_word_srl.sort_values(by='cnt', ascending=False)
+            lst_word_srl_to_trans = df_word_rank.index[:self.__g_sTopNcnt*2].tolist()
+            del df_word_rank
+        n_idx = 0
+        if n_sentinel:
+            self.__print_debug('transfer ga intsearch via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-                for dict_single_wc in lst_sv_addr:
+                for dict_single_int_search in lst_daily_log:
                     if not self.__continue_iteration():
                         return
-                    s_addr_full = None
-                    if dict_single_wc['addr_do'] in lst_standardize_metropolis:
-                        if dict_single_wc['addr_si'] != 'None':
-                            s_addr_full = dict_single_wc['addr_si']
-                    else:
-                        if dict_single_wc['addr_do'] != 'None':
-                            s_addr_full = dict_single_wc['addr_do']
-                        if dict_single_wc['addr_si'] != 'None':
-                            s_addr_full += ' ' + dict_single_wc['addr_si']
-                    
-                    if dict_single_wc['addr_gu_gun'] != 'None':
-                        s_addr_full += ' ' + dict_single_wc['addr_gu_gun']
-                    if dict_single_wc['addr_dong_myun_eup'] != 'None':
-                        s_addr_full += ' ' + dict_single_wc['addr_dong_myun_eup']
-                    o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
-                                        dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
-                                        dict_single_wc['addr_dong_myun_eup'], s_addr_full,
-                                        dict_single_wc['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    if dict_dictionary[dict_single_int_search['word_srl']]['b_ignore'] == '0':
+                        if dict_single_int_search['word_srl'] in lst_word_srl_to_trans:
+                            # print(dict_dictionary[dict_single_int_search['word_srl']]['word'])
+                            # print(dict_single_int_search['ua'])
+                            # print(dict_single_int_search['cnt'])
+                            # print(dict_single_int_search['logdate'])
+                            o_sv_mysql.executeQuery('insertGaIntSearchDenormDailyLog', 
+                                                dict_dictionary[dict_single_int_search['word_srl']]['word'],
+                                                dict_single_int_search['ua'], dict_single_int_search['cnt'], 
+                                                dict_single_int_search['logdate'])
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga intsearch data:', suffix = 'Complete', length = 50)
                     n_idx += 1
-        del lst_sv_addr
-        del dict_standardize_metropolis
+        elif n_sentinel == 0:
+            self.__print_debug('stop transferring - no more data to update')
+        del lst_word_srl_to_trans
+        del lst_daily_log
+        del dict_dictionary

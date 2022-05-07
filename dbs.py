@@ -102,7 +102,7 @@ def cb_shutdown(message, code):
     logging.info(__file__ + ' v' + g_sVersion + ' has been shutdown')
     logging.debug(message)
     o_slack = sv_slack.SvSlack('dbs')
-    # o_slack.sendMsg('bot has been shutdown')
+    o_slack.sendMsg('bot has been shutdown')
     del o_slack
 
 @click.command(cls=DaemonCLI, daemon_class=setSvDaemon, daemon_params={'shutdown_callback': cb_shutdown, 'pidfile': './misc/dbs.pid'})
@@ -153,7 +153,7 @@ def _start_scheduler():
     g_oScheduler.add_listener(_my_listener, events.EVENT_JOB_EXECUTED | events.EVENT_JOB_ERROR)
     g_oScheduler.start()
     o_slack = sv_slack.SvSlack('dbs')
-    # o_slack.sendMsg('bot has been started')
+    o_slack.sendMsg('bot has been started')
     del o_slack
 
 def _my_listener(event):
@@ -166,14 +166,14 @@ def _my_listener(event):
     #o_logger.debug(event.exception) # raised event code defined by sys.exit(); normal completion designates None
     if str(event.exception) == sv_events.EVENT_JOB_SHOULD_BE_REMOVED:
         o_logger.debug('######_my_listener will remove job, id: ' + event.job_id + ' ##########')
-        # o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
+        o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
         g_oScheduler.remove_job(event.job_id)
     elif str(event.exception) == sv_events.EVENT_JOB_COMPLETED:
         o_logger.debug('######_my_listener will remove job, id: ' + event.job_id + ' ##########')
-        # o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
+        o_slack.sendMsg('_my_listener has removed job, id: ' + event.job_id)
         g_oScheduler.remove_job(event.job_id)
         o_logger.debug('######_my_listener will togle job, id: ' + event.job_id + ' from table ##########')
-        # o_slack.sendMsg('_my_listener has togled job, id: ' + event.job_id + ' from table' )
+        o_slack.sendMsg('_my_listener has toggled job, id: ' + event.job_id + ' from table' )
         with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.initialize()
             o_sv_mysql.executeQuery('updateJobIsActive', 0, event.job_id)
