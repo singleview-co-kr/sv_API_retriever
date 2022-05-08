@@ -12,5 +12,6 @@ CREATE TABLE `sv_adr_log` (
   `regdate` DATETIME DEFAULT NOW(),
   PRIMARY KEY (`log_srl`),
   KEY `idx_module_srl_logdate` (`module_srl`,`logdate`),
-  KEY `idx_module_document_srl` (`module_srl`,`document_srl`)
+  KEY `idx_module_document_srl` (`module_srl`,`document_srl`),
+  KEY `idx_module_postcode` (`module_srl`,`postcode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

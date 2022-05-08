@@ -130,18 +130,37 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._task_post_proc(self._g_oCallback)
 
     def __retrieve_chery_picker(self):
+        n_module_srl = 162
         self._printDebug('-> __retrieve_chery_picker begin')
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            n_module_srl = 162
             lst_latest_doc_srl = o_sv_mysql.executeQuery('getAllDocuments', n_module_srl)
         if not self._continue_iteration():
             return
-        
-        for dict_row in lst_latest_doc_srl:
-            print(dict_row)
+        # import time
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.collect_svadr')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+           
+            for dict_row in lst_latest_doc_srl:
+                lst_close_doc_list = o_sv_mysql.executeQuery('getCloseDocumentsByPostcode', n_module_srl,
+                                                            dict_row['postcode'], dict_row['document_srl'])
+                
+                if len(lst_close_doc_list):
+                    print('document_srl: ' + str(dict_row['document_srl']) + ' @ ' + str(dict_row['logdate']))
+                    print(dict_row['addr_raw'] + ' close addr list')
+                    print('================================================')
+                    for dict_single_addr in lst_close_doc_list:
+                        print(dict_single_addr['addr_raw'] + ' * ' + str(dict_single_addr['document_srl'])  + ' * ' + str(dict_single_addr['logdate']))
+                    print('================================================')
+                    print()
+                    print()
+                # time.sleep(3)
+
+        del lst_latest_doc_srl
 
     def __ask_sv_xe_seb_service(self, s_collection_base, n_module_srl, s_addr_field_title):
         """
