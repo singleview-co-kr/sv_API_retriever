@@ -103,73 +103,104 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 return
 
-        # if self.__g_sMode is None:
-        #     self._printDebug('you should designate mode')
-        #     self._task_post_proc(self._g_oCallback)
-        #     return
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         self.__get_key_config(s_sv_acct_id, s_brand_id)
 
-        dict_rst = self.__validate_configuration()
-        if dict_rst['b_err']:
-            self._printDebug(dict_rst['s_msg'])
-            self._task_post_proc(self._g_oCallback)
-            if self._g_bDaemonEnv:  # for running on dbs.py only
-                raise Exception('remove')
-            else:
-                return
+        if self.__g_sMode == 'awacs':  # retrieve cherry picker 
+            self.__retrieve_chery_picker()
+        else:
+            dict_rst = self.__validate_configuration()
+            if dict_rst['b_err']:
+                self._printDebug(dict_rst['s_msg'])
+                self._task_post_proc(self._g_oCallback)
+                if self._g_bDaemonEnv:  # for running on dbs.py only
+                    raise Exception('remove')
+                else:
+                    return
+            self._printDebug('-> communication begin')
+            self._printDebug('-> ask new adr')
+            n_idx = len(self.__g_lstModuleSrl)
+            for i in range(0, n_idx):
+                self.__ask_sv_xe_seb_service(self.__g_lstCollectionBase[i], 
+                                                self.__g_lstModuleSrl[i], self.__g_lstAddrFieldTitle[i])
+            self._printDebug('-> communication finish')
 
-        self._printDebug('-> communication begin')
-        # if self.__g_sMode == 'retrieve':
-        self._printDebug('-> ask new adr')
-
-        n_idx = len(self.__g_lstModuleSrl)
-        for i in range(0, n_idx):
-            if 'date' == self.__g_lstCollectionBase[i]:
-                self.__ask_sv_xe_date_base(self.__g_lstModuleSrl[i], self.__g_lstAddrFieldTitle[i])
-        
-        return
-        
-
-        self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
 
-    def __ask_sv_xe_date_base(self, n_module_srl, s_addr_field_title):
-        """
-        collect plain text of new docs from SvWebService based on logdate 
-        # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
-        """
-        # print(n_module_srl)
-        # print(s_addr_field_title)
-        # print(s_collection_base)
-        # return
+    def __retrieve_chery_picker(self):
+        self._printDebug('-> __retrieve_chery_picker begin')
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate', n_module_srl)
+            n_module_srl = 162
+            lst_latest_doc_srl = o_sv_mysql.executeQuery('getAllDocuments', n_module_srl)
         if not self._continue_iteration():
             return
+        
+        for dict_row in lst_latest_doc_srl:
+            print(dict_row)
 
-        dt_last_sync_date = lst_latest_doc_date[0]['maxdate']
-        del lst_latest_doc_date
-        if dt_last_sync_date is None:
-            s_begin_date_to_sync = self.__g_sFirstDateOfTheUniv
-        else:
-            dt_date_to_sync = dt_last_sync_date + timedelta(1)
-            s_begin_date_to_sync = dt_date_to_sync.strftime("%Y%m%d")
-            del dt_date_to_sync
-        dt_yesterday = datetime.today() - relativedelta(days=1)
-        s_end_date_to_sync = dt_yesterday.strftime("%Y%m%d")
-        if int(s_begin_date_to_sync) > int(s_end_date_to_sync):
-            self._printDebug('begin_date is later than end_date')
-            return
-
-        dict_date_param = {'s_collection_base': 'date', 
+    def __ask_sv_xe_seb_service(self, s_collection_base, n_module_srl, s_addr_field_title):
+        """
+        collect plain text of new docs from SvWebService based on logdate 
+        # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
+        """
+        dict_date_param = {'s_collection_base': None, 
                             'n_module_srl': n_module_srl, 's_addr_field_title': s_addr_field_title,
-                            's_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
+                            's_begin_date': None, 's_end_date': None,
+                            'n_last_doc_srl': None}
+
+        if 'date' == s_collection_base:
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.collect_svadr')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+                lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate', n_module_srl)
+            if not self._continue_iteration():
+                return
+
+            dt_last_sync_date = lst_latest_doc_date[0]['maxdate']
+            del lst_latest_doc_date
+            if dt_last_sync_date is None:
+                s_begin_date_to_sync = self.__g_sFirstDateOfTheUniv
+            else:
+                dt_date_to_sync = dt_last_sync_date + timedelta(1)
+                s_begin_date_to_sync = dt_date_to_sync.strftime("%Y%m%d")
+                del dt_date_to_sync
+            dt_yesterday = datetime.today() - relativedelta(days=1)
+            s_end_date_to_sync = dt_yesterday.strftime("%Y%m%d")
+            if int(s_begin_date_to_sync) > int(s_end_date_to_sync):
+                self._printDebug('begin_date is later than end_date')
+                return
+            dict_date_param['s_collection_base'] = s_collection_base
+            dict_date_param['s_begin_date'] = s_begin_date_to_sync
+            dict_date_param['s_end_date'] = s_end_date_to_sync
+        elif 'document_srl' == s_collection_base:
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.collect_svadr')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+                lst_latest_doc_srl = o_sv_mysql.executeQuery('getLatestDocumentSrl', n_module_srl)
+            if not self._continue_iteration():
+                return
+
+            n_last_sync_doc_srl = lst_latest_doc_srl[0]['max_doc_srl']
+            del lst_latest_doc_srl
+            if n_last_sync_doc_srl is None:
+                n_last_sync_doc_srl = 0
+            # print(n_last_sync_doc_srl)
+            dict_date_param['s_collection_base'] = s_collection_base
+            dict_date_param['n_last_doc_srl'] = n_last_sync_doc_srl
+
+        if dict_date_param['s_collection_base'] is None:
+            self._printDebug('stop communication - collection_base is weird')
+            return
+        
+        # print(dict_date_param)
+        # return
         dict_params = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
         dict_rsp = self.__post_http(self.__g_sTargetUrl, dict_params)
         if not self._continue_iteration():
