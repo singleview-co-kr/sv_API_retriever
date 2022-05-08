@@ -30,7 +30,6 @@ import urllib.parse
 import logging
 import re # https://docs.python.org/3/library/re.html
 import json
-# from Cryptodome.Cipher import AES
 
 # 3rd party library
 import simplejson as json
@@ -62,7 +61,7 @@ class SvHttpCom(sv_object.ISvObject):
         'LMKL': 4, # let me know new data
         'IWSY': 5, # I will send you
         'ALD': 6, # add latest data
-        # 'MTG': 7, # more to go
+        'ERR': 7, # error
         # 'IHND': 8, # i have new data
         'IWWFY': 9, # i will wait for you
         'IHNI': 10, # i have no idea

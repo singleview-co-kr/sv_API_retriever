@@ -52,6 +52,7 @@ else: # for platform running
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sFirstDateOfTheUniv = '20000101'
+    __g_lstAllowedCollectionBase = ['date', 'document_srl']
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -75,6 +76,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sMode = None
         self.__g_dictMsg = {}
         self.__g_oConfig = None
+
+        self.__g_lstModuleSrl = None
+        self.__g_lstAddrFieldTitle = None
+        self.__g_lstCollectionBase = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -106,35 +111,45 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_brand_id = dict_acct_info['brand_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         self.__get_key_config(s_sv_acct_id, s_brand_id)
-        if self.__g_sTargetUrl is None:
-            if 'server' in self.__g_oConfig:
-                self.__g_sTargetUrl = self.__g_oConfig['server']['sv_adr_host_url']
+
+        dict_rst = self.__validate_configuration()
+        if dict_rst['b_err']:
+            self._printDebug(dict_rst['s_msg'])
+            self._task_post_proc(self._g_oCallback)
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
             else:
-                self._printDebug('stop -> invalid sv_adr_host_url')
-                self._task_post_proc(self._g_oCallback)
-                if self._g_bDaemonEnv:  # for running on dbs.py only
-                    raise Exception('remove')
-                else:
-                    return
-        
+                return
+
         self._printDebug('-> communication begin')
         # if self.__g_sMode == 'retrieve':
         self._printDebug('-> ask new adr')
-        self.__ask_sv_xe_web_service()
+
+        n_idx = len(self.__g_lstModuleSrl)
+        for i in range(0, n_idx):
+            if 'date' == self.__g_lstCollectionBase[i]:
+                self.__ask_sv_xe_date_base(self.__g_lstModuleSrl[i], self.__g_lstAddrFieldTitle[i])
+        
+        return
+        
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
 
-    def __ask_sv_xe_web_service(self):
+    def __ask_sv_xe_date_base(self, n_module_srl, s_addr_field_title):
         """
-        collect plain text of new docs from SvWebService
+        collect plain text of new docs from SvWebService based on logdate 
         # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
         """
+        # print(n_module_srl)
+        # print(s_addr_field_title)
+        # print(s_collection_base)
+        # return
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate')
+            lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate', n_module_srl)
         if not self._continue_iteration():
             return
 
@@ -152,7 +167,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('begin_date is later than end_date')
             return
 
-        dict_date_param = {'s_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
+        dict_date_param = {'s_collection_base': 'date', 
+                            'n_module_srl': n_module_srl, 's_addr_field_title': s_addr_field_title,
+                            's_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
         dict_params = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
         dict_rsp = self.__post_http(self.__g_sTargetUrl, dict_params)
         if not self._continue_iteration():
@@ -160,6 +177,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         self._printDebug('rsp of LMKL')
         nMsgKey = dict_rsp['variables']['a'][0]
+        if self.__translate_msg_code(nMsgKey) == 'ERR':
+            self._printDebug('stop communication - ' + dict_rsp['variables']['d'])
+            return
+
         if self.__translate_msg_code(nMsgKey) == 'ALD':
             dictRetrieveStuff = dict_rsp['variables']['d']
             if dictRetrieveStuff['aDocSrls'] != 'na':
@@ -177,8 +198,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
                     self._printDebug('begin - doc sync')
-                    dict_params_tmp = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                    dict_rsp = self.__post_http(self.__g_sTargetUrl, dict_params_tmp)
+                    #  give me document list  -> data: doc_srls
+                    dict_params_tmp = {'s_collection_base': 'date', 
+                                        'n_module_srl': n_module_srl, 's_addr_field_title': s_addr_field_title,
+                                        'a_doc_srl': dictRetrieveStuff['aDocSrls']}
+                    dict_params = {'c': [self.__g_dictMsg['GMDL']], 'd': dict_params_tmp}
+                    dict_rsp = self.__post_http(self.__g_sTargetUrl, dict_params)
+                    del dict_params
                     del dict_params_tmp
             
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
@@ -190,6 +216,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self._printDebug('rsp of ALD')
         nMsgKey = dict_rsp['variables']['a'][0]
+        if self.__translate_msg_code(nMsgKey) == 'ERR':
+            self._printDebug('stop communication - ' + dict_rsp['variables']['d'])
+            return
+
         if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
             self._printDebug('stop communication 2')
             return
@@ -252,6 +282,33 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return  # raise Exception('stop')
 
         self.__g_oConfig.read(sKeyConfigPath)
+    
+    def __validate_configuration(self):
+        dict_rst = {'b_err': False, 's_msg': None}
+        if self.__g_sTargetUrl is None:
+            if 'server' in self.__g_oConfig:
+                self.__g_sTargetUrl = self.__g_oConfig['sv_adr_server']['sv_adr_host_url']
+            else:
+                dict_rst['b_err'] = True
+                dict_rst['s_msg'] = 'stop -> invalid sv_adr_host_url'
+                return dict_rst
+        
+        self.__g_lstModuleSrl = self.__g_oConfig['sv_adr_server']['module_srl'].split(',')
+        self.__g_lstAddrFieldTitle = self.__g_oConfig['sv_adr_server']['addr_field_title'].split(',')
+        self.__g_lstCollectionBase = self.__g_oConfig['sv_adr_server']['collection_base'].split(',')
+        if len(self.__g_lstModuleSrl) != len(self.__g_lstAddrFieldTitle) and \
+                len(self.__g_lstAddrFieldTitle) != len(self.__g_lstCollectionBase):
+            dict_rst['b_err'] = True
+            dict_rst['s_msg'] = 'stop -> configuration pair not matched'
+            return dict_rst
+        
+        for s_collection_base in self.__g_lstCollectionBase:
+            if s_collection_base not in self.__g_lstAllowedCollectionBase:
+                dict_rst['b_err'] = True
+                dict_rst['s_msg'] = 'stop -> invalid collection base'
+                return dict_rst
+        return dict_rst
+
 
 
 if __name__ == '__main__': # for console debugging

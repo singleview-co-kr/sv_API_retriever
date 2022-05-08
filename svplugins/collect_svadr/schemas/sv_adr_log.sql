@@ -10,5 +10,7 @@ CREATE TABLE `sv_adr_log` (
   `addr_raw` varchar(200) DEFAULT NULL,
   `logdate` DATE NOT NULL,
   `regdate` DATETIME DEFAULT NOW(),
-  PRIMARY KEY (`log_srl`)
+  PRIMARY KEY (`log_srl`),
+  KEY `idx_module_srl_logdate` (`module_srl`,`logdate`),
+  KEY `idx_module_document_srl` (`module_srl`,`document_srl`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
