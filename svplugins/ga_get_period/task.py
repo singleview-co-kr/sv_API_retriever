@@ -66,8 +66,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, May 2022')
-        self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 8th, May 2022')
+        self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -96,16 +96,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         
-        if self._g_dictParam['data_first_date'] is None or \
-            self._g_dictParam['data_last_date'] is None:
-            self._printDebug('you should designate data_first_date and data_last_date')
+        if self._g_dictParam['earliest_date'] is None or \
+            self._g_dictParam['latest_date'] is None:
+            self._printDebug('you should designate earliest_date and latest_date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
-        self.__g_sDataLastDate = self._g_dictParam['data_first_date'].replace('-','')
-        self.__g_sDataFirstDate = self._g_dictParam['data_last_date'].replace('-','')
+        self.__g_sDataLastDate = self._g_dictParam['latest_date'].replace('-','')
+        self.__g_sDataFirstDate = self._g_dictParam['earliest_date'].replace('-','')
 
         dict_acct_info = self._task_pre_proc(o_callback)
 
@@ -230,7 +230,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 # if requested date is earlier than first date
                 if dtDateDataRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0):
-                    s_msg = 'retrieval date - ' + str(dtDateDataRetrieval) + ' meets first stat date -> remove the job and toggle the job table'
+                    s_msg = 'retrieval date - ' + str(dtDateDataRetrieval) + ' meets earliest stat date -> remove the job and toggle the job table'
                     if self._g_bDaemonEnv:  # for running on dbs.py only
                         logging.info(s_msg)
                         raise Exception('completed')
@@ -364,14 +364,13 @@ if __name__ == '__main__': # for console debugging and execution
             with svJobPlugin() as oJob: # to enforce to call plugin destructor
             	oJob.getConsoleAuth( sys.argv )
         else:
-            # {'config_loc':'1/1', 'data_first_date':'20150726', 'data_last_date':'20180601'}
-            dictPluginParams = {'config_loc':'2/test_acct', 'data_first_date':'20200229', 'data_last_date':'20200229'}
+            dictPluginParams = {'config_loc':'2/1', 'earliest_date':'20200229', 'latest_date':'20210229'}
             with svJobPlugin() as oJob: # to enforce to call plugin destructor
                 oJob.set_my_name('ga_get_day')
                 oJob.parse_command(sys.argv)
                 oJob.do_task(None)
     else:
-        print('warning! [config_loc] [data_first_date] [data_last_date] params or --noauth_local_webserver is required for console execution.')
+        print('warning! [config_loc] [earliest_date] [latest_date] params or --noauth_local_webserver is required for console execution.')
 
 '''
 def __traverseAccountInfo(self, service):
