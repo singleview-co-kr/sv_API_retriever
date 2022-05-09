@@ -81,10 +81,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
-        if self.__g_sMode == 'add_keyword':
-            self._printDebug('-> register new morpheme to monitor')
+        if self.__g_sMode in ['add_keyword']:
+            self._printDebug('-> register new keyword to monitor')
             n_morpheme_srl = self.__register_new_morpheme()
             self._printDebug('new morpheme srl: ' + str(n_morpheme_srl))
+        elif self.__g_sMode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
+            self._printDebug('-> retrieve status to extract morpheme')
+
+            self.__get_keyword_from_db()
+            # o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
+            # o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
+            #                             self._printDebug, self._printProgressBar, self._continue_iteration,
+            #                             self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+            #                             s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd)
+            # o_sv_morpheme_retriever.do_task()
+            # del o_sv_morpheme_retriever
         else:
             self._printDebug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
@@ -207,14 +218,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:  # update twt user
                 o_sv_mysql.executeQuery('updateTwtUserInfo', n_followers_cnt, n_friends_cn, n_favourites_cnt, s_user_id)
 
-    def __get_keyword_from_svdb(self, lst_status_registered):
+    def __get_keyword_from_db(self, lst_status_registered=None):
         """ debug method; retrieve text from SV DB """
         with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            dict_param = {'s_new_status_ids': ','.join(lst_status_registered)}
-            lst_status_id = o_sv_mysql.executeDynamicQuery('getStatusById', dict_param)
+
+            if lst_status_registered:
+                dict_param = {'s_new_status_ids': ','.join(lst_status_registered)}
+                lst_status_id = o_sv_mysql.executeDynamicQuery('getStatusById', dict_param)
+                del dict_param
+            else:
+                lst_status_id = o_sv_mysql.executeQuery('getAllStatus')
             
             for dict_single_status in lst_status_id:
                 print('https://twitter.com/i/web/status/' + str(dict_single_status['status_id']))

@@ -58,7 +58,7 @@ g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
 class setSvDaemon(daemonocle.Daemon):
     """ this class seems to be created by different process with main(), that is configuration run by main() is not working in this code block 
         main() is not executed even if you run the CLI [python3.6 crawler.py banana] """
-    # basic usage: python3.6 dbs.py start/stop
+    # basic usage: python dbs.py start/stop
     @daemonocle.expose_action
     def send(self):
         """initialize crawler running environment"""
@@ -82,7 +82,7 @@ class setSvDaemon(daemonocle.Daemon):
     @daemonocle.expose_action
     def adwrefreshtoken(self):
         # move this method to aw job plugin?
-        print('1. run ./job_plugins/aw_get_day/generate_refresh_token.py')
+        print('1. run ./svplugins/aw_get_day/generate_refresh_token.py')
 
     @daemonocle.expose_action
     def init(self):

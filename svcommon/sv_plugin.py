@@ -132,9 +132,13 @@ class ISvPlugin(ABC):
                         self._g_dictParam[s_param_name] = lst_param_pair[1]
         
         if 'config_loc' in self._g_dictParam.keys():
-            lst_acct_info = self._g_dictParam['config_loc'].split('/')
-            self._g_dictSvAcctInfo['n_acct_id'] = lst_acct_info[0]
-            self._g_dictSvAcctInfo['n_brand_id'] = lst_acct_info[1]
+            if self._g_dictParam['config_loc']:
+                lst_acct_info = self._g_dictParam['config_loc'].split('/')
+                self._g_dictSvAcctInfo['n_acct_id'] = lst_acct_info[0]
+                self._g_dictSvAcctInfo['n_brand_id'] = lst_acct_info[1]
+                return
+        self._printDebug('you might run on console without config_loc parameter!')
+        raise Exception('remove')
 
 
 class svPluginDaemonJob():
