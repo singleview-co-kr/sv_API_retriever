@@ -31,7 +31,8 @@
 
 # standard library
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 import time
 import os
 import sys
@@ -46,6 +47,7 @@ from oauth2client import client
 from oauth2client import tools
 from googleapiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
+
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -64,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 10th, May 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -103,7 +105,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # Define the auth scopes to request.
         scope = ['https://www.googleapis.com/auth/analytics.readonly']
         # Authenticate and construct service.
-        service = self.__getService('analytics', 'v3', scope, sClientSecretsJson)
+        service = self.__get_service('analytics', 'v3', scope, sClientSecretsJson)
         # Try to make a request to the API. Print the results or handle errors.        
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'google_analytics' not in dict_acct_info:
@@ -137,7 +139,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     return
             except AccessTokenRefreshError:
                 # Handle Auth errors.
-                self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
+                self._printDebug('The credentials have been revoked or expired, please re-run the application to re-authorize')
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
@@ -284,7 +286,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     except ValueError:
                         break
 
-    def __getService(self, api_name, api_version, scope, client_secrets_path):
+    def __get_service_improved(self, api_name, api_version, scopes, key_file_location):
+        """Get a service that communicates to a Google API.
+
+        Args:
+            api_name: The name of the api to connect to.
+            api_version: The api version to connect to.
+            scopes: A list auth scopes to authorize for the application.
+            key_file_location: The path to a valid service account JSON key file.
+
+        Returns:
+            A service that is connected to the specified API.
+        """
+        from oauth2client.service_account import ServiceAccountCredentials  # regarding OOB auth will be deprecated
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file_location, scopes=scopes)
+
+        # Build the service object.
+        service = build(api_name, api_version, credentials=credentials)
+
+        return service
+
+    def __get_service(self, api_name, api_version, scope, client_secrets_path):
         """Get a service that communicates to a Google API.
         Args:
         api_name: string The name of the api to connect to.
@@ -307,9 +329,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             message=tools.message_if_missing(client_secrets_path))
 
         # Prepare credentials, and authorize HTTP object with them.
-        # If the credentials don't exist or are invalid run through the native client
-        # flow. The Storage object will ensure that if successful the good
-        # credentials will get written back to a file.
+        # If the credentials don't exist or are invalid run through the native client flow.
+        # The Storage object will ensure that if successful the good credentials will get written back to a file.
         storage = file.Storage(os.path.join(self._g_sAbsRootPath, 'conf', 'google_' + api_name + '.dat'))
         credentials = storage.get()
         if credentials is None or credentials.invalid:

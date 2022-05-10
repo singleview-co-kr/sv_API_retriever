@@ -31,7 +31,8 @@
 
 # standard library
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 import time
 import os
 import csv
