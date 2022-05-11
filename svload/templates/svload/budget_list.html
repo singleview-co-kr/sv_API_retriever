@@ -319,7 +319,7 @@ var mybarChart = new Chart(ctx, {
 jQuery("#btn_add_budget").click(function(){
     n_acct_id = jQuery("select[name='acct_id']").val();
     //console.log(n_acct_id);
-    if( n_acct_id == '' )
+    if(n_acct_id == '')
     {
         alert('예산 분류를 선택하세요');
         return false;
@@ -330,14 +330,13 @@ jQuery("#btn_add_budget").click(function(){
 
 jQuery(".lnk_update_budget").click(function(){
     var nBudgetId = jQuery(this).attr('budget_id');
-    console.log(nBudgetId);
-    if( nBudgetId > 0 )
+    if(nBudgetId > 0)
     {
-        var aCurUrl = window.location.href.split('?');
+        var aCurUrl = window.location.href.split('budget');
+        var nBrandId = '{{n_brand_id}}';
         sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
-        sCurUrlBase = sCurUrlBase.replace( '/budget/', '/budget_update/' )
-        console.log(sCurUrlBase + nBudgetId);
-        window.location.href = sCurUrlBase + nBudgetId;
+        // console.log(sCurUrlBase + 'budget_update/' + nBrandId + '/' + nBudgetId);
+        window.location.href = sCurUrlBase + 'budget_update/' + nBrandId + '/' + nBudgetId;
     }
     else
         alert('plz choose budget');

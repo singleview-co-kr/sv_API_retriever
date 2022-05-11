@@ -595,7 +595,6 @@ class BudgetView(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        # if 'budget_id' in list(kwargs.keys()):
         if 'budget_id' in kwargs:
             return self.__budget_detail(request, *args, **kwargs)
         else:
@@ -628,7 +627,6 @@ class BudgetView(LoginRequiredMixin, TemplateView):
             if request.POST['budget_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-
             n_budget_id = int(request.POST['budget_id'])
             from .pandas_plugins.budget import Budget
             o_budget = Budget(o_sv_db)
@@ -663,10 +661,10 @@ class BudgetView(LoginRequiredMixin, TemplateView):
         lst_acct_list = o_budget.get_acct_list_for_ui()
         del o_budget
 
-        s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
         return render(request, 'svload/budget_list.html',
-                      {'s_brand_name': s_brand_name,
+                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
+                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'dict_budget_period': dict_budget_info['dict_budget_period'],
                        'lst_budget_table': dict_budget_info['lst_added_rst'],
