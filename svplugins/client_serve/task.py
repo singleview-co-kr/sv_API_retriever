@@ -43,6 +43,7 @@ if __name__ == '__main__': # for console debugging
     import settings
     import ga_media_log
     import ga_int_search_log
+    import ga_itemperf_log
     import word_cloud
     import edi_log
     import sv_adr
@@ -54,6 +55,7 @@ else: # for platform running
     from django.conf import settings
     from svplugins.client_serve import ga_media_log
     from svplugins.client_serve import ga_int_search_log
+    from svplugins.client_serve import ga_itemperf_log
     from svplugins.client_serve import word_cloud
     from svplugins.client_serve import edi_log
     from svplugins.client_serve import sv_adr
@@ -69,7 +71,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 7th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 13th, May 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -150,19 +152,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
+        elif self.__g_sMode in ['add_ga_itemperf_sql']:
+            self._printDebug('-> transfer ga item performance log to BI DB via SQL')
+            o_ga_media_log = ga_itemperf_log.SvGaItemPerfLog()
+            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_ga_media_log.proc(self.__g_sMode)
+            del o_ga_media_log
         elif self.__g_sMode in ['add_wc_sql']:
             self._printDebug('-> transfer de-normed word cloud to BI DB via SQL')
             o_ga_media_log = word_cloud.SvWordCloud()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode, s_top_n_cnt)
-            del o_ga_media_log
-        elif self.__g_sMode in ['add_edi_sql']:
-            self._printDebug('-> transfer de-normed edi daily log to BI DB via SQL')
-            o_ga_media_log = edi_log.SvEdiLog()
-            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
-            o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_sv_adr_sql']:
             self._printDebug('-> transfer de-normed sv addr log to BI DB via SQL')
@@ -171,6 +173,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_sv_addr_log.proc(self.__g_sMode)
             del o_sv_addr_log
+        elif self.__g_sMode in ['add_edi_sql']:
+            self._printDebug('-> transfer de-normed edi daily log to BI DB via SQL')
+            o_ga_media_log = edi_log.SvEdiLog()
+            o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_ga_media_log.proc(self.__g_sMode)
+            del o_ga_media_log
         elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class
             self.__add_new_ga_media_encrypted()
         elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class
