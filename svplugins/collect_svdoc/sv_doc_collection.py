@@ -173,18 +173,29 @@ class SvDocCollection():
             return
 
         n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
-        with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.collect_svdoc')
-            o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-            for dict_single_doc in oResp['variables']['d']:
-                n_sv_doc_srl = dict_single_doc['document_srl']
-                n_sv_module_srl = dict_single_doc['module_srl']
-                s_title = dict_single_doc['title'].replace(u'\xa0', u'')
-                s_content = dict_single_doc['content'].replace(u'\xa0', u'')
-                dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
-                o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
-                    n_sv_doc_srl, n_sv_module_srl, s_title, s_content, dt_regdate)
+
+        n_idx = 0
+        n_sentinel = len(oResp['variables']['d'])
+        self.__print_debug(str(n_sentinel) + ' documents will be registered into DB.')
+        if n_sentinel:
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.collect_svdoc')
+                o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
+                for dict_single_doc in oResp['variables']['d']:
+                    if not self.__continue_iteration():
+                        return
+
+                    n_sv_doc_srl = dict_single_doc['document_srl']
+                    n_sv_module_srl = dict_single_doc['module_srl']
+                    s_title = dict_single_doc['title'].replace(u'\xa0', u'')
+                    s_content = dict_single_doc['content'].replace(u'\xa0', u'')
+                    dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
+                    o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
+                        n_sv_doc_srl, n_sv_module_srl, s_title, s_content, dt_regdate)
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'register sv documents:', suffix = 'Complete', length = 50)
+                    n_idx += 1
+
         return
     
     def __post_http(self, sTargetUrl, dictParams):
