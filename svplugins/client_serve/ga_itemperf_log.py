@@ -130,23 +130,9 @@ class SvGaItemPerfLog():
                                                                     'b_ignore': dict_single_word['b_ignore']}
                 del lst_item_info
         # end - get ga item perf daily log
-        
-        # print(dict_item_info)
-        # return
 
         n_idx = 0
         n_sentinel = len(lst_daily_log)
-
-        # # regarding ignored word, retrieve doubled rank than requested 
-        # if n_sentinel:
-        #     self.__print_debug('retrieve catalog log for the period')
-        #     df_word_cnt = pd.DataFrame(lst_daily_log)
-        #     df_sum_by_word_srl = df_word_cnt.groupby(['word_srl']).sum()
-        #     del df_word_cnt
-        #     df_word_rank = df_sum_by_word_srl.sort_values(by='cnt', ascending=False)
-        #     lst_word_srl_to_trans = df_word_rank.index[:self.__g_sTopNcnt*2].tolist()
-        #     del df_word_rank
-        # n_idx = 0
         if n_sentinel:
             self.__print_debug('transfer ga item performance via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
@@ -157,7 +143,6 @@ class SvGaItemPerfLog():
                     if not self.__continue_iteration():
                         return
                     if dict_item_info[dict_single_item_log['item_srl']]['b_ignore'] == '0':
-                        # print(dict_single_item_log)
                         o_sv_mysql.executeQuery('insertGaItemPerfDenormDailyLog', 
                                             dict_item_info[dict_single_item_log['item_srl']]['item_title'],
                                             dict_single_item_log['ua'], 
