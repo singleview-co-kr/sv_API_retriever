@@ -243,10 +243,8 @@ class SvMorphRetriever():
                             self.__print_debug(self.__g_sPluginName + ' is registering ' + str(n_iter_cnt) + 'th word')
                     
                     n_iter_cnt = n_iter_cnt + 1
-                    # try:
                     if self.__g_dictRegisteredNouns.get(s_word, 0):  # returns 0 if sRowId does not exist
                         n_word_srl = self.__g_dictRegisteredNouns[s_word]['word_srl']
-                    # except KeyError:
                     else:
                         lst_rst = o_sv_mysql.executeQuery('insertDictionary', s_word )
                         n_word_srl = lst_rst[0]['id']
@@ -322,7 +320,6 @@ class SvMorphRetriever():
                 self.__g_dictCountingNouns[dict_row['word_srl']] = dict_row['word']
             del lst_counting_words_rst
             
-            # lst_counting_words_srls = list(self.__g_dictCountingNouns.keys())
             if  b_mode == 'partial_period':
                 lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriod', dict_period['dt_start'], dict_period['dt_end'])
             elif b_mode == 'full_period':
@@ -331,10 +328,9 @@ class SvMorphRetriever():
             self.__print_debug(str(len(lst_rst)) + ' documents')
             for dict_row in lst_rst:
                 n_word_srl = dict_row['word_srl']
-                # if n_word_srl in lst_counting_words_srls:
                 if n_word_srl in self.__g_dictCountingNouns:
                     s_translate_word = self.__g_dictCountingNouns[n_word_srl]
-                    for n_dummy in range(0, dict_row['cnt']):
+                    for _ in range(0, dict_row['cnt']):
                         if not self.__continue_iteration():
                             return
                         else:

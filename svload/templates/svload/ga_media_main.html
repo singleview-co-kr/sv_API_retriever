@@ -472,7 +472,7 @@
 jQuery('.lnk_go_source_medium_detail').bind('click', function () {
     var aCurUrl = window.location.href.split('?');
     sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
-    sCurUrlBase = sCurUrlBase.replace( '/ga_media/', '/by_source_medium/' )
+    sCurUrlBase = sCurUrlBase.replace( '/ga_media/', '/ga_source_medium/' )
     window.location.href = sCurUrlBase;
 });
 

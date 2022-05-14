@@ -3,9 +3,10 @@ from svload import views
 
 app_name = 'svload'
 urlpatterns = [
-    path('today/<int:sv_brand_id>/', views.FocusTodayGaMedia.as_view(), name='index'),
-    path('ga_media/<int:sv_brand_id>/', views.FocusTodayGaMedia.as_view(), name='ga_media'),
-    path('by_source_medium/<int:sv_brand_id>/', views.BySourceMediumView.as_view(), name='by_source'),
+    path('today/<int:sv_brand_id>/', views.GaMedia.as_view(), name='index'),
+    path('ga_media/<int:sv_brand_id>/', views.GaMedia.as_view(), name='ga_media'),
+    path('ga_source_medium/<int:sv_brand_id>/', views.GaSourceMediumView.as_view(), name='ga_source'),
+    path('ga_itemperf/<int:sv_brand_id>/', views.GaItemPerfView.as_view(), name='ga_item'),
     path('edi/<int:sv_brand_id>/', views.FocusTodayEdi.as_view(), name='edi_today'),
     path('edi_by_branch/<int:sv_brand_id>/<int:branch_id>/', views.ByBranchEdi.as_view(), name='edi_branch'),
     path('edi_by_sku/<int:sv_brand_id>/<int:item_id>/', views.BySkuEdi.as_view(), name='edi_sku'),

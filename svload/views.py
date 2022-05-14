@@ -19,6 +19,7 @@ from .pandas_plugins.period_window import PeriodWindow
 from .pandas_plugins.edi_raw import EdiRaw
 from .pandas_plugins.edi_filter import EdiFilter
 from .pandas_plugins.budget import Budget
+from .pandas_plugins.ga_item import GaItem
 from .visualizer import Visualizer
 
 # dash plotly visualiztion with AI ML
@@ -44,7 +45,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class FocusTodayGaMedia(LoginRequiredMixin, TemplateView):
+class GaMedia(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
     __g_nCntToVisitorNounRank = 100  # 추출할 순위 수
     __g_nCntToInboundKeywordRank = 10  # 추출할 순위 수
@@ -137,7 +138,7 @@ class FocusTodayGaMedia(LoginRequiredMixin, TemplateView):
                        })
 
 
-class BySourceMediumView(LoginRequiredMixin, TemplateView):
+class GaSourceMediumView(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
 
     def __init__(self):
@@ -205,6 +206,89 @@ class BySourceMediumView(LoginRequiredMixin, TemplateView):
                        'dict_gross_tm': dict_gross_tm['dict_ps_source_medium_gross'],
                        'dict_gross_lm': dict_gross_lm['dict_ps_source_medium_gross'],
                        'dict_gross_ly': dict_gross_ly['dict_ps_source_medium_gross']
+                       })
+
+
+class GaItemPerfView(LoginRequiredMixin, TemplateView):
+    __g_oSvDb = None
+    __g_dictBrandInfo = {}
+
+    def __init__(self):
+        self.__g_oSvDb = SvMySql()
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+        return
+
+    def __del__(self):
+        del self.__g_oSvDb
+
+    def get(self, request, *args, **kwargs):
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        if 'item_id' in kwargs:
+            return self.__item_detail(request, *args, **kwargs)
+        else:
+            return self.__item_list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+
+        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if dict_rst['b_error']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        s_act = request.POST.get('act')
+        s_return_url = request.META.get('HTTP_REFERER')
+        if s_act == 'update_item':
+            if request.POST['item_id'] == '':
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            n_item_id = int(request.POST['item_id'])
+            o_ga_item = GaItem(self.__g_oSvDb)
+            o_ga_item.update_item(n_item_id, request)
+            del o_ga_item
+            o_redirect = redirect('svload:item_list', sv_brand_id=n_brand_id)
+        return o_redirect
+
+    def __item_list(self, request, *args, **kwargs):
+        o_ga_item = GaItem(self.__g_oSvDb)
+        dict_budget_info = o_ga_item.get_list()
+        lst_acct_list = o_ga_item.get_acct_list_for_ui()
+        del o_ga_item
+
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/item_list.html',
+                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
+                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'lst_catalog': dict_budget_info['lst_catalog'],
+                       'lst_acct_list': lst_acct_list,
+                       })
+
+    def __item_detail(self, request, *args, **kwargs):
+        if 'item_id' not in kwargs:
+            raise Exception('invalid item id')
+
+        n_item_id = kwargs['item_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
+        o_ga_item = GaItem(self.__g_oSvDb)
+        dict_budget_info = o_ga_item.get_detail_by_id(n_brand_id, n_item_id)
+        dict_budget_info['n_budget_id'] = n_item_id
+        lst_acct_list = o_ga_item.get_acct_list_for_ui()
+        del o_ga_item
+        s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/budget_detail.html',
+                      {'s_brand_name': s_brand_name,
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'dict_budget_info': dict_budget_info,
+                       'lst_acct_list': lst_acct_list,
                        })
 
 
@@ -587,7 +671,6 @@ class BudgetView(LoginRequiredMixin, TemplateView):
 
     def __del__(self):
         del self.__g_oSvDb
-        pass
 
     def get(self, request, *args, **kwargs):
         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
@@ -601,11 +684,10 @@ class BudgetView(LoginRequiredMixin, TemplateView):
             return self.__budget_list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        o_sv_db = SvMySql()
-        if not o_sv_db:
+        if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        dict_rst = get_brand_info(o_sv_db, request, kwargs)
+        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
@@ -614,8 +696,7 @@ class BudgetView(LoginRequiredMixin, TemplateView):
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'add_budget':
-            from .pandas_plugins.budget import Budget
-            o_budget = Budget(o_sv_db)
+            o_budget = Budget(self.__g_oSvDb)
             dict_rst = o_budget.add_budget(n_brand_id, request)
             del o_budget
             if dict_rst['b_error']:
@@ -628,8 +709,7 @@ class BudgetView(LoginRequiredMixin, TemplateView):
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
             n_budget_id = int(request.POST['budget_id'])
-            from .pandas_plugins.budget import Budget
-            o_budget = Budget(o_sv_db)
+            o_budget = Budget(self.__g_oSvDb)
             o_budget.update_budget(n_budget_id, request)
             del o_budget
             o_redirect = redirect('svload:budget_list', sv_brand_id=n_brand_id)
@@ -638,29 +718,22 @@ class BudgetView(LoginRequiredMixin, TemplateView):
             s_period_to = request.POST.get('budget_period_to')
             o_redirect = redirect('svload:budget_period',
                                   sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
-        del o_sv_db
         return o_redirect
 
     def __budget_list(self, request, *args, **kwargs):
-        # lst_kwargs = list(kwargs.keys())
-        if 'period_from' in kwargs:  #lst_kwargs:
+        if 'period_from' in kwargs:
             s_period_from = kwargs['period_from']
         else:
             s_period_from = None
-
-        if 'period_to' in kwargs:  # lst_kwargs:
+        if 'period_to' in kwargs:
             s_period_to = kwargs['period_to']
         else:
             s_period_to = None
-        # del lst_kwargs
 
-        from .pandas_plugins.budget import Budget
-        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         o_budget = Budget(self.__g_oSvDb)
-        dict_budget_info = o_budget.get_list_by_period(n_brand_id, s_period_from, s_period_to)
+        dict_budget_info = o_budget.get_list_by_period(s_period_from, s_period_to)
         lst_acct_list = o_budget.get_acct_list_for_ui()
         del o_budget
-
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
         return render(request, 'svload/budget_list.html',
                       {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
@@ -673,25 +746,22 @@ class BudgetView(LoginRequiredMixin, TemplateView):
                        })
 
     def __budget_detail(self, request, *args, **kwargs):
-        # lst_kwargs = list(kwargs.keys())
-        if 'budget_id' not in kwargs:  # lst_kwargs:
+        if 'budget_id' not in kwargs:
             raise Exception('invalid budget id')
 
-        if 'period_from' in kwargs:  # lst_kwargs:
+        if 'period_from' in kwargs:
             s_period_from = kwargs['period_from']
         else:
             s_period_from = None
 
-        if 'period_to' in kwargs:  # lst_kwargs:
+        if 'period_to' in kwargs:
             s_period_to = kwargs['period_to']
         else:
             s_period_to = None
-        # del lst_kwargs
 
         n_budget_id = kwargs['budget_id']
-        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         o_budget = Budget(self.__g_oSvDb)
-        dict_budget_info = o_budget.get_detail_by_id(n_brand_id, n_budget_id)
+        dict_budget_info = o_budget.get_detail_by_id(n_budget_id)
         dict_budget_info['n_budget_id'] = n_budget_id
         dict_period_info = {'s_earliest_budget': s_period_from, 's_latest_budget': s_period_to}
         lst_acct_list = o_budget.get_acct_list_for_ui()

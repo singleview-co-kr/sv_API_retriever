@@ -7,6 +7,7 @@
 			<ul class="nav child_menu" style="display: none">
 				<li><a href="{% url 'svload:index' dict_brand.n_brand_id %}">Today Focus</a></li>
 				<li><a href="{% url 'svload:ga_media' dict_brand.n_brand_id %}">GA & Media</a></li>
+                <li><a href="{% url 'svload:ga_item' dict_brand.n_brand_id %}">GA 상품 정보</a></li>
 				<li><a href="{% url 'svload:edi_today' dict_brand.n_brand_id %}">EDI</a></li>
 				<li><a href="{% url 'svload:morpheme' dict_brand.n_brand_id %}">고객 바이럴</a></li>
 				<li><a href="{% url 'svload:budget_list' dict_brand.n_brand_id %}">예산 설정</a></li>

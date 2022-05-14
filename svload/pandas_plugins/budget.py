@@ -125,7 +125,7 @@ class Budget:
         # end - calculate period allocated budget list
         return dict_budget_to_display
 
-    def get_detail_by_id(self, n_brand_id, n_budget_id):
+    def get_detail_by_id(self, n_budget_id):
         """
         data for budget detail screen
         :param n_brand_id:
@@ -143,7 +143,7 @@ class Budget:
                 'target_amnt_inc_vat': lst_budget_detail[0]['target_amnt_inc_vat'],
                 'closed': lst_budget_detail[0]['closed']}
 
-    def get_list_by_period(self, n_brand_id, s_period_from, s_period_to):
+    def get_list_by_period(self, s_period_from, s_period_to):
         """
         data for budget list screen
         :param n_brand_id:
