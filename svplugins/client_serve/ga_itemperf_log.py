@@ -144,6 +144,7 @@ class SvGaItemPerfLog():
                 del lst_item_info
         # end - get ga item perf daily log
 
+        # begin - set catalog hierarch
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
@@ -151,9 +152,7 @@ class SvGaItemPerfLog():
             if not self.__continue_iteration():
                 return
             dict_arranged_catalog_depth = self.__get_cat_depth_dictionary(o_sv_mysql)
-        # print(dict_arranged_catalog_depth)
-        # return
-
+        # end - set catalog hierarch
         n_idx = 0
         n_sentinel = len(lst_daily_log)
         if n_sentinel:
@@ -167,11 +166,13 @@ class SvGaItemPerfLog():
                         return
                     if dict_item_info[dict_single_item_log['item_srl']]['b_ignore'] == '0':
                         if dict_single_item_log['item_srl'] in dict_arranged_catalog_depth:
+                            lst_cat_depth_info = dict_arranged_catalog_depth[dict_single_item_log['item_srl']]
+                            s_cat1 = lst_cat_depth_info[0] if self.__is_index_in_list(lst_cat_depth_info, 0) else ''
+                            s_cat2 = lst_cat_depth_info[1] if self.__is_index_in_list(lst_cat_depth_info, 1) else ''
+                            s_cat3 = lst_cat_depth_info[2] if self.__is_index_in_list(lst_cat_depth_info, 2) else ''
                             o_sv_mysql.executeQuery('insertGaItemPerfDenormDailyLog', 
                                                 dict_item_info[dict_single_item_log['item_srl']]['item_title'],
-                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][0],
-                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][1],
-                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][2],
+                                                s_cat1, s_cat2, s_cat3,
                                                 dict_single_item_log['ua'], 
                                                 dict_single_item_log['imp_list'],
                                                 dict_single_item_log['click_list'],
@@ -192,6 +193,9 @@ class SvGaItemPerfLog():
         del dict_item_info
         del dict_arranged_catalog_depth
     
+    def __is_index_in_list(self, lst_to_check, n_idx):
+        return n_idx < len(lst_to_check)
+
     def __get_cat_depth_dictionary(self, o_sv_mysql):
         """ 
         construct cat depth dictionary 
@@ -202,7 +206,6 @@ class SvGaItemPerfLog():
         lst_cat_depth_rst = o_sv_mysql.executeQuery('getGaItemDepthAll')
         for dict_single_cat in lst_cat_depth_rst:
             n_item_srl = dict_single_cat['item_srl']
-            # n_cat_depth = dict_single_cat['cat_depth']
             if n_item_srl not in dict_arranged_catalog_depth:
                 dict_arranged_catalog_depth[n_item_srl] = []
             dict_arranged_catalog_depth[n_item_srl].append(dict_single_cat)
@@ -220,14 +223,9 @@ class SvGaItemPerfLog():
                 dict_cat_info_by_item_srl[n_item_srl].append('')
         del dict_max_depth
 
-        # print(dict_cat_info_by_item_srl)
         for n_item_srl, lst_cat_depth in dict_arranged_catalog_depth.items():
             for dict_single_cat_depth in lst_cat_depth:
-                # print(dict_single_cat_depth['item_srl'])
-                # print(dict_single_cat_depth['cat_depth'])
                 n_nth_depth = dict_single_cat_depth['cat_depth'] - 1
-                # print(dict_single_cat_depth['cat_title'])
                 dict_cat_info_by_item_srl[n_item_srl][n_nth_depth] = dict_single_cat_depth['cat_title']
-        # print(dict_cat_info_by_item_srl)
         del dict_arranged_catalog_depth
         return dict_cat_info_by_item_srl

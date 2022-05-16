@@ -99,7 +99,7 @@ class GaItem:
                         lst_cat_depth = dict_arranged_catalog_depth[n_item_srl]
                 elif len(s_val):  # fill in some value
                     s_cat_depth = s_key.replace('s_cat', '')
-                    print(s_cat_depth, s_val)
+                    # print(s_cat_depth, s_val)
                     b_proc = False
                     if lst_cat_depth is not None:  # update old cat depth info
                         for dict_cat_depth in lst_cat_depth:
