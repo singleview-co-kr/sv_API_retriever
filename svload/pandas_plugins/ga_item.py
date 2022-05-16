@@ -105,12 +105,12 @@ class GaItem:
                         for dict_cat_depth in lst_cat_depth:
                             if s_cat_depth == str(dict_cat_depth['cat_depth']):
                                 if dict_cat_depth['cat_title'] != s_val:
-                                    print('update', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'], 'to', s_val)
+                                    # print('update', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'], 'to', s_val)
                                     self.__g_oSvDb.executeQuery('updateCatalogDepthBySrl', s_val, dict_cat_depth['catalog_srl'])
                                     b_changed_something = True
                                 b_proc = True
                     if not b_proc:  # add new cat depth info
-                        print('add new', s_cat_depth, s_val)
+                        # print('add new', s_cat_depth, s_val)
                         self.__g_oSvDb.executeQuery('insertCatalogDepth', n_item_srl, s_cat_depth, s_val)
                         b_changed_something = True
                 else:  # remove existed depth
@@ -119,7 +119,7 @@ class GaItem:
                          for dict_cat_depth in lst_cat_depth:
                              if s_cat_depth == str(dict_cat_depth['cat_depth']):
                                 if dict_cat_depth['cat_title'] != s_val:
-                                    print('remove', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'])
+                                    # print('remove', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'])
                                     self.__g_oSvDb.executeQuery('deleteCatalogDepthBySrl', dict_cat_depth['catalog_srl'])
                                     b_changed_something = True
                                 b_proc = True
