@@ -114,7 +114,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.ga_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-
+        
         self._printDebug('-> register ga raw data')
         if s_version == 'ua':  # universal analytics
             self.__parseGaDataFile(s_sv_acct_id, s_brand_id, s_property_or_view_id)

@@ -237,6 +237,7 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
+        print()
         dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}
@@ -246,20 +247,21 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'update_item':
-            if request.POST['item_id'] == '':
+            n_item_srl = len(request.POST.getlist('item_srls[]'))
+            if n_item_srl == 0:
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-            n_item_id = int(request.POST['item_id'])
+            
+            n_sv_acct_id = kwargs['sv_brand_id']
             o_ga_item = GaItem(self.__g_oSvDb)
-            o_ga_item.update_item(n_item_id, request)
+            o_ga_item.update_item(request, n_sv_acct_id, n_brand_id)
             del o_ga_item
-            o_redirect = redirect('svload:item_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:ga_item', sv_brand_id=n_brand_id)
         return o_redirect
 
     def __item_list(self, request, *args, **kwargs):
         o_ga_item = GaItem(self.__g_oSvDb)
         dict_budget_info = o_ga_item.get_list()
-        lst_acct_list = o_ga_item.get_acct_list_for_ui()
         del o_ga_item
 
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
@@ -268,7 +270,6 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'lst_catalog': dict_budget_info['lst_catalog'],
-                       'lst_acct_list': lst_acct_list,
                        })
 
     def __item_detail(self, request, *args, **kwargs):
@@ -280,7 +281,6 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
         o_ga_item = GaItem(self.__g_oSvDb)
         dict_budget_info = o_ga_item.get_detail_by_id(n_brand_id, n_item_id)
         dict_budget_info['n_budget_id'] = n_item_id
-        lst_acct_list = o_ga_item.get_acct_list_for_ui()
         del o_ga_item
         s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
@@ -288,7 +288,6 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
                       {'s_brand_name': s_brand_name,
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'dict_budget_info': dict_budget_info,
-                       'lst_acct_list': lst_acct_list,
                        })
 
 

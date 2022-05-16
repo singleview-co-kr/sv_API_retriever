@@ -1,7 +1,4 @@
-from dateutil.relativedelta import relativedelta
-from django.utils.html import strip_tags
-from datetime import datetime, date
-import pandas as pd
+import importlib
 
 # for logger
 import logging
@@ -13,6 +10,8 @@ class GaItem:
     """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
+    __g_sLstIgnoreItemTitle = ['(not set)']
+    __g_lstAllowedPattern = ['100', '110', '111']  # 1 means filled catalog hierarchy level
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -35,36 +34,120 @@ class GaItem:
         """
         data for item list screen
         """
+        dict_arranged_catalog_depth = self.__get_cat_depth_dictionary()
+        # begin - construct item list
+        lst_cleaned_catalog = []
         lst_rst = self.__g_oSvDb.executeQuery('getGaItemList')
-        # for dict_single_ga_item in lst_rst:
-        #     print(dict_single_ga_item)
-        # del lst_rst
-        return {'lst_catalog': lst_rst}
+        for dict_single_item in lst_rst:
+            if dict_single_item['item_title'] in self.__g_sLstIgnoreItemTitle:
+                continue
+            else:
+                n_item_srl = dict_single_item['item_srl']
+                if n_item_srl in dict_arranged_catalog_depth:
+                    for dict_cat_depth in dict_arranged_catalog_depth[n_item_srl]:
+                        s_cat_id = 'cat' + str(dict_cat_depth['cat_depth'])
+                        dict_single_item[s_cat_id] = dict_cat_depth['cat_title']
+                lst_cleaned_catalog.append(dict_single_item)
+        del dict_arranged_catalog_depth
+        del dict_single_item
+        del lst_rst
+        # end - construct item list
+        return {'lst_catalog': lst_cleaned_catalog}
 
-    def update_budget(self, n_budget_id, request):
-        dict_rst = self.__validate_budget_info(request)
-        if not dict_rst['b_error']:
-            dict_budget = dict_rst['dict_ret']
-            self.__g_oSvDb.executeQuery('updateBudgetByBudgetId', dict_budget['n_acct_id'],
-                                        dict_budget['dt_budget_alloc_yr_mo'].year, dict_budget['dt_budget_alloc_yr_mo'].month,
-                                        dict_budget['s_budget_memo'], dict_budget['n_budget_target_amnt_inc_vat'],
-                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'], n_budget_id)
-            del dict_budget
-        return dict_rst
+    def update_item(self, request, n_sv_acct_id, n_brand_id):
+        """ 
+        param n_sv_acct_id: is to execute the client_serve plugin
+        param n_brand_id: is to execute the client_serve plugin
+        """
+        lst_item_srl = request.POST.getlist('item_srls[]')
+        lst_cat1 = request.POST.getlist('item_cat1[]')
+        lst_cat2 = request.POST.getlist('item_cat2[]')
+        lst_cat3 = request.POST.getlist('item_cat3[]')
+        if len(lst_item_srl) != len(lst_cat1) or len(lst_cat1) != len(lst_cat2) or \
+                len(lst_cat2) != len(lst_cat3):
+            print('weird data')
+            return
+        # begin - create effective item cat list
+        lst_catalog = []
+        n_idx = 0
+        for n_item_srl in lst_item_srl:
+            s_cat1 = lst_cat1[n_idx].strip()
+            s_cat2 = lst_cat2[n_idx].strip()
+            s_cat3 = lst_cat3[n_idx].strip()
+            b_cat1 = '1' if len(s_cat1) else '0'
+            b_cat2 = '1' if len(s_cat2) else '0'
+            b_cat3 = '1' if len(s_cat3) else '0'
+            if b_cat1+b_cat2+b_cat3 in self.__g_lstAllowedPattern:
+                lst_catalog.append({'n_item_srl': n_item_srl, 's_cat1': s_cat1, 
+                                    's_cat2': s_cat2, 's_cat3': s_cat3})
+            n_idx += 1
+        del lst_item_srl
+        del lst_cat1
+        del lst_cat2
+        del lst_cat3
+        # end - create effective item cat list
 
-    def add_budget(self, n_brand_id, request):
+        dict_arranged_catalog_depth = self.__get_cat_depth_dictionary()
+        b_changed_something = False  # a flag to 
+        for dict_single_item in lst_catalog:
+            n_item_srl = None
+            lst_cat_depth = None
+            for s_key, s_val in dict_single_item.items():
+                if s_key == 'n_item_srl':
+                    n_item_srl = int(s_val)
+                    if n_item_srl in dict_arranged_catalog_depth:
+                        lst_cat_depth = dict_arranged_catalog_depth[n_item_srl]
+                elif len(s_val):  # fill in some value
+                    s_cat_depth = s_key.replace('s_cat', '')
+                    print(s_cat_depth, s_val)
+                    b_proc = False
+                    if lst_cat_depth is not None:  # update old cat depth info
+                        for dict_cat_depth in lst_cat_depth:
+                            if s_cat_depth == str(dict_cat_depth['cat_depth']):
+                                if dict_cat_depth['cat_title'] != s_val:
+                                    print('update', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'], 'to', s_val)
+                                    self.__g_oSvDb.executeQuery('updateCatalogDepthBySrl', s_val, dict_cat_depth['catalog_srl'])
+                                    b_changed_something = True
+                                b_proc = True
+                    if not b_proc:  # add new cat depth info
+                        print('add new', s_cat_depth, s_val)
+                        self.__g_oSvDb.executeQuery('insertCatalogDepth', n_item_srl, s_cat_depth, s_val)
+                        b_changed_something = True
+                else:  # remove existed depth
+                    s_cat_depth = s_key.replace('s_cat', '')
+                    if lst_cat_depth is not None: 
+                         for dict_cat_depth in lst_cat_depth:
+                             if s_cat_depth == str(dict_cat_depth['cat_depth']):
+                                if dict_cat_depth['cat_title'] != s_val:
+                                    print('remove', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'])
+                                    self.__g_oSvDb.executeQuery('deleteCatalogDepthBySrl', dict_cat_depth['catalog_srl'])
+                                    b_changed_something = True
+                                b_proc = True
+        
+        # begin - clear old denormed item perf table on BI DB
+        if b_changed_something:
+            s_plugin_name = 'client_serve'
+            o_job_plugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
+            lst_command = [s_plugin_name, 'mode=clear_ga_itemperf_sql', 'config_loc='+str(n_sv_acct_id) + '/' + str(n_brand_id)]
+            with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
+                o_job.set_my_name(s_plugin_name)
+                o_job.parse_command(lst_command)
+                o_job.do_task(None)
+        # end - clear old denormed item perf table on BI DB            
+        return
+
+    def __get_cat_depth_dictionary(self):
+        """ 
+        construct cat depth dictionary 
+        this method should be streamlined with svplugins.client_serve.ga_itemperf_log.__get_cat_depth_dictionary()
         """
-        add budget
-        :param n_brand_id:
-        :param request:
-        :return:
-        """
-        dict_rst = self.__validate_budget_info(request)
-        if not dict_rst['b_error']:
-            dict_budget = dict_rst['dict_ret']
-            self.__g_oSvDb.executeQuery('insertBudget', request.user.pk, dict_budget['n_acct_id'],
-                                        dict_budget['dt_budget_alloc_yr_mo'].year, dict_budget['dt_budget_alloc_yr_mo'].month,
-                                        dict_budget['s_budget_memo'], dict_budget['n_budget_target_amnt_inc_vat'],
-                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'])
-            del dict_budget
-        return dict_rst
+        dict_arranged_catalog_depth = {}
+        lst_cat_depth_rst = self.__g_oSvDb.executeQuery('getGaItemDepthAll')
+        for dict_single_cat in lst_cat_depth_rst:
+            n_item_srl = dict_single_cat['item_srl']
+            # n_cat_depth = dict_single_cat['cat_depth']
+            if n_item_srl not in dict_arranged_catalog_depth:
+                dict_arranged_catalog_depth[n_item_srl] = []
+            dict_arranged_catalog_depth[n_item_srl].append(dict_single_cat)
+        del lst_cat_depth_rst
+        return dict_arranged_catalog_depth

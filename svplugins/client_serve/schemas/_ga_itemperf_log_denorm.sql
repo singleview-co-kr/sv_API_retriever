@@ -1,5 +1,8 @@
 CREATE TABLE `ga_itemperf_log_denorm` (
   `item_title` varchar(100) NOT NULL,
+  `cat1` varchar(50),
+  `cat2` varchar(50),
+  `cat3` varchar(50),
   `ua` char(1) NOT NULL,
   `imp_list` smallint DEFAULT 0,
   `click_list` smallint DEFAULT 0,

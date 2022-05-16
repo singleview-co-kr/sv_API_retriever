@@ -26,7 +26,6 @@ import sys
 import logging
 from datetime import datetime
 from datetime import timedelta
-import pandas as pd
 
 # singleview library
 if __name__ == 'ga_itemperf_log': # for console debugging
@@ -80,6 +79,20 @@ class SvGaItemPerfLog():
         
         if s_mode == 'add_ga_itemperf_sql':
             self.__add_ga_itemperf_sql()
+        elif s_mode == 'clear_ga_itemperf_sql':
+            self.__clear_ga_itemperf_sql()
+
+    def __clear_ga_itemperf_sql(self):
+        """
+        clear transferred compiled_ga_intsearch_daily table on BI db
+        """
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.client_serve')
+            o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
+            o_sv_mysql.create_table_on_demand('_ga_itemperf_log_denorm')  # for google data studio
+            o_sv_mysql.executeQuery('deleteGaItemPerfDenormAll')
+        self.__print_debug('cleared')
 
     def __add_ga_itemperf_sql(self):
         """
@@ -131,6 +144,16 @@ class SvGaItemPerfLog():
                 del lst_item_info
         # end - get ga item perf daily log
 
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.client_serve')
+            o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
+            if not self.__continue_iteration():
+                return
+            dict_arranged_catalog_depth = self.__get_cat_depth_dictionary(o_sv_mysql)
+        # print(dict_arranged_catalog_depth)
+        # return
+
         n_idx = 0
         n_sentinel = len(lst_daily_log)
         if n_sentinel:
@@ -143,23 +166,68 @@ class SvGaItemPerfLog():
                     if not self.__continue_iteration():
                         return
                     if dict_item_info[dict_single_item_log['item_srl']]['b_ignore'] == '0':
-                        o_sv_mysql.executeQuery('insertGaItemPerfDenormDailyLog', 
-                                            dict_item_info[dict_single_item_log['item_srl']]['item_title'],
-                                            dict_single_item_log['ua'], 
-                                            dict_single_item_log['imp_list'],
-                                            dict_single_item_log['click_list'],
-                                            dict_single_item_log['imp_detail'],
-                                            dict_single_item_log['freq_cart'],
-                                            dict_single_item_log['qty_cart'],
-                                            dict_single_item_log['qty_cart_remove'],
-                                            dict_single_item_log['amnt_pur'],
-                                            dict_single_item_log['freq_pur'],
-                                            dict_single_item_log['freq_cko'],
-                                            dict_single_item_log['qty_cko'],
-                                            dict_single_item_log['logdate'])
+                        if dict_single_item_log['item_srl'] in dict_arranged_catalog_depth:
+                            o_sv_mysql.executeQuery('insertGaItemPerfDenormDailyLog', 
+                                                dict_item_info[dict_single_item_log['item_srl']]['item_title'],
+                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][0],
+                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][1],
+                                                dict_arranged_catalog_depth[dict_single_item_log['item_srl']][2],
+                                                dict_single_item_log['ua'], 
+                                                dict_single_item_log['imp_list'],
+                                                dict_single_item_log['click_list'],
+                                                dict_single_item_log['imp_detail'],
+                                                dict_single_item_log['freq_cart'],
+                                                dict_single_item_log['qty_cart'],
+                                                dict_single_item_log['qty_cart_remove'],
+                                                dict_single_item_log['amnt_pur'],
+                                                dict_single_item_log['freq_pur'],
+                                                dict_single_item_log['freq_cko'],
+                                                dict_single_item_log['qty_cko'],
+                                                dict_single_item_log['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga item performance data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
             self.__print_debug('stop transferring - no more data to update')
         del lst_daily_log
         del dict_item_info
+        del dict_arranged_catalog_depth
+    
+    def __get_cat_depth_dictionary(self, o_sv_mysql):
+        """ 
+        construct cat depth dictionary 
+        this method should be streamlined with svload.pandas_plugins.ga_item.__get_cat_depth_dictionary()
+        """
+        dict_max_depth = {}
+        dict_arranged_catalog_depth = {}
+        lst_cat_depth_rst = o_sv_mysql.executeQuery('getGaItemDepthAll')
+        for dict_single_cat in lst_cat_depth_rst:
+            n_item_srl = dict_single_cat['item_srl']
+            # n_cat_depth = dict_single_cat['cat_depth']
+            if n_item_srl not in dict_arranged_catalog_depth:
+                dict_arranged_catalog_depth[n_item_srl] = []
+            dict_arranged_catalog_depth[n_item_srl].append(dict_single_cat)
+            if n_item_srl not in dict_max_depth:
+                dict_max_depth[n_item_srl] = 0
+            dict_max_depth[n_item_srl] += 1
+        del lst_cat_depth_rst
+        n_max_depth = max(dict_max_depth.values())
+
+        dict_cat_info_by_item_srl = {}
+        for n_item_srl in dict_max_depth:
+            if n_item_srl not in dict_cat_info_by_item_srl:
+                dict_cat_info_by_item_srl[n_item_srl] = []
+            for i in range(0,n_max_depth):
+                dict_cat_info_by_item_srl[n_item_srl].append('')
+        del dict_max_depth
+
+        # print(dict_cat_info_by_item_srl)
+        for n_item_srl, lst_cat_depth in dict_arranged_catalog_depth.items():
+            for dict_single_cat_depth in lst_cat_depth:
+                # print(dict_single_cat_depth['item_srl'])
+                # print(dict_single_cat_depth['cat_depth'])
+                n_nth_depth = dict_single_cat_depth['cat_depth'] - 1
+                # print(dict_single_cat_depth['cat_title'])
+                dict_cat_info_by_item_srl[n_item_srl][n_nth_depth] = dict_single_cat_depth['cat_title']
+        # print(dict_cat_info_by_item_srl)
+        del dict_arranged_catalog_depth
+        return dict_cat_info_by_item_srl

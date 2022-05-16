@@ -6,13 +6,11 @@
     
     {% endblock %}
 <!-- begin - budget list table -->
-    
-    
     <div class="row">
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>기간 계정별 예산 내역 <small></small></h2>
+                    <h2>GA 수집한 상품 목록 <small><button type="button" id='btn_update_items' class="btn btn-primary">저장</button></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
                         </li>
@@ -34,21 +32,29 @@
                     <table id="datatable-responsive" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%">
                         <thead>
                         <tr>
-                            <th>상품명</th>
-                            <th>무시 여부</th>
-                            <th>등록일</th>
+                            <th>GA수집명칭</th>
+                            <th>1계층</th>
+                            <th>2계층</th>
+                            <th>3계층</th>
+                            <th>숨김</th>
                         </tr>
                         </thead>
                         <tbody>
+                        <form method="POST" id='frm_item_update' enctype="multipart/form-data">
+                        <input type="hidden" id="act" name="act" value="update_item" />
+                        {% csrf_token %}
                         {% for dict_row in lst_catalog %}
                         <tr>
-                            <td title="{{dict_row.item_title}}">{{dict_row.item_title}}</td>
+                            <td title="{{dict_row.item_title}}"><input type="hidden" name="item_srls[]" value="{{dict_row.item_srl}}" />{{dict_row.item_title}}</td>
+                            <td><input type="text" name="item_cat1[]" style="width:100px;" value="{{dict_row.cat1}}" /></td>
+                            <td><input type="text" name="item_cat2[]" style="width:100px;" value="{{dict_row.cat2}}" /></td>
+                            <td><input type="text" name="item_cat3[]" style="width:100px;" value="{{dict_row.cat3}}" /></td>
                             <td>{{dict_row.b_ignore}}</td>
-                            <td>{{dict_row.regdate|date:'Y-m-d'}}</td>
                         </tr>
                         {% endfor %}
                         </tbody>
                     </table>
+                    </form>
                 </div>
             </div>
         </div>
@@ -57,11 +63,15 @@
 <script type="text/javascript" src="/static/skins/default/js/moment/moment.min.js"></script>
 <!-- ion_range -->
 <script>
-jQuery(document).ready(function() {
-    jQuery('#datatable-responsive').DataTable({
-        "order": [[ 1, "desc" ]]
-    });
-});
+// jQuery(document).ready(function() {
+//     jQuery('#datatable-responsive').DataTable({
+//         "order": [[ 1, "desc" ]]
+//     });
+// });
+jQuery("#btn_update_items").click(function(){
+    jQuery('#frm_item_update').trigger('submit');
+    console.log('dd');
+})
 </script>
 
 <!-- Datatables-->
