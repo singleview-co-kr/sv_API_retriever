@@ -185,7 +185,7 @@ class SvGaItemPerfLog():
                                                 dict_single_item_log['freq_cko'],
                                                 dict_single_item_log['qty_cko'],
                                                 dict_single_item_log['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga item performance data:', suffix = 'Complete', length = 50)
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga item performance:', suffix = 'Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
             self.__print_debug('stop transferring - no more data to update')

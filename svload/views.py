@@ -237,7 +237,6 @@ class GaItemPerfView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        print()
         dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
         if dict_rst['b_error']:
             dict_context = {'err_msg': dict_rst['s_msg']}

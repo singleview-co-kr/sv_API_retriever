@@ -3,14 +3,14 @@
 {% load humanize %}
 {% block content %}
     {% block content_header %}
-    
+    <link rel="stylesheet" href="/static/skins/default/css/switchery/switchery.min.css" />
     {% endblock %}
 <!-- begin - budget list table -->
     <div class="row">
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>GA 수집한 상품 목록 <small><button type="button" id='btn_update_items' class="btn btn-primary">저장</button></small></h2>
+                    <h2>GA 수집한 상품 목록 <small><button type="button" id='btn_update_items' class="btn btn-primary">변경 저장</button></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
                         </li>
@@ -49,7 +49,7 @@
                             <td><input type="text" name="item_cat1[]" style="width:100px;" value="{{dict_row.cat1}}" /></td>
                             <td><input type="text" name="item_cat2[]" style="width:100px;" value="{{dict_row.cat2}}" /></td>
                             <td><input type="text" name="item_cat3[]" style="width:100px;" value="{{dict_row.cat3}}" /></td>
-                            <td>{{dict_row.b_ignore}}</td>
+                            <td><input type="checkbox" name="item_hide[]" class="js-switch" value="{{dict_row.item_srl}}" {% if dict_row.b_ignore == '1' %}checked{% endif %} /></td>
                         </tr>
                         {% endfor %}
                         </tbody>
@@ -95,4 +95,6 @@ jQuery("#btn_update_items").click(function(){
 <script src="/static/skins/default/js/datatables/dataTables.responsive.min.js"></script>
 <script src="/static/skins/default/js/datatables/responsive.bootstrap.min.js"></script>
 <script src="/static/skins/default/js/datatables/dataTables.scroller.min.js"></script>
+
+<script src="/static/skins/default/js/switchery/switchery.min.js"></script>
 {% endblock %}

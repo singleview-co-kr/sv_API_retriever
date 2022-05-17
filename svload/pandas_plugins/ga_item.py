@@ -124,6 +124,29 @@ class GaItem:
                                     b_changed_something = True
                                 b_proc = True
         
+        # begin - proc ignore item
+        lst_item_srl_tobe_ignored = request.POST.getlist('item_hide[]')
+        lst_ignored_item = []
+        lst_ignored_item_rst = self.__g_oSvDb.executeQuery('getGaItemListIgnored')
+        for dict_item_ignored in lst_ignored_item_rst:
+            lst_ignored_item.append(str(dict_item_ignored['item_srl']))
+        del lst_ignored_item_rst
+
+        # item to change to hide
+        lst_change_hide = list(set(lst_item_srl_tobe_ignored) - set(lst_ignored_item))
+        for s_item_srl in lst_change_hide:
+            self.__g_oSvDb.executeQuery('updateGaItemListIgnored', 1, s_item_srl)
+            b_changed_something = True
+
+        # item to change to display
+        lst_change_display = list(set(lst_ignored_item) - set(lst_item_srl_tobe_ignored))
+        for s_item_srl in lst_change_display:
+            self.__g_oSvDb.executeQuery('updateGaItemListIgnored', 0, s_item_srl)
+            b_changed_something = True
+        del lst_change_hide
+        del lst_change_display
+        # end - proc ignore item
+
         # begin - clear old denormed item perf table on BI DB
         if b_changed_something:
             s_plugin_name = 'client_serve'
