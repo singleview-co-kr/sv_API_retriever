@@ -1,0 +1,223 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    <!-- ion_range -->
+      <link rel="stylesheet" href="/static/skins/default/css/normalize.css" />
+      <link rel="stylesheet" href="/static/skins/default/css/ion.rangeSlider.css" />
+      <link rel="stylesheet" href="/static/skins/default/css/ion.rangeSlider.skinFlat.css" />
+    {% endblock %}
+<!-- begin - budget list table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>기간 예산 현황 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div>
+                      <p>조회를 원하시는 예산 기간을 선택하세요.</p>
+                      <input type="text" id="range_budget_period" value="" name="range" />
+                    </div>
+                    <br>
+                    <form method="POST" id='frm_budget_inquiry' enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="act" value="inquiry_budget" />
+                    <input type="hidden" id="budget_period_from" name="budget_period_from" value="" />
+                    <input type="hidden" id="budget_period_to" name="budget_period_to" value="" />
+                    <button type="submit" class="btn btn-primary" id="btn_budget_enquiry">기간 예산 조회하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>기간 예산 내역 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <table id="datatable-responsive" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%">
+                        <thead>
+                        <tr>
+                            <th>계약 ID</th>
+                            <th>현재 연결 광고 그룹</th>
+                            <th>템플릿 이름</th>
+                            <th>최대 검색수</th>
+                            <th>계약 기간</th>
+                            <th>계약 광고비</th>
+                            <th>환급액</th>
+                            <th>UA</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for dict_row in lst_contract_table %}
+                        <tr>
+                            <td title="{{dict_row.contract_name}}"><a budget_id="{{dict_row.contract_srl}}" class="lnk_update_budget"><u>{{dict_row.contract_id}}</u></a></td>
+                            <td>{{dict_row.conntected_ad_group}}</td>
+                            <td>{{dict_row.template_name}}</td>
+                            <td>{{dict_row.available_queries|intcomma}}</td>
+                            <td>{{dict_row.contract_date_begin|date:'Y-m-d'}}~{{dict_row.contract_date_end|date:'Y-m-d'}}</td>
+                            <td>{{dict_row.contract_amnt|intcomma}}</td>
+                            <td>{{dict_row.refund_amnt|intcomma}}</td>
+                            <td>{{dict_row.ua}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <BR>
+                        <form method="POST" id='frm_contract_appending' enctype="multipart/form-data">
+                        <input type="hidden" id="act" name="act" value="add_contract" />
+                        {% csrf_token %}
+                            <label for="message">계약ID\t계약상태\t등록일시\t계약이름\t현재연결광고그룹\t템플릿이름\t계약가능검색수\t계약기간\t계약광고비\t환급액\t노출수\t클릭수\t클릭률(%)</label>
+                            <textarea id="multiple_contract" name="multiple_contract" required="required" class="form-control" rows="10"></textarea>
+                            <button type="submit" id='btn_add_budget' class="btn btn-primary">추가</button>
+                        </form>
+                        <BR>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- end - budget list table -->
+<script type="text/javascript" src="/static/skins/default/js/moment/moment.min.js"></script>
+<!-- range slider -->
+<script src="/static/skins/default/js/ion_range/ion.rangeSlider.min.js"></script>
+
+<!-- ion_range -->
+<script>
+jQuery(document).ready(function() {
+    jQuery('#datatable-responsive').DataTable({
+        "order": [[ 5, "desc" ]]
+    });
+});
+
+// https://velog.io/@dojunggeun/JavaScript-Moment.js%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%98%EC%97%AC-Date-Time-%EA%B4%80%EB%A6%AC%ED%95%98%EA%B8%B0
+jQuery(function() {
+  jQuery("#range_budget_period").ionRangeSlider({
+      type: "double",
+      min: +moment('{{dict_contract_period.s_earliest_contract}}', 'YYYYMMDD').format("X"),
+      max: +moment('{{dict_contract_period.s_latest_contract}}', 'YYYYMMDD').format("X"),
+      from: +moment('{{dict_contract_period.s_earliest_req}}', 'YYYYMMDD').format("X"),
+      to: +moment('{{dict_contract_period.s_latest_req}}', 'YYYYMMDD').format("X"),
+      grid: true,
+      force_edges: true,
+      prettify: function(num) {
+          var m = moment(num, "X");
+          return m.format("Do MMMM, YYYY");
+      }
+  });
+});
+//const dateA = moment().format("X"); //moment('01-01-1900', 'DD-MM-YYYY');
+//const dateB = moment('2021-06-23', 'YYYY-MM-DD').format("X"); //moment();
+
+// Saving it's instance to var
+var slider = $("#range_budget_period").data("ionRangeSlider");
+
+jQuery("#btn_budget_enquiry").click(function (e) {
+    //e.preventDefault();
+
+    //var from = slider.result.from
+    //var to = slider.result.to
+    var n_from = jQuery('#range_budget_period').data().from;
+    var n_to = jQuery('#range_budget_period').data().to;
+    var s_from = moment.unix(n_from).format("YYYYMMDD");
+    var s_to = moment.unix(n_to).format("YYYYMMDD");
+    //var resultString = "Result: from: " + from + " to: " + to;
+    //$("#result").html(resultString);
+    $("#budget_period_from").val(s_from);
+    $("#budget_period_to").val(s_to);
+});
+</script>
+<!-- /ion_range -->
+
+<script src="/static/skins/default/js/bootstrap.min.js"></script>
+<script src="/static/skins/default/js/moment/moment.min.js"></script>
+<script src="/static/skins/default/js/chartjs/chart.min.js"></script>
+
+
+
+<!-- Datatables-->
+<link href="/static/skins/default/js/datatables/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/buttons.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/fixedHeader.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/responsive.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/scroller.bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+<script src="/static/skins/default/js/datatables/jquery.dataTables.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.bootstrap.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.buttons.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/jszip.min.js"></script>
+<script src="/static/skins/default/js/datatables/pdfmake.min.js"></script>
+<script src="/static/skins/default/js/datatables/vfs_fonts.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.html5.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.print.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.fixedHeader.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.keyTable.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.responsive.min.js"></script>
+<script src="/static/skins/default/js/datatables/responsive.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.scroller.min.js"></script>
+
+<script type="text/javascript">
+jQuery("#btn_add_budget").click(function(){
+    n_acct_id = jQuery("select[name='acct_id']").val();
+    //console.log(n_acct_id);
+    if(n_acct_id == '')
+    {
+        alert('예산 분류를 선택하세요');
+        return false;
+    }
+    else
+        return true;
+})
+
+jQuery(".lnk_update_budget").click(function(){
+    var nBudgetId = jQuery(this).attr('budget_id');
+    if(nBudgetId > 0)
+    {
+        var aCurUrl = window.location.href.split('budget');
+        var nBrandId = '{{n_brand_id}}';
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        // console.log(sCurUrlBase + 'budget_update/' + nBrandId + '/' + nBudgetId);
+        window.location.href = sCurUrlBase + 'budget_update/' + nBrandId + '/' + nBudgetId;
+    }
+    else
+        alert('plz choose budget');
+})
+</script>
+{% endblock %}

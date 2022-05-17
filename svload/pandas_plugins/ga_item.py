@@ -25,7 +25,6 @@ class GaItem:
     def __del__(self):
         # logger.debug('__del__')
         del self.__g_oSvDb
-        pass
 
     # def activate_debug(self):
     #     self.__g_bPeriodDebugMode = True
@@ -38,26 +37,27 @@ class GaItem:
         # begin - construct item list
         lst_cleaned_catalog = []
         lst_rst = self.__g_oSvDb.executeQuery('getGaItemList')
-        for dict_single_item in lst_rst:
-            if dict_single_item['item_title'] in self.__g_sLstIgnoreItemTitle:
-                continue
-            else:
-                n_item_srl = dict_single_item['item_srl']
-                if n_item_srl in dict_arranged_catalog_depth:
-                    for dict_cat_depth in dict_arranged_catalog_depth[n_item_srl]:
-                        s_cat_id = 'cat' + str(dict_cat_depth['cat_depth'])
-                        dict_single_item[s_cat_id] = dict_cat_depth['cat_title']
-                lst_cleaned_catalog.append(dict_single_item)
+        if len(lst_rst):
+            for dict_single_item in lst_rst:
+                if dict_single_item['item_title'] in self.__g_sLstIgnoreItemTitle:
+                    continue
+                else:
+                    n_item_srl = dict_single_item['item_srl']
+                    if n_item_srl in dict_arranged_catalog_depth:
+                        for dict_cat_depth in dict_arranged_catalog_depth[n_item_srl]:
+                            s_cat_id = 'cat' + str(dict_cat_depth['cat_depth'])
+                            dict_single_item[s_cat_id] = dict_cat_depth['cat_title']
+                    lst_cleaned_catalog.append(dict_single_item)
+            del dict_single_item
         del dict_arranged_catalog_depth
-        del dict_single_item
         del lst_rst
         # end - construct item list
         return {'lst_catalog': lst_cleaned_catalog}
 
     def update_item(self, request, n_sv_acct_id, n_brand_id):
         """ 
-        param n_sv_acct_id: is to execute the client_serve plugin
-        param n_brand_id: is to execute the client_serve plugin
+        :param n_sv_acct_id: is to execute the client_serve plugin
+        :param n_brand_id: is to execute the client_serve plugin
         """
         lst_item_srl = request.POST.getlist('item_srls[]')
         lst_cat1 = request.POST.getlist('item_cat1[]')

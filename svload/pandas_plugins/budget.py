@@ -1,6 +1,7 @@
 from dateutil.relativedelta import relativedelta
 from django.utils.html import strip_tags
-from datetime import datetime, date
+from datetime import datetime
+from datetime import date
 import pandas as pd
 
 # for logger
@@ -44,7 +45,6 @@ class Budget:
     def __del__(self):
         # logger.debug('__del__')
         del self.__g_oSvDb
-        pass
 
     # def activate_debug(self):
     #     self.__g_bPeriodDebugMode = True
@@ -52,10 +52,9 @@ class Budget:
     def get_budget_type_dict(self):
         return self.__g_dictBudgetType
 
-    def get_budget_amnt_by_period(self, n_brand_id, dt_start, dt_end):
+    def get_budget_amnt_by_period(self, dt_start, dt_end):
         """
         gross budget amnt for GA & Media dashboard
-        :param n_brand_id:
         :param dt_start: dt_req_first_day
         :param dt_end: dt_req_last_day
         :return:
@@ -128,7 +127,6 @@ class Budget:
     def get_detail_by_id(self, n_budget_id):
         """
         data for budget detail screen
-        :param n_brand_id:
         :param n_budget_id:
         :return:
         """
@@ -146,7 +144,6 @@ class Budget:
     def get_list_by_period(self, s_period_from, s_period_to):
         """
         data for budget list screen
-        :param n_brand_id:
         :param s_period_from:
         :param s_period_to:
         :return:
@@ -271,10 +268,9 @@ class Budget:
             del dict_budget
         return dict_rst
 
-    def add_budget(self, n_brand_id, request):
+    def add_budget(self, request):
         """
         add budget
-        :param n_brand_id:
         :param request:
         :return:
         """

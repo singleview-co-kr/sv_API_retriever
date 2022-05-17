@@ -435,8 +435,7 @@ class GaSourceMediaRaw:
         # begin - retrieve planned budget
         from .budget import Budget
         o_budget = Budget(self.__g_oSvDb)
-        dict_budget = o_budget.get_budget_amnt_by_period(n_brand_id=self.__g_nBrandId,
-                                                         dt_start=self.__g_dtDesignatedFirstDate,
+        dict_budget = o_budget.get_budget_amnt_by_period(dt_start=self.__g_dtDesignatedFirstDate,
                                                          dt_end=dt_last_date_of_month)
         del o_budget
         for s_source_medium, dict_budget in dict_budget.items():

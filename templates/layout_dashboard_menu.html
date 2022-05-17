@@ -11,6 +11,7 @@
 				<li><a href="{% url 'svload:edi_today' dict_brand.n_brand_id %}">EDI</a></li>
 				<li><a href="{% url 'svload:morpheme' dict_brand.n_brand_id %}">고객 바이럴</a></li>
 				<li><a href="{% url 'svload:budget_list' dict_brand.n_brand_id %}">예산 설정</a></li>
+                <li><a href="{% url 'svload:nvr_brs_contract_list' dict_brand.n_brand_id %}">네이버 브검 계약</a></li>
                 <li><a href="{% url 'svextract:plugin_console' dict_brand.n_brand_id %}">API 추출</a></li>
                 <li><a href="{% url 'svupload:index' dict_brand.n_brand_id %}">파일 목록</a></li>
 			</ul>
