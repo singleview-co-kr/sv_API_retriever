@@ -131,15 +131,11 @@ class Budget:
         :return:
         """
         lst_budget_detail = self.__g_oSvDb.executeQuery('getBudgetDetailByBudgetId', n_budget_id)
-        s_budget_yrmo = '{0:04d}{1:02d}'.format(lst_budget_detail[0]['alloc_yr'], lst_budget_detail[0]['alloc_mo'])
-        s_date_begin = lst_budget_detail[0]['date_begin'].strftime("%Y-%m-%d")
-        s_date_end = lst_budget_detail[0]['date_end'].strftime("%Y-%m-%d")
-        return {'acct_id': lst_budget_detail[0]['acct_id'],
-                'memo': lst_budget_detail[0]['memo'],
-                's_budget_yrmo': s_budget_yrmo,
-                's_date_begin': s_date_begin, 's_date_end': s_date_end,
-                'target_amnt_inc_vat': lst_budget_detail[0]['target_amnt_inc_vat'],
-                'closed': lst_budget_detail[0]['closed']}
+        lst_budget_detail[0]['s_budget_yrmo'] = '{0:04d}{1:02d}'.format(lst_budget_detail[0]['alloc_yr'], 
+                                                                        lst_budget_detail[0]['alloc_mo'])
+        del lst_budget_detail[0]['alloc_yr']
+        del lst_budget_detail[0]['alloc_mo']
+        return lst_budget_detail[0]
 
     def get_list_by_period(self, s_period_from, s_period_to):
         """

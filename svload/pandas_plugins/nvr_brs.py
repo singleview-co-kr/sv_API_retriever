@@ -1,6 +1,5 @@
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
-import pandas as pd
 
 # for logger
 import logging
@@ -12,6 +11,7 @@ class NvrBrsInfo:
     """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
+    __g_lstUa = ['M', 'P']
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -28,6 +28,8 @@ class NvrBrsInfo:
 
     # def activate_debug(self):
     #     self.__g_bPeriodDebugMode = True
+    def get_ua_list(self):
+        return self.__g_lstUa
 
     def get_list_by_period(self, s_period_from, s_period_to):
         """
@@ -63,10 +65,32 @@ class NvrBrsInfo:
         del dt_earliest_contract, dt_latest_contract
         return {'dict_contract_period': dict_budget_period, 'lst_contract_rst': lst_contract_rst}
 
+    def get_detail_by_id(self, s_budget_id):
+        """
+        data for contract detail screen
+        :param s_budget_id:
+        :return:
+        """
+        lst_contract_detail = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailByBudgetId', s_budget_id)
+        return lst_contract_detail[0]
+
+    def update_contract(self, request):
+        """
+        data for contract detail screen
+        :param s_budget_id:
+        :return:
+        """
+        s_budget_id = request.POST['budget_id'].strip()
+        s_ua = request.POST['ua'].strip()
+        if s_ua in self.__g_lstUa:
+            self.__g_oSvDb.executeQuery('updateNvrBrsContractUaByBudgetId', s_ua, s_budget_id)
+        return
+
     def add_contract(self, request):
         """ 
-        :param n_sv_acct_id: is to execute the client_serve plugin
+        :param 
         """
+        dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         # begin - construct contract info list
         s_multiple_contract = request.POST.get('multiple_contract')
         lst_line = s_multiple_contract.splitlines()
@@ -74,6 +98,11 @@ class NvrBrsInfo:
         # [6] 계약 가능 검색수 [7] 계약 기간 [8] 계약 광고비 [9] 환급액 [10] 노출수 [11] 클릭수 [12] 클릭률(%)
         for s_line in lst_line:
             lst_single_line = s_line.split('\t')
+            if len(lst_single_line) < 10:
+                dict_rst['b_error'] = True
+                dict_rst['s_msg'] = 'weird nvr brs contract info'
+                return dict_rst
+
             if lst_single_line[0] == '계약 ID' and lst_single_line[1] == '계약 상태':
                 continue
             dt_regdate = datetime.strptime(lst_single_line[2], '%Y.%m.%d.')
@@ -83,14 +112,14 @@ class NvrBrsInfo:
             s_conntected_ad_group = lst_single_line[4]
             if s_conntected_ad_group.find('NV_PS_DISP_BRS') != -1:
                 if s_conntected_ad_group.find('MOB') != -1:
-                    s_ua = 'M'
+                    s_ua = self.__g_lstUa[0]
                 elif s_conntected_ad_group.find('PC') != -1:
-                    s_ua = 'P'
+                    s_ua = self.__g_lstUa[1]
             else:
-                s_ua = ''
+                s_ua = 'e'  # means error
             self.__g_oSvDb.executeQuery('insertNvrBrsContract', lst_single_line[0], lst_single_line[1], dt_regdate,
                                         lst_single_line[3], lst_single_line[4], lst_single_line[5], lst_single_line[6],
                                         dt_contract_begin, dt_contract_end, lst_single_line[8], lst_single_line[9], s_ua)
         del lst_line
         # end - construct contract info list
-        return {'b_error': False, 's_msg': None, 'dict_ret': None}
+        return dict_rst

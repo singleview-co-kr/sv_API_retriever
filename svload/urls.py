@@ -16,4 +16,6 @@ urlpatterns = [
     path('budget/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.BudgetView.as_view(), name='budget_period'),
     path('budget_update/<int:sv_brand_id>/<int:budget_id>/', views.BudgetView.as_view(), name='budget_update'),
     path('nvr_brs_contract/<int:sv_brand_id>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list'),
+    path('nvr_brs_contract/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list_period'),
+    path('nvr_brs_contract_update/<int:sv_brand_id>/<str:contract_id>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list_update'),
 ]

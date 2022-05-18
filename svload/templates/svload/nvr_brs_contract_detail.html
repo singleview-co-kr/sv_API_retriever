@@ -1,0 +1,143 @@
+{% extends 'layout_dashboard.html' %}
+
+{% load humanize %}
+{% block content %}
+    {% block content_header %}
+    {% endblock %}
+<!-- begin - budget list table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>네이버 브랜드 검색 UA 수정 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a></li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a></li>
+                                <li><a href="#">Settings 2</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <br />
+                    <form method="POST" id='frm_budget_update' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
+                    <input type="hidden" id="act" name="act" value="update_contract" />
+                    <input type="hidden" id="budget_id" name="budget_id" value="{{dict_contract_info.contract_id}}" />
+                    {% csrf_token %}
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 ID</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_id}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 등록 일시</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_regdate}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 이름</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_name}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">현재 연결 광고 그룹</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.conntected_ad_group}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">템플릿 이름</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.template_name}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 가능 검색수</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.available_queries|intcomma}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 광고비(VAT포함)</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_amnt|intcomma}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">환급액</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.refund_amnt|intcomma}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약시작일</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_date_begin}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약종료일</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_date_end}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">User Agent <span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <select class="form-control" name="ua">
+                                <option value="">분류 선택</option>
+                                {% for s_ua in lst_ua %}
+                                    <option value="{{s_ua}}" {% if dict_contract_info.ua == s_ua %}selected="selected"{% endif %}>{{s_ua}}</option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ln_solid"></div>
+                        <div class="form-group">
+                            <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+                                <button type="submit" id='btn_update_budget' class="btn btn-success">수정</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="text/javascript">
+jQuery("#btn_update_budget").click(function(){
+    n_acct_id = jQuery("select[name='acct_id']").val();
+    //console.log(n_acct_id);
+    if( n_acct_id == '' )
+    {
+        alert('예산 분류를 선택하세요');
+        return false;
+    }
+    else
+        return true;
+})
+
+jQuery(".lnk_update_budget").click(function(){
+    var nBudgetId = jQuery(this).attr('budget_id');
+    console.log(nBudgetId);
+    if( nBudgetId > 0 )
+    {
+        var aCurUrl = window.location.href.split('?');
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        sCurUrlBase = sCurUrlBase.replace( '/budget/', '/budget_update/' )
+        console.log(sCurUrlBase + nBudgetId);
+        // window.location.href = sCurUrlBase + nBranchId;
+    }
+    else
+        alert('plz choose branch');
+})
+</script>
+{% endblock %}

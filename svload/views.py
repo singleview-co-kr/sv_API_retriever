@@ -703,7 +703,7 @@ class BudgetView(LoginRequiredMixin, TemplateView):
                 return render(request, "svload/deny.html", context=dict_context)
 
             o_redirect = redirect('svload:budget_list', sv_brand_id=n_brand_id)
-        if s_act == 'update_budget':
+        elif s_act == 'update_budget':
             if request.POST['budget_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
@@ -795,10 +795,10 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        if 'budget_id' in kwargs:
-            return self.__budget_detail(request, *args, **kwargs)
+        if 'contract_id' in kwargs:
+            return self.__contract_detail(request, *args, **kwargs)
         else:
-            return self.__budget_list(request, *args, **kwargs)
+            return self.__contract_list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         if not self.__g_oSvDb:
@@ -821,23 +821,24 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
                 return render(request, "svload/deny.html", context=dict_context)
 
             o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
-        if s_act == 'update_contract':
+        elif s_act == 'update_contract':
             if request.POST['budget_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-            n_budget_id = int(request.POST['budget_id'])
             o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
-            o_nvr_brs_info.update_budget(n_budget_id, request)
+            o_nvr_brs_info.update_contract(request)
             del o_nvr_brs_info
             o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
         elif s_act == 'inquiry_contract':
-            s_period_from = request.POST.get('budget_period_from')
-            s_period_to = request.POST.get('budget_period_to')
-            o_redirect = redirect('svload:nvr_brs_contract_list',
+            s_period_from = request.POST.get('contract_period_from')
+            s_period_to = request.POST.get('contract_period_to')
+            print(s_period_from)
+            print(s_period_to)
+            o_redirect = redirect('svload:nvr_brs_contract_list_period',
                                   sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
         return o_redirect
 
-    def __budget_list(self, request, *args, **kwargs):
+    def __contract_list(self, request, *args, **kwargs):
         if 'period_from' in kwargs:
             s_period_from = kwargs['period_from']
         else:
@@ -846,7 +847,6 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
             s_period_to = kwargs['period_to']
         else:
             s_period_to = None
-
         o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
         dict_contract_info = o_nvr_brs_info.get_list_by_period(s_period_from, s_period_to)
         del o_nvr_brs_info
@@ -859,9 +859,9 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
                        'lst_contract_table': dict_contract_info['lst_contract_rst'],
                        })
 
-    def __budget_detail(self, request, *args, **kwargs):
-        if 'budget_id' not in kwargs:
-            raise Exception('invalid budget id')
+    def __contract_detail(self, request, *args, **kwargs):
+        if 'contract_id' not in kwargs:
+            raise Exception('invalid contract id')
 
         if 'period_from' in kwargs:
             s_period_from = kwargs['period_from']
@@ -873,21 +873,18 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
         else:
             s_period_to = None
 
-        n_budget_id = kwargs['budget_id']
-        o_budget = Budget(self.__g_oSvDb)
-        dict_budget_info = o_budget.get_detail_by_id(n_budget_id)
-        dict_budget_info['n_budget_id'] = n_budget_id
-        dict_period_info = {'s_earliest_budget': s_period_from, 's_latest_budget': s_period_to}
-        lst_acct_list = o_budget.get_acct_list_for_ui()
-        del o_budget
+        s_contract_id = kwargs['contract_id']
+        o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
+        dict_contract_info = o_nvr_brs_info.get_detail_by_id(s_contract_id)
+        lst_ua = o_nvr_brs_info.get_ua_list()
+        del o_nvr_brs_info
         s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
-        return render(request, 'svload/budget_detail.html',
+        return render(request, 'svload/nvr_brs_contract_detail.html',
                       {'s_brand_name': s_brand_name,
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
-                       'dict_budget_info': dict_budget_info,
-                       'dict_budget_period': dict_period_info,
-                       'lst_acct_list': lst_acct_list,
+                       'lst_ua': lst_ua,
+                       'dict_contract_info': dict_contract_info,
                        })
 
 
