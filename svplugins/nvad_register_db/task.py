@@ -306,7 +306,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if dict_campaign_info['campaign_1st'] == 'BRS':  # if BRS exists, sum BRS impression total
                     dictNvBrsPageImpByUa[dict_daily_log['ua']] = \
                         dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
-                    dictBrspageDailyCostRst = self.__defineNvBrspageCost(sCompileDate)
+                    dictBrspageDailyCostRst = self.__define_nv_brspage_cost(sCompileDate)
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
                         self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
                         return False
@@ -367,7 +367,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsManualInfo['conv_amnt'], sLogDate )
         return True
 
-    def __defineNvBrspageCost(self, sCompileDate):
+    def __define_nv_brspage_cost(self, sCompileDate):
         dictRst = {'M':0, 'P':0, 'detected':False}
         dtTouchingDate = datetime.strptime(sCompileDate, '%Y-%m-%d').date()
         sBrspageInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'contract_brs_info.tsv')

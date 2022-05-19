@@ -27,7 +27,7 @@
                     <br />
                     <form method="POST" id='frm_budget_update' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
                     <input type="hidden" id="act" name="act" value="update_contract" />
-                    <input type="hidden" id="budget_id" name="budget_id" value="{{dict_contract_info.contract_id}}" />
+                    <input type="hidden" id="contract_srl" name="contract_srl" value="{{dict_contract_info.contract_srl}}" />
                     {% csrf_token %}
                         <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 ID</label>

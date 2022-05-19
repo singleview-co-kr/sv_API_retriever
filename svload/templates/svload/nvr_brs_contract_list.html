@@ -86,7 +86,7 @@
                         <tbody>
                         {% for dict_row in lst_contract_table %}
                         <tr>
-                            <td title="{{dict_row.contract_id}}"><a contract_id="{{dict_row.contract_id}}" class="lnk_update_contract"><u>{{dict_row.contract_id}}</u></a></td>
+                            <td title="{{dict_row.contract_id}}"><a contract_srl="{{dict_row.contract_srl}}" class="lnk_update_contract"><u>{{dict_row.contract_id}}</u></a></td>
                             <td>{{dict_row.ua}}</td>
                             <td>{{dict_row.conntected_ad_group}}</td>
                             <td>{{dict_row.available_queries|intcomma}}</td>
@@ -97,21 +97,135 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    <BR>
-                        <form method="POST" id='frm_contract_appending' enctype="multipart/form-data">
-                        <input type="hidden" id="act" name="act" value="add_contract" />
-                        {% csrf_token %}
-                            <label for="message">계약ID\t계약상태\t등록일시\t계약이름\t현재연결광고그룹\t템플릿이름\t계약가능검색수\t계약기간\t계약광고비\t환급액\t노출수\t클릭수\t클릭률(%)</label>
-                            <textarea id="multiple_contract" name="multiple_contract" required="required" class="form-control" rows="10"></textarea>
-                            <button type="submit" id='btn_add_contract' class="btn btn-primary">추가</button>
-                        </form>
-                        <BR>
                 </div>
             </div>
         </div>
     </div>
-
-<!-- end - budget list table -->
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>네이버 엑셀 파일을 그대로 복붙하기 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-down"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content" style="display: none;">
+                    <form method="POST" id='frm_contract_appending_bulk' enctype="multipart/form-data">
+                    <input type="hidden" id="act" name="act" value="add_contract_bulk" />
+                    {% csrf_token %}
+                        <label for="message">계약ID\t계약상태\t등록일시\t계약이름\t현재연결광고그룹\t템플릿이름\t계약가능검색수\t계약기간\t계약광고비\t환급액\t노출수\t클릭수\t클릭률(%)</label>
+                        <textarea id="multiple_contract" name="multiple_contract" required="required" class="form-control" rows="10"></textarea>
+                        <button type="submit" id='btn_add_contract_bulk' class="btn btn-primary">추가하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>네이버 브검 바터 광고 개별 추가하기 <small></small></h2>
+                    <ul class="nav navbar-right panel_toolbox">
+                        <li><a class="collapse-link"><i class="fa fa-chevron-down"></i></a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                            <ul class="dropdown-menu" role="menu">
+                                <li><a href="#">Settings 1</a>
+                                </li>
+                                <li><a href="#">Settings 2</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li><a class="close-link"><i class="fa fa-close"></i></a>
+                        </li>
+                    </ul>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content" style="display: none;">
+                    <br />
+                    <form method="POST" id='frm_contract_appending' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
+                    <input type="hidden" id="act" name="act" value="add_contract_barter" />
+                    {% csrf_token %}
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 이름</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="contract_name" required="required" value="계약 이름">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">현재 연결 광고 그룹</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="connected_ad_group" required="required" value="NV_PS_DISP_BRS_201708_MOB">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">템플릿 이름</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="template_name" required="required" value="모바일 라이트형 일반(이미지좌측)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 가능 검색수</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="available_queries" required="required" value="1234">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 광고비(VAT포함)</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="contract_amnt" required="required" value="800000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약시작일</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="contract_date_begin" placeholder="YYYY-MM-DD" required="required" value="2022-01-01">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약종료일</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="contract_date_end" placeholder="YYYY-MM-DD" required="required" value="2022-01-01">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">User Agent <span class="required">*</span></label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <select class="form-control" name="ua" required="required" >
+                                <option value="">분류 선택</option>
+                                {% for s_ua in lst_ua %}
+                                    <option value="{{s_ua}}">{{s_ua}}</option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ln_solid"></div>
+                        <div class="form-group">
+                            <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+                                <button type="submit" id='btn_add_contract_barter' class="btn btn-success">수정</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>    
 <script type="text/javascript" src="/static/skins/default/js/moment/moment.min.js"></script>
 <!-- range slider -->
 <script src="/static/skins/default/js/ion_range/ion.rangeSlider.min.js"></script>
@@ -155,36 +269,41 @@ jQuery("#btn_contract_enquiry").click(function (e) {
 <!-- /ion_range -->
 
 <script type="text/javascript">
-    jQuery("#btn_add_contract").click(function(){
-        sMultipleContract = jQuery("#multiple_contract").val();
-        if(sMultipleContract.length == 0)
-        {
-            alert('네이버 브검 계약 정보를 입력하세요.');
-            return false;
-        }
-        else
-            return true;
-    })
-    
-    jQuery(".lnk_update_contract").click(function(){
-        var sContractId = jQuery(this).attr('contract_id');
-        if(sContractId.length > 0)
-        {
-            var aCurUrl = window.location.href.split('nvr_brs_contract');
-            var nBrandId = '{{n_brand_id}}';
-            sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
-            window.location.href = sCurUrlBase + 'nvr_brs_contract_update/' + nBrandId + '/' + sContractId;
-        }
-        else
-            alert('plz choose budget');
-    })
-    </script>
+jQuery("#btn_add_contract_bulk").click(function(){
+    sMultipleContract = jQuery("#multiple_contract").val();
+    if(sMultipleContract.length == 0)
+    {
+        alert('네이버 브검 계약 정보를 입력하세요.');
+        return false;
+    }
+    else
+        return true;
+})
+
+jQuery("#btn_add_contract_barter").click(function(){
+    // sMultipleContract = jQuery("#multiple_contract").val();
+    // if(sMultipleContract.length == 0)
+    // {
+    //     alert('네이버 브검 계약 정보를 입력하세요.');
+    //     return false;
+    // }
+    // else
+        return true;
+})
+
+jQuery(".lnk_update_contract").click(function(){
+    var nContractSrl = jQuery(this).attr('contract_srl');
+    if(nContractSrl > 0)
+    {
+        var aCurUrl = window.location.href.split('nvr_brs_contract');
+        var nBrandId = '{{n_brand_id}}';
+        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
+        window.location.href = sCurUrlBase + 'nvr_brs_contract_update/' + nBrandId + '/' + nContractSrl;
+    }
+    else
+        alert('plz choose budget');
+})
+</script>
 
 <script src="/static/skins/default/js/bootstrap.min.js"></script>
-<script src="/static/skins/default/js/moment/moment.min.js"></script>
-
-
-
-<!-- Datatables-->
-
 {% endblock %}

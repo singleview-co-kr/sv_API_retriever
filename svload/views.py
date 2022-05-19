@@ -795,7 +795,7 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        if 'contract_id' in kwargs:
+        if 'contract_srl' in kwargs:
             return self.__contract_detail(request, *args, **kwargs)
         else:
             return self.__contract_list(request, *args, **kwargs)
@@ -812,17 +812,24 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
         n_brand_id = dict_rst['dict_ret']['n_brand_id']
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
-        if s_act == 'add_contract':
+        if s_act == 'add_contract_bulk':
             o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
-            dict_rst = o_nvr_brs_info.add_contract(request)
+            dict_rst = o_nvr_brs_info.add_contract_bulk(request)
             del o_nvr_brs_info
             if dict_rst['b_error']:
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-
+            o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
+        elif s_act == 'add_contract_barter':
+            o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
+            dict_rst = o_nvr_brs_info.add_contract_barter(request)
+            del o_nvr_brs_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
             o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
         elif s_act == 'update_contract':
-            if request.POST['budget_id'] == '':
+            if request.POST['contract_srl'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
             o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
@@ -849,33 +856,25 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
             s_period_to = None
         o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
         dict_contract_info = o_nvr_brs_info.get_list_by_period(s_period_from, s_period_to)
+        lst_ua = o_nvr_brs_info.get_ua_list()
         del o_nvr_brs_info
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
         return render(request, 'svload/nvr_brs_contract_list.html',
                       {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'lst_ua': lst_ua,
                        'dict_contract_period': dict_contract_info['dict_contract_period'],
                        'lst_contract_table': dict_contract_info['lst_contract_rst'],
                        })
 
     def __contract_detail(self, request, *args, **kwargs):
-        if 'contract_id' not in kwargs:
-            raise Exception('invalid contract id')
+        if 'contract_srl' not in kwargs:
+            raise Exception('invalid contract srl')
 
-        if 'period_from' in kwargs:
-            s_period_from = kwargs['period_from']
-        else:
-            s_period_from = None
-
-        if 'period_to' in kwargs:
-            s_period_to = kwargs['period_to']
-        else:
-            s_period_to = None
-
-        s_contract_id = kwargs['contract_id']
+        n_contract_srl = int(kwargs['contract_srl'])
         o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
-        dict_contract_info = o_nvr_brs_info.get_detail_by_id(s_contract_id)
+        dict_contract_info = o_nvr_brs_info.get_detail_by_srl(n_contract_srl)
         lst_ua = o_nvr_brs_info.get_ua_list()
         del o_nvr_brs_info
         s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
