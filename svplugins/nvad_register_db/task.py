@@ -307,6 +307,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dictNvBrsPageImpByUa[dict_daily_log['ua']] = \
                         dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
                     dictBrspageDailyCostRst = self.__define_nv_brspage_cost(sCompileDate)
+                    dict_brspage_daily_dost_rst = self.__define_nv_brspage_cost_db(sCompileDate)
+                    print('')
+                    print(dictBrspageDailyCostRst)
+                    print(dict_brspage_daily_dost_rst)
+                    print('')
+                    
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
                         self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
                         return False
@@ -367,6 +373,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsManualInfo['conv_amnt'], sLogDate )
         return True
 
+    def __define_nv_brspage_cost_db(self, s_compile_date):
+        dict_rst = {'M':0, 'P':0, 'detected':False}
+        dt_touching_date = datetime.strptime(s_compile_date, '%Y-%m-%d').date()
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.nvad_register_db')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            lst_contract_info = o_sv_mysql.executeQuery('getNvrBrsContract', dt_touching_date, dt_touching_date)
+
+        if len(lst_contract_info) > 0:
+            dict_rst['detected'] = True  # tag brs info detected even if cost is 0
+            for dict_single_contract in lst_contract_info:
+                s_ua = dict_single_contract['ua'] # contract UA
+                if dict_single_contract['contract_id'].startswith('svmanual-'):
+                    dict_rst[s_ua] = -1
+                else:
+                    dt_contract_days = dict_single_contract['contract_date_end'] - dict_single_contract['contract_date_begin']
+                    n_net_period_cost = dict_single_contract['contract_amnt'] - dict_single_contract['refund_amnt']
+                    n_period_cost_exc_vat = math.ceil(n_net_period_cost / 1.1)
+                    n_daily_cost = n_period_cost_exc_vat / (dt_contract_days.days + 1)
+                    dict_rst[s_ua] = dict_rst[s_ua] + n_daily_cost
+        del lst_contract_info
+        return dict_rst
+
     def __define_nv_brspage_cost(self, sCompileDate):
         dictRst = {'M':0, 'P':0, 'detected':False}
         dtTouchingDate = datetime.strptime(sCompileDate, '%Y-%m-%d').date()
@@ -405,7 +435,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     sUa = row[10] # contract UA
                                     dictRst[row[10]] = dictRst[sUa] + nDailyCost
                                 elif row[0] == 'svmanual':
-                                    dictRst[row[10]] = -1
+                                    dictRst[row[10]] = -1  # contract UA
                         
                     nRowCnt = nRowCnt + 1
         except FileNotFoundError:

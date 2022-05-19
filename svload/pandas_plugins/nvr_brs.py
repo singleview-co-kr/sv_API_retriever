@@ -168,7 +168,7 @@ class NvrBrsInfo:
                 continue
             dt_regdate = datetime.strptime(lst_single_line[2], '%Y.%m.%d.')
             lst_contract_period = lst_single_line[7].split('~')
-            print(lst_single_line)
+            # print(lst_single_line)
             dt_contract_begin = datetime.strptime(lst_contract_period[0], '%Y.%m.%d.')
             dt_contract_end = datetime.strptime(lst_contract_period[1], '%Y.%m.%d.')
             s_conntected_ad_group = lst_single_line[4]
@@ -179,9 +179,16 @@ class NvrBrsInfo:
                     s_ua = self.__g_lstUa[1]
             else:
                 s_ua = 'e'  # means error
+            
+            s_available_queries = lst_single_line[6].replace(',', '')
+            if not str.isdigit(s_available_queries):
+                s_available_queries = 0
+            s_contract_amnt = lst_single_line[8].replace(',', '')
+            if not str.isdigit(s_contract_amnt):
+               s_contract_amnt = 0
             self.__g_oSvDb.executeQuery('insertNvrBrsContract', lst_single_line[0], lst_single_line[1], dt_regdate,
-                                        lst_single_line[3], lst_single_line[4], lst_single_line[5], lst_single_line[6],
-                                        dt_contract_begin, dt_contract_end, lst_single_line[8], lst_single_line[9], s_ua)
+                                        lst_single_line[3], lst_single_line[4], lst_single_line[5], s_available_queries,
+                                        dt_contract_begin, dt_contract_end, s_contract_amnt, lst_single_line[9], s_ua)
         del lst_line
         # end - construct contract info list
         return dict_rst
