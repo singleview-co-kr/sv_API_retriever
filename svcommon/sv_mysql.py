@@ -51,6 +51,9 @@ class SvMySql(sv_object.ISvObject):
     __g_dictRegExQueryFileClassifier = {}  # SQL 유형 구분을 위한 정규식 저장
     __g_dictRegEx = {}  # SQL 분석을 위한 정규식 저장
     __g_dictConfig = {}
+    __g_lstHandlingErrCode = [1146,  # Table doesn't exist Exception
+                              1062  # Duplicate entry Exception
+                             ]
     
     def __init__(self):  #, sCallingFrom=None , dict_brand_info=None):
         # dict_brand_info shoud be streamlined with django_etl in the near futher
@@ -62,7 +65,7 @@ class SvMySql(sv_object.ISvObject):
         self.__g_sAbsolutePath = None
         self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
         self.__g_dictCompiledSqlStmt = {}
-        self.__g_nThreadId = None
+        self.__g_tupErrorCode = None  # store mysql error code if raised
         self.__g_nThreadId = self.__getThreadId()
         # allocate thread memory to cache compiled stmt
         if self.__g_dictCompiledSqlStmt.get(self.__g_nThreadId, None) is None:
@@ -97,6 +100,7 @@ class SvMySql(sv_object.ISvObject):
         self.__g_dictReservedTag = {}  # sql statement에 이식된 {{tag}} 대치 예약어 사전
         self.__g_dictCompiledSqlStmt = {}
         self.__g_nThreadId = None
+        self.__g_tupErrorCode = None
         self.__disconnect()
 
     def set_app_name(self, s_app_name=None):
@@ -238,7 +242,7 @@ class SvMySql(sv_object.ISvObject):
         self.__execute_query(s_sql_compiled)
         # except Exception as e:  # eg, Duplicate entry Exception
         #     raise e
-        return self.__arrange_query_rst(s_pysql_id, s_query_type)
+        return self.__arrange_query_rst(s_query_type)
 
     def executeQuery(self, s_sql_filename, *params):  # params is tuple type
         # *params 앞머리에 있는 *는 언팩 연산자.
@@ -260,7 +264,7 @@ class SvMySql(sv_object.ISvObject):
         self.__execute_query(s_sql_compiled, params)  # execute query
         # except Exception as e:  # eg, Duplicate entry Exception
         #     raise e
-        return self.__arrange_query_rst(s_sql_filename, s_query_type)
+        return self.__arrange_query_rst(s_query_type)
 
     def commit(self):
         """
@@ -294,11 +298,9 @@ class SvMySql(sv_object.ISvObject):
         #         pass
         except Exception as e:
             n_pymysql_err_code = e.args[0]
-            if n_pymysql_err_code == 1146:  # Table doesn't exist Exception
-                pass
-            if n_pymysql_err_code == 1062:  # Duplicate entry Exception
-                pass
-            if n_pymysql_err_code == 2006:  # mysql 2006 error “MySQL server has gone away” exception in Django; this happens only on http connection
+            if n_pymysql_err_code in self.__g_lstHandlingErrCode:
+                self.__g_tupErrorCode = e.args
+            elif n_pymysql_err_code == 2006:  # mysql 2006 error “MySQL server has gone away” exception in Django; this happens only on http connection
                 # logger.debug('mysql 2006 exception catched... rebuild connection')
                 self.__connect()
                 if params:
@@ -397,8 +399,11 @@ class SvMySql(sv_object.ISvObject):
         del result
         return s_sql_compiled
 
-    def __arrange_query_rst(self, s_sql_filename, s_query_type):
+    def __arrange_query_rst(self, s_query_type):
         """ param: s_sql_filename is for query debug """
+        if  self.__g_tupErrorCode is not None:
+            return [{'err_code': self.__g_tupErrorCode[0], 'err_msg': self.__g_tupErrorCode[1]}]
+
         if s_query_type == 'insert':
             # https://stackoverflow.com/questions/2548493/how-do-i-get-the-id-after-insert-into-mysql-database-with-python
             lst_rows = [{'id': self.__g_oCursor.lastrowid}]
