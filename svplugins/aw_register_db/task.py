@@ -206,33 +206,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(sDataFileFullname, 'r') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
                 for row in reader:
-                    bBrd = 0
-                    lstCampaignCode = row[0].split('_')
-                    if lstCampaignCode[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
+                    # bBrd = 0
+                    lst_campaign_code = row[0].split('_')
+                    if lst_campaign_code[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
                         continue
-                    # process body
-                    if len(lstCampaignCode) > 3:  # adwords group name following singleview campaign code
-                        if lstCampaignCode[0] == 'OLD':  # try to check old sv campaign convention
-                            lstCampaignCode.pop(0)
-                            nLastIdx = len(lstCampaignCode) - 1
-                            sTempCampaign3rd = lstCampaignCode[nLastIdx]
-                            lstCampaignCode[nLastIdx] = sTempCampaign3rd + '_OLD'
-                    else:  # adwords group name not following singleview campaign convention
-                        lstCampaignCode = row[1].split('_')  # try to parse wierd group name
                     
-                    # adwords campaign name follows singleview campaign code
-                    if len(lstCampaignCode) == 6 and (lstCampaignCode[0] == 'GG' or lstCampaignCode[0] == 'YT'):
-                            sSource = lstCampaignCode[0]
-                            sRstType = lstCampaignCode[1]
-                            sMedium = lstCampaignCode[2]
-                            sCampaign1st = lstCampaignCode[3]
-                            sCampaign2nd = lstCampaignCode[4]
-                            sCampaign3rd = lstCampaignCode[5]
+                    if len(lst_campaign_code) > 3:  # adwords group name following singleview campaign code
+                        dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
+                    else:  # adwords group name not following singleview campaign convention
+                        dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
+                    #  dict_rst['brd']
+                    if dict_rst['source_code'] in ['GG', 'YT']:
+                        sSource = dict_rst['source_code']
+                        sRstType = dict_rst['rst_type']
+                        sMedium = dict_rst['medium_code']
+                        sCampaign1st = dict_rst['campaign1st']
+                        sCampaign2nd = dict_rst['campaign2nd']
+                        sCampaign3rd = dict_rst['campaign3rd']
                     else:  # lookup alias DB
                         sCampaignName = row[0]
                         # should log source group name to sv convention translation
                         if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
-                            # dictCampaignNameAlias[sCampaignName]
                             sSource = dictCampaignNameAlias[sCampaignName]['source']
                             sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
                             sMedium = dictCampaignNameAlias[sCampaignName]['medium']
@@ -255,13 +249,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sPlacement = sTerm
                         sTerm = None
                     # finally determine branded by term
-                    # if self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm) == True:
-                    #     bBrd = 1
+                    bBrd = 0
                     dict_brded_rst = self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm)
                     if dict_brded_rst['b_error'] == True:
                         self._printDebug(dict_brded_rst['s_err_msg'])
                     elif dict_brded_rst['b_brded']:
                         bBrd = 1
+                    del dict_brded_rst
 
                     nImpression = int(row[3])
                     nClick = int(row[4])
