@@ -13,6 +13,7 @@ class NvrBrsInfo:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     __g_lstUa = ['M', 'P']
+    __g_lstContractStatus = ['집행 중', '집행 대기', '집행 중 취소', '종료']
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -79,7 +80,7 @@ class NvrBrsInfo:
         :param s_budget_id:
         :return:
         """
-        lst_contract_detail = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailByBudgetSrl', n_contract_srl)
+        lst_contract_detail = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailBySrl', n_contract_srl)
         return lst_contract_detail[0]
 
     def update_contract(self, request):
@@ -89,9 +90,20 @@ class NvrBrsInfo:
         :return:
         """
         n_contract_srl = int(request.POST['contract_srl'])
+        dict_contract = self.get_detail_by_srl(n_contract_srl)
         s_ua = request.POST['ua'].strip()
-        if s_ua in self.__g_lstUa:
-            self.__g_oSvDb.executeQuery('updateNvrBrsContractUaBySrl', s_ua, n_contract_srl)
+        if s_ua not in self.__g_lstUa:
+            s_ua = dict_contract['ua']
+
+        s_refund_amnt = request.POST['refund_amnt'].replace(',', '')
+        if not str.isdigit(s_refund_amnt):
+            s_refund_amnt = dict_contract['refund_amnt']
+        
+        if int(s_refund_amnt) == 0:
+            s_contract_status = dict_contract['contract_status']
+        else:
+            s_contract_status = '집행 중 취소'
+        self.__g_oSvDb.executeQuery('updateNvrBrsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
         return
 
     def add_contract_barter(self, request):
@@ -100,47 +112,58 @@ class NvrBrsInfo:
         :param 
         """
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
-        lst_query_title = ['contract_name', 'connected_ad_group', 'template_name', 'available_queries', 
-                            'contract_amnt', 'contract_date_begin', 'contract_date_end', 'ua']
+        lst_query_title = ['contract_regdate', 'contract_name', 'connected_ad_group', 'template_name',
+                            'available_queries', 'contract_amnt', 'contract_date_begin', 
+                            'contract_date_end', 'ua']
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
 
-        s_available_queries = lst_query_value[3].replace(',', '')
+        s_available_queries = lst_query_value[4].replace(',', '')
         if not str.isdigit(s_available_queries):
-            dict_rst['b_error'] = True
-            dict_rst['s_msg'] = lst_query_title[3] + ' should be digit'
-            return dict_rst
-        s_contract_amnt = lst_query_value[4].replace(',', '')
-        if not str.isdigit(s_contract_amnt):
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = lst_query_title[4] + ' should be digit'
             return dict_rst
+        s_contract_amnt = lst_query_value[5].replace(',', '')
+        if not str.isdigit(s_contract_amnt):
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = lst_query_title[5] + ' should be digit'
+            return dict_rst
         
+        if len(lst_query_value[0]) > 0:
+            try:
+                dt_contract_regdate = datetime.strptime(lst_query_value[0], '%Y-%m-%d')
+            except ValueError:
+                dict_rst['b_error'] = True
+                dict_rst['s_msg'] = lst_query_title[0] + ' is invalid date'
+                return dict_rst
+        else:
+            dt_contract_regdate = datetime.today()
+
         try:
-            dt_contract_begin = datetime.strptime(lst_query_value[5], '%Y-%m-%d')
+            dt_contract_begin = datetime.strptime(lst_query_value[6], '%Y-%m-%d')
         except ValueError:
             dict_rst['b_error'] = True
-            dict_rst['s_msg'] = lst_query_title[5] + ' is invalid date'
+            dict_rst['s_msg'] = lst_query_title[6] + ' is invalid date'
             return dict_rst
 
         try:
-            dt_contract_end = datetime.strptime(lst_query_value[6], '%Y-%m-%d')
+            dt_contract_end = datetime.strptime(lst_query_value[7], '%Y-%m-%d')
         except ValueError:
             dict_rst['b_error'] = True
-            dict_rst['s_msg'] = lst_query_title[5] + ' is invalid date'
+            dict_rst['s_msg'] = lst_query_title[7] + ' is invalid date'
             return dict_rst
         
-        if lst_query_value[7] not in self.__g_lstUa:
+        if lst_query_value[8] not in self.__g_lstUa:
             dict_rst['b_error'] = True
-            dict_rst['s_msg'] = lst_query_title[7] + ' is invalid.'
+            dict_rst['s_msg'] = lst_query_title[8] + ' is invalid.'
             return dict_rst
 
         s_unique_contract_id = 'svmanual-' + self.__get_unique_namespace(10)
-        self.__g_oSvDb.executeQuery('insertNvrBrsContract', s_unique_contract_id, '집행 중', datetime.today(),
-                                        lst_query_value[0].strip(), lst_query_value[1].strip(),
-                                        lst_query_value[2].strip(), int(s_available_queries), 
-                                        dt_contract_begin, dt_contract_end, int(s_contract_amnt), 0, lst_query_value[7])
+        self.__g_oSvDb.executeQuery('insertNvrBrsContract', s_unique_contract_id, '집행 중', dt_contract_regdate,
+                                        lst_query_value[1].strip(), lst_query_value[2].strip(),
+                                        lst_query_value[3].strip(), int(s_available_queries), 
+                                        dt_contract_begin, dt_contract_end, int(s_contract_amnt), 0, lst_query_value[8])
         return dict_rst
 
 
@@ -166,6 +189,9 @@ class NvrBrsInfo:
                 continue
             if lst_single_line[7] == '-':  # means 집행 전 취소
                 continue
+            
+            if lst_single_line[1] not in self.__g_lstContractStatus:  # validate contract status
+                lst_single_line[1] = '오류'
             dt_regdate = datetime.strptime(lst_single_line[2], '%Y.%m.%d.')
             lst_contract_period = lst_single_line[7].split('~')
             # print(lst_single_line)
@@ -186,9 +212,12 @@ class NvrBrsInfo:
             s_contract_amnt = lst_single_line[8].replace(',', '')
             if not str.isdigit(s_contract_amnt):
                s_contract_amnt = 0
+            s_refund_amnt = lst_single_line[9].replace(',', '')
+            if not str.isdigit(s_refund_amnt):
+                s_refund_amnt = 0
             self.__g_oSvDb.executeQuery('insertNvrBrsContract', lst_single_line[0], lst_single_line[1], dt_regdate,
                                         lst_single_line[3], lst_single_line[4], lst_single_line[5], s_available_queries,
-                                        dt_contract_begin, dt_contract_end, s_contract_amnt, lst_single_line[9], s_ua)
+                                        dt_contract_begin, dt_contract_end, s_contract_amnt, s_refund_amnt, s_ua)
         del lst_line
         # end - construct contract info list
         return dict_rst

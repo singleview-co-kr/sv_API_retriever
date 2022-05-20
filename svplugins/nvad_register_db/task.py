@@ -314,7 +314,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     ##########################################
                     if dictBrspageDailyCostRst['M'] != dict_brspage_daily_cost['M'] or \
                             dictBrspageDailyCostRst['P'] != dict_brspage_daily_cost['P']:
-                        print('weird BRS calculation')
+                        print('weird BRS calculation - ' + sCompileDate)
+                        print(dictBrspageDailyCostRst)
+                        print(dict_brspage_daily_cost)
+                        raise Exception('stop')
                     ###########################################
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
                         self._printDebug('warning! stop -> no matched contract brs info\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
@@ -393,7 +396,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 del lst_last_contract_info
 
     def __define_nv_brspage_cost_db(self, s_compile_date):
-        dict_rst = {'M':0, 'P':0, 'detected':False}
+        dict_rst = {'M':0, 'P':0, 'detected':False, 'debug':None}
         dt_touching_date = datetime.strptime(s_compile_date, '%Y-%m-%d').date()
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -403,6 +406,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if len(lst_contract_info) > 0:
             dict_rst['detected'] = True  # tag brs info detected even if cost is 0
+            dict_rst['debug'] = lst_contract_info
             for dict_single_contract in lst_contract_info:
                 s_ua = dict_single_contract['ua'] # contract UA
                 if dict_single_contract['contract_id'].startswith('svmanual-'):
@@ -413,7 +417,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     n_period_cost_exc_vat = math.ceil(n_net_period_cost / 1.1)
                     n_daily_cost = n_period_cost_exc_vat / (dt_contract_days.days + 1)
                     dict_rst[s_ua] = dict_rst[s_ua] + n_daily_cost
-        del lst_contract_info
+         #del lst_contract_info
         return dict_rst
 
     def __define_nv_brspage_cost(self, sCompileDate):

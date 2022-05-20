@@ -36,6 +36,12 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 상태</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_status}}">
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 등록 일시</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.contract_regdate}}">
@@ -74,7 +80,7 @@
                         <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">환급액</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" readonly value="{{dict_contract_info.refund_amnt|intcomma}}">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="refund_amnt" value="{{dict_contract_info.refund_amnt|intcomma}}">
                             </div>
                         </div>
                         <div class="form-group">
