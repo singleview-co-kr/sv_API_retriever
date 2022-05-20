@@ -15,5 +15,6 @@ CREATE TABLE `nvad_brs_contract` (
   `regdate` DATETIME DEFAULT NOW(),
   PRIMARY KEY (`contract_srl`),
   UNIQUE KEY (`contract_id`),
-  KEY `idx_contract_period` (`contract_date_begin`, `contract_date_end`)
+  KEY `idx_contract_period` (`contract_date_begin`, `contract_date_end`),
+  KEY `idx_contract_date_end` (`contract_date_end`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

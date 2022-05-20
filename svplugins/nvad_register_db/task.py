@@ -25,6 +25,7 @@
 # standard library
 import logging
 from datetime import datetime
+from datetime import date
 import os
 import shutil
 import sys
@@ -111,6 +112,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
+
+        self.__check_nv_brspage_contract_last()
 
         if self.__g_sMode == None:
             self._printDebug('-> register nvad raw data')
@@ -306,15 +309,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if dict_campaign_info['campaign_1st'] == 'BRS':  # if BRS exists, sum BRS impression total
                     dictNvBrsPageImpByUa[dict_daily_log['ua']] = \
                         dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
-                    dictBrspageDailyCostRst = self.__define_nv_brspage_cost(sCompileDate)
-                    dict_brspage_daily_dost_rst = self.__define_nv_brspage_cost_db(sCompileDate)
-                    print('')
-                    print(dictBrspageDailyCostRst)
-                    print(dict_brspage_daily_dost_rst)
-                    print('')
-                    
+                    dictBrspageDailyCostRst = self.__define_nv_brspage_cost(sCompileDate) # will be deprecated
+                    dict_brspage_daily_cost = self.__define_nv_brspage_cost_db(sCompileDate)
+                    ##########################################
+                    if dictBrspageDailyCostRst['M'] != dict_brspage_daily_cost['M'] or \
+                            dictBrspageDailyCostRst['P'] != dict_brspage_daily_cost['P']:
+                        print('weird BRS calculation')
+                    ###########################################
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-                        self._printDebug('warning! stop -> no matched contract_brs_info.tsv\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
+                        self._printDebug('warning! stop -> no matched contract brs info\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
                         return False
 
                 if dict_daily_log['media'] == 'CPC' and dict_daily_log['campaign_1st'].find('NVSHOP') > -1:
@@ -373,6 +376,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsManualInfo['conv_amnt'], sLogDate )
         return True
 
+    def __check_nv_brspage_contract_last(self):
+        # Warn if last NVR BRS contract info will be expired in 2 days
+        # No warn if latest NVR BRS contract has been expired
+        lst_ua = ['M', 'P']
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.nvad_register_db')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            for s_ua in lst_ua:
+                lst_last_contract_info = o_sv_mysql.executeQuery('getNvrBrsContractLastByUa', s_ua)
+                if len(lst_last_contract_info) > 0:
+                    dt_contract_days = lst_last_contract_info[0]['contract_date_end'] - date.today()
+                    if 0 <= dt_contract_days.days <= 2:
+                        self._printDebug('BRS ' + s_ua + ' contract info will be expired in ' + str(dt_contract_days.days) + ' days!')
+                del lst_last_contract_info
+
     def __define_nv_brspage_cost_db(self, s_compile_date):
         dict_rst = {'M':0, 'P':0, 'detected':False}
         dt_touching_date = datetime.strptime(s_compile_date, '%Y-%m-%d').date()
@@ -398,6 +417,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return dict_rst
 
     def __define_nv_brspage_cost(self, sCompileDate):
+        # will be deprecated
         dictRst = {'M':0, 'P':0, 'detected':False}
         dtTouchingDate = datetime.strptime(sCompileDate, '%Y-%m-%d').date()
         sBrspageInfoFilePath = os.path.join(self.__g_sNvadConfPathAbs, 'contract_brs_info.tsv')
