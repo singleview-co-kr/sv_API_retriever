@@ -14,6 +14,8 @@ class NvrBrsInfo:
     __g_oSvDb = None
     __g_lstUa = ['M', 'P']
     __g_lstContractStatus = ['집행 중', '집행 대기', '집행 중 취소', '종료']
+    __g_lstUaHintMob = ['모바', 'MO']
+    __g_lstUaHintPc = ['PC', '피시', '피씨', '데스크']
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -27,7 +29,7 @@ class NvrBrsInfo:
     def __del__(self):
         # logger.debug('__del__')
         del self.__g_oSvDb
-
+    
     # def activate_debug(self):
     #     self.__g_bPeriodDebugMode = True
     def get_ua_list(self):
@@ -197,15 +199,7 @@ class NvrBrsInfo:
             # print(lst_single_line)
             dt_contract_begin = datetime.strptime(lst_contract_period[0], '%Y.%m.%d.')
             dt_contract_end = datetime.strptime(lst_contract_period[1], '%Y.%m.%d.')
-            s_conntected_ad_group = lst_single_line[4]
-            if s_conntected_ad_group.find('NV_PS_DISP_BRS') != -1:
-                if s_conntected_ad_group.find('MOB') != -1:
-                    s_ua = self.__g_lstUa[0]
-                elif s_conntected_ad_group.find('PC') != -1:
-                    s_ua = self.__g_lstUa[1]
-            else:
-                s_ua = 'e'  # means error
-            
+                        
             s_available_queries = lst_single_line[6].replace(',', '')
             if not str.isdigit(s_available_queries):
                 s_available_queries = 0
@@ -215,12 +209,45 @@ class NvrBrsInfo:
             s_refund_amnt = lst_single_line[9].replace(',', '')
             if not str.isdigit(s_refund_amnt):
                 s_refund_amnt = 0
+            
+            s_ua = self.__decide_ua(lst_single_line)
             self.__g_oSvDb.executeQuery('insertNvrBrsContract', lst_single_line[0], lst_single_line[1], dt_regdate,
                                         lst_single_line[3], lst_single_line[4], lst_single_line[5], s_available_queries,
                                         dt_contract_begin, dt_contract_end, s_contract_amnt, s_refund_amnt, s_ua)
         del lst_line
         # end - construct contract info list
         return dict_rst
+
+    def __decide_ua(self, lst_single_line):
+        # decide UA as correctly as possible depends on contract context
+        s_template_name = lst_single_line[5]  # by naver brs page template name
+        if s_template_name.find(self.__g_lstUaHintMob[0]) != -1:
+            return self.__g_lstUa[0]
+        elif s_template_name.find(self.__g_lstUaHintPc[0]) != -1:
+            return self.__g_lstUa[1]
+
+        s_contract_name = lst_single_line[3].upper()
+        for s_ua_hint in self.__g_lstUaHintMob:
+            if s_contract_name.find(s_ua_hint) != -1:
+                return self.__g_lstUa[0]
+        for s_ua_hint in self.__g_lstUaHintPc:
+            if s_contract_name.find(s_ua_hint) != -1:
+                return self.__g_lstUa[1]
+
+        s_conntected_ad_group = lst_single_line[4]  # if SV naming convention
+        for s_ua_hint in self.__g_lstUaHintMob:
+            if s_conntected_ad_group.find(s_ua_hint) != -1:
+                return self.__g_lstUa[0]
+        for s_ua_hint in self.__g_lstUaHintPc:
+            if s_conntected_ad_group.find(s_ua_hint) != -1:
+                return self.__g_lstUa[1]
+
+        if s_conntected_ad_group.find('NV_PS_DISP_BRS') != -1:
+            if s_conntected_ad_group.find(self.__g_lstUaHintMob[1]) != -1:
+                return self.__g_lstUa[0]
+            elif s_conntected_ad_group.find(self.__g_lstUaHintPc[0]) != -1:
+                return self.__g_lstUa[1]
+        return 'e'  # means error
 
     def __get_unique_namespace(self, n_namespace_len=8):
         # set tbl prefix for each account

@@ -113,6 +113,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
 
+        # alert if last contract info will be expired in 2 days
         self.__check_nv_brspage_contract_last()
 
         if self.__g_sMode == None:
