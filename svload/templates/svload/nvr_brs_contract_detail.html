@@ -117,33 +117,4 @@
             </div>
         </div>
     </div>
-
-<script type="text/javascript">
-jQuery("#btn_update_budget").click(function(){
-    n_acct_id = jQuery("select[name='acct_id']").val();
-    //console.log(n_acct_id);
-    if( n_acct_id == '' )
-    {
-        alert('예산 분류를 선택하세요');
-        return false;
-    }
-    else
-        return true;
-})
-
-jQuery(".lnk_update_budget").click(function(){
-    var nBudgetId = jQuery(this).attr('budget_id');
-    console.log(nBudgetId);
-    if( nBudgetId > 0 )
-    {
-        var aCurUrl = window.location.href.split('?');
-        sCurUrlBase = aCurUrl[0]; // 기존 param 모두 무시
-        sCurUrlBase = sCurUrlBase.replace( '/budget/', '/budget_update/' )
-        console.log(sCurUrlBase + nBudgetId);
-        // window.location.href = sCurUrlBase + nBranchId;
-    }
-    else
-        alert('plz choose branch');
-})
-</script>
 {% endblock %}

@@ -905,7 +905,7 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        if 'contract_srl' in kwargs:
+        if 'contract_id' in kwargs:
             return self.__contract_detail(request, *args, **kwargs)
         else:
             return self.__contract_list(request, *args, **kwargs)
@@ -929,21 +929,29 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
             if dict_rst['b_error']:
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-            o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+        elif s_act == 'add_contract_single':
+            o_pns_info = PnsInfo(self.__g_oSvDb)
+            o_pns_info.add_contract_single(request)
+            del o_pns_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
         elif s_act == 'update_contract':
-            if request.POST['contract_srl'] == '':
+            if request.POST['contract_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
             o_pns_info = PnsInfo(self.__g_oSvDb)
             o_pns_info.update_contract(request)
             del o_pns_info
-            o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
         elif s_act == 'inquiry_contract':
             s_period_from = request.POST.get('contract_period_from')
             s_period_to = request.POST.get('contract_period_to')
             print(s_period_from)
             print(s_period_to)
-            o_redirect = redirect('svload:nvr_brs_contract_list_period',
+            o_redirect = redirect('svload:pns_contract_list_period',
                                   sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
         return o_redirect
 
@@ -958,6 +966,8 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
             s_period_to = None
         o_pns_info = PnsInfo(self.__g_oSvDb)
         dict_contract_info = o_pns_info.get_list_by_period(s_period_from, s_period_to)
+        dict_source_type = o_pns_info.get_source_type_dict()
+        dict_contract_type = o_pns_info.get_contract_type_dict()
         del o_pns_info
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
         return render(request, 'svload/pns_contract_list.html',
@@ -965,22 +975,28 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'dict_contract_period': dict_contract_info['dict_contract_period'],
+                       'dict_source_type': dict_source_type, 
+                       'dict_contract_type': dict_contract_type, 
                        'lst_contract_table': dict_contract_info['lst_contract_rst'],
                        })
 
     def __contract_detail(self, request, *args, **kwargs):
-        if 'contract_srl' not in kwargs:
-            raise Exception('invalid contract srl')
+        if 'contract_id' not in kwargs:
+            raise Exception('invalid contract id')
 
-        n_contract_srl = int(kwargs['contract_srl'])
+        n_contract_id = int(kwargs['contract_id'])
         o_pns_info = PnsInfo(self.__g_oSvDb)
-        dict_contract_info = o_pns_info.get_detail_by_srl(n_contract_srl)
+        dict_contract_info = o_pns_info.get_detail_by_id(n_contract_id)
+        dict_source_type = o_pns_info.get_source_type_dict()
+        dict_contract_type = o_pns_info.get_contract_type_dict()
         del o_pns_info
         s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
-        return render(request, 'svload/nvr_brs_contract_detail.html',
+        return render(request, 'svload/pns_contract_detail.html',
                       {'s_brand_name': s_brand_name,
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'dict_source_type': dict_source_type, 
+                       'dict_contract_type': dict_contract_type, 
                        'dict_contract_info': dict_contract_info,
                        })
 
