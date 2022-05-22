@@ -100,26 +100,18 @@ class PnsInfo:
         lst_query_title = ['source_id', 'contract_type', 'media_term', 'contractor_id',
                             'cost_incl_vat', 'agency_rate_percent', 'execute_date_begin', 
                             'execute_date_end', 'regdate']
-
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
-
-        print(lst_query_value)
-        # ['1', '1', '목표 키워드', '계약자 ID', '345345', '34%', '2022-02-02', '2022-02-02']
         if int(lst_query_value[0]) not in self.__g_dictSource:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invaid source'
             return dict_rst
-
         if int(lst_query_value[1]) not in self.__g_dictContractType:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invaid contract type'
             return dict_rst
         
-        lst_query_value[2].strip()
-        lst_query_value[3].strip()
-
         s_cost_incl_vat = lst_query_value[4].replace(',', '')
         if not str.isdigit(s_cost_incl_vat):
             dict_rst['b_error'] = True
@@ -127,7 +119,8 @@ class PnsInfo:
             return dict_rst
 
         o_reg_ex = re.compile(r"\d+%$") # pattern ex) 2% 23%
-        m = o_reg_ex.search(lst_query_value[5]) # match() vs search()
+        s_agency_rate_percent = lst_query_value[5].strip()
+        m = o_reg_ex.search(s_agency_rate_percent) # match() vs search()
         if not m: # if valid percent string
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = lst_query_title[5] + ' should be 00%'
@@ -141,7 +134,6 @@ class PnsInfo:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = lst_query_title[6] + ' is invalid date'
             return dict_rst
-
         try:
             dt_execute_date_end = datetime.strptime(lst_query_value[7], '%Y-%m-%d')
         except ValueError:
@@ -159,9 +151,10 @@ class PnsInfo:
         else:
             dt_regdate = datetime.today()
 
-        # self.__g_oSvDb.executeQuery('insertPnsContract', n_source_id, n_contract_type_id, s_targeted_term,
-        #                             s_contractor_id, s_contract_amnt_incl_vat, '50%', 
-        #                             dt_execute_date_begin, dt_execute_date_end, dt_regdate)
+        self.__g_oSvDb.executeQuery('insertPnsContract', lst_query_value[0], lst_query_value[1], 
+                                    lst_query_value[2].strip(), lst_query_value[3].strip(),
+                                    s_cost_incl_vat, s_agency_rate_percent, 
+                                    dt_execute_date_begin, dt_execute_date_end, dt_regdate)
 
     def add_contract_bulk(self, request):
         """ 
