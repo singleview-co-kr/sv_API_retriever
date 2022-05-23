@@ -1139,16 +1139,36 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictFbPnsInfo = self.__definePnsCost(sTouchingDate, 'facebook')
         ############################
         if len(dictNvPnsInfoNew) != len(dictNvPnsInfo):
+            print('unmatched length')
             print(sTouchingDate)
+            print('')
+            print(dictNvPnsInfo)
+            print('')
+            print(dictNvPnsInfoNew)
+            print('')
             raise Exception('stop')
         lst_keys = list(dictNvPnsInfo.keys())
         for s_key in lst_keys:
-            if dictNvPnsInfo[s_key]['media_raw_cost'] != dictNvPnsInfoNew[s_key]['media_raw_cost'] or \
-                dictNvPnsInfo[s_key]['media_agency_cost'] != dictNvPnsInfoNew[s_key]['media_agency_cost'] or \
-                dictNvPnsInfo[s_key]['vat'] != dictNvPnsInfoNew[s_key]['vat']:
+            try:
+                if dictNvPnsInfo[s_key]['media_raw_cost'] != dictNvPnsInfoNew[s_key]['media_raw_cost'] or \
+                    dictNvPnsInfo[s_key]['media_agency_cost'] != dictNvPnsInfoNew[s_key]['media_agency_cost'] or \
+                    dictNvPnsInfo[s_key]['vat'] != dictNvPnsInfoNew[s_key]['vat']:
+                    print('unequal value')
+                    print(sTouchingDate)
+                    print('')
+                    print(dictNvPnsInfo)
+                    print('')
+                    print(dictNvPnsInfoNew)
+                    print('')
+                    raise Exception('stop')
+            except KeyError:
+                print('contract not match')
                 print(sTouchingDate)
+                print('')
                 print(dictNvPnsInfo)
+                print('')
                 print(dictNvPnsInfoNew)
+                print('')
                 raise Exception('stop')
         del lst_keys
         ##############################
@@ -1298,7 +1318,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_contract_type = self.__g_dictPnsContract[dict_single_contract['contract_type']]
                 s_term = dict_single_contract['media_term']
                 s_nickname = dict_single_contract['contractor_id']
-                s_regdate = dict_single_contract['regdate'].strftime('%Y-%m-%d')
+                s_regdate = dict_single_contract['regdate'].strftime('%Y%m%d')
                 for s_ua in self.__g_dictNvPnsUaCostPortion:
                     f_portion = self.__g_dictNvPnsUaCostPortion[s_ua]
                     f_daily_media_raw_cost = f_contract_raw_cost / (dt_delta_days.days + 1) * f_portion
