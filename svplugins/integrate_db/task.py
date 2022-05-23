@@ -1133,45 +1133,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             }
 
     def __mergeOtherGaRaw(self, oSvMysql, sTouchingDate):
-        dictNvPnsInfoNew = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'naver')
-        dictFbPnsInfoNew = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'facebook')
-        dictNvPnsInfo = self.__definePnsCost(sTouchingDate, 'naver')
-        dictFbPnsInfo = self.__definePnsCost(sTouchingDate, 'facebook')
-        ############################
-        if len(dictNvPnsInfoNew) != len(dictNvPnsInfo):
-            print('unmatched length')
-            print(sTouchingDate)
-            print('')
-            print(dictNvPnsInfo)
-            print('')
-            print(dictNvPnsInfoNew)
-            print('')
-            raise Exception('stop')
-        lst_keys = list(dictNvPnsInfo.keys())
-        for s_key in lst_keys:
-            try:
-                if dictNvPnsInfo[s_key]['media_raw_cost'] != dictNvPnsInfoNew[s_key]['media_raw_cost'] or \
-                    dictNvPnsInfo[s_key]['media_agency_cost'] != dictNvPnsInfoNew[s_key]['media_agency_cost'] or \
-                    dictNvPnsInfo[s_key]['vat'] != dictNvPnsInfoNew[s_key]['vat']:
-                    print('unequal value')
-                    print(sTouchingDate)
-                    print('')
-                    print(dictNvPnsInfo)
-                    print('')
-                    print(dictNvPnsInfoNew)
-                    print('')
-                    raise Exception('stop')
-            except KeyError:
-                print('contract not match')
-                print(sTouchingDate)
-                print('')
-                print(dictNvPnsInfo)
-                print('')
-                print(dictNvPnsInfoNew)
-                print('')
-                raise Exception('stop')
-        del lst_keys
-        ##############################
+        dictNvPnsInfo = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'naver')
+        dictFbPnsInfo = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'facebook')
         nTouchingDate = int(sTouchingDate.replace('-', '' ))
         for s_unique_tag, dict_row in self.__g_dictOtherMergedDailyLog.items():
             aRowId = s_unique_tag.split('|@|')
@@ -1341,87 +1304,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         }
             del o_reg_ex
         return dict_pns_info
-
-    def __definePnsCost(self, sTouchingDate, sSource):
-        """ get allocated Paid NS cost """
-        dictPnsInfo = {}
-        dtTouchingDate = datetime.datetime.strptime(sTouchingDate, '%Y-%m-%d').date()
-        nTouchingDate = int(sTouchingDate.replace('-', '' ))
-        if sSource == 'naver':
-            sPnsInfoFilePath = self.__g_sNvrPnsInfoFilePath
-        elif sSource == 'facebook':
-            sPnsInfoFilePath = self.__g_sFbPnsInfoFilePath
-        else:
-            self._printDebug('invalid pns info request :' + sSource)
-            raise Exception('stop')
-        try:
-            with codecs.open(sPnsInfoFilePath, 'r',encoding='utf8') as tsvfile:
-                reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
-                nPnsInfoIdx = 0
-                for row in reader:
-                    if nRowCnt > 0:
-                        if row[5] != '-':
-                            aContractPeriod = row[5].split('~')
-                            if len(aContractPeriod[0]) > 0: # contract date - start
-                                try: # validate requsted date
-                                    dtBeginDate = datetime.datetime.strptime(aContractPeriod[0], '%Y.%m.%d').date()
-                                except ValueError:
-                                    self._printDebug( 'start date:' + aContractPeriod[0] + ' is invalid date string' )
-
-                            if len(aContractPeriod[1]) > 0: # contract date - end
-                                try: # validate requsted date
-                                    dtEndDate = datetime.datetime.strptime(aContractPeriod[1], '%Y.%m.%d').date()
-                                except ValueError:
-                                    self._printDebug( 'end date:' + aContractPeriod[1] + ' is invalid date string' )
-                            
-                            if dtBeginDate <= dtTouchingDate and dtEndDate >= dtTouchingDate:
-                                # define raw cost & agnecy cost -> calculate vat from sum of define raw cost & agnecy cost
-                                nPeriodCostInclVat = int(row[3].replace(',', ''))
-                                nPeriodCostExcVat = math.ceil(nPeriodCostInclVat/1.1)
-
-                                oRegEx = re.compile(r"\d+%$") # pattern ex) 2% 23%
-                                m = oRegEx.search( row[4] ) # match() vs search()
-                                if m: # if valid percent string
-                                    nPercent = row[4].replace('%','')
-                                    fRate = int(nPercent)/100
-                                else: # if invalid percent string
-                                    self._printDebug('invalid percent string ' + row[4])
-                                    raise Exception('stop')
-
-                                fMediaRawCost = int(( 1 - fRate ) * nPeriodCostExcVat)
-                                fAgencyCost = int(fRate * nPeriodCostExcVat)
-                                dtDeltaDays = dtEndDate - dtBeginDate
-                                sServiceType = row[0]
-                                sTerm = row[1]
-                                sNickName = row[2]
-                                sRegdate = row[6].replace('.','')
-                                for sUa in self.__g_dictNvPnsUaCostPortion:
-                                    fPortion = self.__g_dictNvPnsUaCostPortion[sUa]
-                                    fDailyMediaRawCost = fMediaRawCost / (dtDeltaDays.days + 1) * fPortion
-                                    fDailyAgencyCost = fAgencyCost / (dtDeltaDays.days + 1) * fPortion
-                                    fVat = (fDailyMediaRawCost + fDailyAgencyCost) * 0.1
-                                    if nTouchingDate <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
-                                        dictPnsInfo[nPnsInfoIdx] = {
-                                            'service_type':sServiceType, 'term':sTerm,'nick':sNickName,'ua':sUa, 
-                                            'media_raw_cost':fDailyMediaRawCost,'media_agency_cost':fDailyAgencyCost,'vat':fVat,
-                                            'regdate':sRegdate
-                                        }
-                                        nPnsInfoIdx = nPnsInfoIdx + 1
-                                    else: # for the latest & systematic situation
-                                        if sNickName is '-':
-                                            sRowId = sTerm+'_'+sServiceType+'_'+sRegdate+'_'+sUa
-                                        else:
-                                            sRowId = sTerm+'_'+sServiceType+'_'+sNickName+'_'+sRegdate+'_'+sUa
-                                        
-                                        dictPnsInfo[sRowId] = {
-                                            'media_raw_cost':fDailyMediaRawCost,'media_agency_cost':fDailyAgencyCost,'vat':fVat
-                                        }
-                    nRowCnt = nRowCnt + 1
-        except FileNotFoundError:
-            pass
-        
-        return dictPnsInfo
 
     def __redefineCost(self, sMedia, sCustomerId, nCost):
         dictRst = {'cost':0, 'agency_fee':0, 'vat':0}
