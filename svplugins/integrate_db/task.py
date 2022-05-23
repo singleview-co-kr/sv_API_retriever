@@ -45,17 +45,20 @@ import math
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svload/pandas_plugins')
     sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import contract
     import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svload.pandas_plugins import contract
     from django.conf import settings
 
 
@@ -67,7 +70,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 23rd, May 2022')
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -86,6 +89,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictYtMergedDailyLog = None
         self.__g_dictFbMergedDailyLog = None
         self.__g_dictOtherMergedDailyLog = None
+        self.__g_dictPnsSource = None
+        self.__g_dictPnsContract = None        
 
     def __del__(self):
         """ never place self._task_post_proc() here 
@@ -103,6 +108,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictYtMergedDailyLog = None
         self.__g_dictFbMergedDailyLog = None
         self.__g_dictOtherMergedDailyLog = None
+        self.__g_dictPnsSource = None
+        self.__g_dictPnsContract = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -153,6 +160,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 raise Exception('remove')
             else:
                 return
+
+        o_pns_info = contract.PnsInfo()
+        self.__g_dictPnsSource = o_pns_info.get_inverted_source_type_dict()
+        self.__g_dictPnsContract = o_pns_info.get_contract_type_dict()
+        del o_pns_info
 
         date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days+1)]
         nIdx = 0
@@ -1121,8 +1133,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             }
 
     def __mergeOtherGaRaw(self, oSvMysql, sTouchingDate):
+        dictNvPnsInfoNew = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'naver')
+        dictFbPnsInfoNew = self.get_aloocated_pns_cost(oSvMysql, sTouchingDate, 'facebook')
         dictNvPnsInfo = self.__definePnsCost(sTouchingDate, 'naver')
         dictFbPnsInfo = self.__definePnsCost(sTouchingDate, 'facebook')
+        ############################
+        if len(dictNvPnsInfoNew) != len(dictNvPnsInfo):
+            print(sTouchingDate)
+            raise Exception('stop')
+        lst_keys = list(dictNvPnsInfo.keys())
+        for s_key in lst_keys:
+            if dictNvPnsInfo[s_key]['media_raw_cost'] != dictNvPnsInfoNew[s_key]['media_raw_cost'] or \
+                dictNvPnsInfo[s_key]['media_agency_cost'] != dictNvPnsInfoNew[s_key]['media_agency_cost'] or \
+                dictNvPnsInfo[s_key]['vat'] != dictNvPnsInfoNew[s_key]['vat']:
+                print(sTouchingDate)
+                print(dictNvPnsInfo)
+                print(dictNvPnsInfoNew)
+                raise Exception('stop')
+        del lst_keys
+        ##############################
         nTouchingDate = int(sTouchingDate.replace('-', '' ))
         for s_unique_tag, dict_row in self.__g_dictOtherMergedDailyLog.items():
             aRowId = s_unique_tag.split('|@|')
@@ -1236,7 +1265,65 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sCamp1st, sCamp2nd, sCamp3rd, fMediaRawCost, fMediaAgencyCost, fMediaCostVat,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, sTouchingDate)
 
+    def get_aloocated_pns_cost(self, o_sv_db, s_touching_date, s_source):
+        """ get allocated Paid NS cost """
+        dict_pns_info = {}
+        if s_source not in self.__g_dictPnsSource:
+            self._printDebug('invalid pns info request :' + s_source)
+            return dict_pns_info
+        
+        dt_touching_date = datetime.datetime.strptime(s_touching_date, '%Y-%m-%d').date()
+        # sql file is in svplugins.integrate_db.queries
+        lst_contract_info = o_sv_db.executeQuery('getPnsContract', self.__g_dictPnsSource[s_source],
+                                                    dt_touching_date, dt_touching_date)
+        if len(lst_contract_info) > 0:
+            n_pns_info_idx = 0
+            n_touching_date = int(s_touching_date.replace('-', '' ))
+            o_reg_ex = re.compile(r"\d+%$") # pattern ex) 2% 23%
+            for dict_single_contract in lst_contract_info:
+                # define raw cost & agnecy cost -> calculate vat from sum of define raw cost & agnecy cost
+                n_period_cost_incl_vat = dict_single_contract['cost_incl_vat']
+                n_period_cost_exc_vat = math.ceil(n_period_cost_incl_vat/1.1)
+                m = o_reg_ex.search(dict_single_contract['agency_rate_percent']) # match() vs search()
+                if m: # if valid percent string
+                    f_rate = int(dict_single_contract['agency_rate_percent'].replace('%',''))/100
+                else: # if invalid percent string
+                    self._printDebug('invalid percent string ' + dict_single_contract['agency_rate_percent'])
+                    raise Exception('stop')
+                del m
+
+                f_contract_raw_cost = int((1 - f_rate) * n_period_cost_exc_vat)
+                f_agency_cost = int(f_rate * n_period_cost_exc_vat)
+                dt_delta_days = dict_single_contract['execute_date_end'] - dict_single_contract['execute_date_begin']
+                s_contract_type = self.__g_dictPnsContract[dict_single_contract['contract_type']]
+                s_term = dict_single_contract['media_term']
+                s_nickname = dict_single_contract['contractor_id']
+                s_regdate = dict_single_contract['regdate'].strftime('%Y-%m-%d')
+                for s_ua in self.__g_dictNvPnsUaCostPortion:
+                    f_portion = self.__g_dictNvPnsUaCostPortion[s_ua]
+                    f_daily_media_raw_cost = f_contract_raw_cost / (dt_delta_days.days + 1) * f_portion
+                    f_daily_agency_cost = f_agency_cost / (dt_delta_days.days + 1) * f_portion
+                    f_vat = (f_daily_media_raw_cost + f_daily_agency_cost) * 0.1
+                    if n_touching_date <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
+                        dict_pns_info[n_pns_info_idx] = {
+                            'service_type':s_contract_type, 'term':s_term,'nick':s_nickname,'ua':s_ua, 
+                            'media_raw_cost':f_daily_media_raw_cost,'media_agency_cost':f_daily_agency_cost,'vat':f_vat,
+                            'regdate':s_regdate
+                        }
+                        n_pns_info_idx += 1
+                    else: # for the latest & systematic situation
+                        if s_nickname is '-':
+                            s_row_id = s_term+'_'+s_contract_type+'_'+s_regdate+'_'+s_ua
+                        else:
+                            s_row_id = s_term+'_'+s_contract_type+'_'+s_nickname+'_'+s_regdate+'_'+s_ua
+                        dict_pns_info[s_row_id] = {
+                            'media_raw_cost':f_daily_media_raw_cost, 'media_agency_cost':f_daily_agency_cost, 'vat':f_vat
+                        }
+            del o_reg_ex
+        return dict_pns_info
+
     def __definePnsCost(self, sTouchingDate, sSource):
+        """ get allocated Paid NS cost """
         dictPnsInfo = {}
         dtTouchingDate = datetime.datetime.strptime(sTouchingDate, '%Y-%m-%d').date()
         nTouchingDate = int(sTouchingDate.replace('-', '' ))

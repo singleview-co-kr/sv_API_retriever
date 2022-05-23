@@ -18,9 +18,13 @@ class PnsInfo:
     __g_dictContractType = {1:'파블',2:'체험단', 3:'상위노출', 4:'인플루언서', 5:'카페활동', 6:'연관검색어'}
     __g_dictContractTypeInverted = {}
 
-    def __init__(self, o_sv_db):
+    def __init__(self, o_sv_db=None):
+        """ o_sv_db=None for calling from svplugins.integrate_db """
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
-        self.__g_oSvDb = o_sv_db
+        if o_sv_db:
+            self.__g_oSvDb = o_sv_db
+        self.__g_dictSourceInverted = {v: k for k, v in self.__g_dictSource.items()}
+        self.__g_dictContractTypeInverted = {v: k for k, v in self.__g_dictContractType.items()}
         super().__init__()
 
     def __enter__(self):
@@ -29,17 +33,21 @@ class PnsInfo:
 
     def __del__(self):
         # logger.debug('__del__')
-        del self.__g_oSvDb
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
     
     # def activate_debug(self):
     #     self.__g_bPeriodDebugMode = True
 
     def get_source_type_dict(self):
         return self.__g_dictSource
+    
+    def get_inverted_source_type_dict(self):
+        return self.__g_dictSourceInverted
 
     def get_contract_type_dict(self):
         return self.__g_dictContractType
-
+    
     def get_list_by_period(self, s_period_from, s_period_to):
         """
         data for brs contract list screen
@@ -150,7 +158,6 @@ class PnsInfo:
                 return dict_rst
         else:
             dt_regdate = datetime.today()
-
         self.__g_oSvDb.executeQuery('insertPnsContract', lst_query_value[0], lst_query_value[1], 
                                     lst_query_value[2].strip(), lst_query_value[3].strip(),
                                     s_cost_incl_vat, s_agency_rate_percent, 
@@ -161,8 +168,6 @@ class PnsInfo:
         copy & paste from SV CMS web admin
         :param 
         """
-        self.__g_dictSourceInverted = {v: k for k, v in self.__g_dictSource.items()}
-        self.__g_dictContractTypeInverted = {v: k for k, v in self.__g_dictContractType.items()}
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         # begin - construct contract info list
         s_multiple_contract = request.POST.get('multiple_contract')

@@ -10,6 +10,6 @@ CREATE TABLE `pns_contract` (
   `execute_date_end` DATE NOT NULL,
   `regdate` DATETIME DEFAULT NOW(),
    PRIMARY KEY (`contract_id`),
-   KEY `idx_execute_period` (`execute_date_begin`, `execute_date_end`),
+   KEY `idx_source_id_execute_period` (`source_id`, `execute_date_begin`, `execute_date_end`),
    KEY `idx_execute_date_end` (`execute_date_end`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
