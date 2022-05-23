@@ -173,8 +173,6 @@ class PnsInfo:
         s_multiple_contract = request.POST.get('multiple_contract')
         lst_line = s_multiple_contract.splitlines()
         # [0] 번호 [1] Query ID [2] GA인식 소스 [3] 서비스명 [4] utm_term [5] 고정 비용 VAT포함 [6] 클릭수 [7] 클릭단가 [8] 비용 배분 기간 [9] 등록일
-        # ['355', 'b356', 'naver', 'blog', '과탄산소다빨래_파블_신지넬', '₩330,000', '1', '₩330,000', '2022.05.25~2022.06.22', '2022-05-11']
-        # 파블	주방기름때제거	해맑은소나무	440,000	50%	2021.08.18~2021.09.15	2021-08-04
         for s_line in lst_line:
             lst_single_line = s_line.split('\t')
             if len(lst_single_line) != 10:
@@ -183,9 +181,16 @@ class PnsInfo:
                 return dict_rst
             n_source_id = self.__g_dictSourceInverted[lst_single_line[2]]
             lst_temp = lst_single_line[4].split('_')
-            s_targeted_term = lst_temp[0]
-            s_contractor_id = lst_temp[2]
-            n_contract_type_id = self.__g_dictContractTypeInverted[lst_temp[1]]
+            n_lst_temp = len(lst_temp)
+            if n_lst_temp == 3:
+                s_targeted_term = lst_temp[0]
+                s_contractor_id = lst_temp[2]
+                n_contract_type_id = self.__g_dictContractTypeInverted[lst_temp[1]]
+            elif n_lst_temp == 4:  # double targeted keyword case
+                s_targeted_term = lst_temp[0] + '_' + lst_temp[1]
+                s_contractor_id = lst_temp[3]
+                n_contract_type_id = self.__g_dictContractTypeInverted[lst_temp[2]]
+            
             del lst_temp
             s_contract_amnt_incl_vat = lst_single_line[5].replace('₩', '').replace(',', '')
             if not str.isdigit(s_contract_amnt_incl_vat):
