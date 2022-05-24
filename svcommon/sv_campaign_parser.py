@@ -305,9 +305,8 @@ class SvCampaignParser(sv_object.ISvObject):
                     dict_rst['campaign3rd'] = list_campaign_code[5]
                 except IndexError:
                     pass
-                
                 n_campaign_elem = len(list_campaign_code)
-                if n_campaign_elem > 6:
+                if n_campaign_elem > 6:  # to handle more than 6 chunks properly
                     for n_idx in range(6, n_campaign_elem):
                         dict_rst['campaign3rd'] += '-' + list_campaign_code[n_idx]
         else:  # process old style SV campaign code; this section will be deprecated after balanceseat complete analysis
