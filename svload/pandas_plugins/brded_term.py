@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from svcommon.sv_campaign_parser import SvCampaignParser
+from svcommon.sv_plugin import svPluginDaemonJob
 
 
 # for logger
@@ -10,10 +9,7 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
 class BrdedTerm:
-    """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
-    __g_oSvDb = None
-    __g_lstBrdedTerm = []
     
     def __init__(self, s_branded_trunc_path):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -41,20 +37,20 @@ class BrdedTerm:
         del o_sv_campaign_parser
         return lst_brded_term_list
 
-    def update_list(self, request):
+    def update_list(self, request, s_config_loc_param):
         """ 
-        copy & paste from SV CMS web admin
+        update brded term list
         :param 
         """
-        # import csv
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
-        # begin - construct contract info list
         s_multiple_term = request.POST.get('multiple_term')
         lst_line = s_multiple_term.splitlines()
-        lst_line = list(set(lst_line))
-        lst_line.sort()
         o_sv_campaign_parser = SvCampaignParser()
-        o_sv_campaign_parser.set_branded_trunc(self.__g_sBrandedTruncPath, lst_line)
+        dict_update_rst = o_sv_campaign_parser.set_branded_trunc(self.__g_sBrandedTruncPath, lst_line)
         del o_sv_campaign_parser
         del lst_line
+
+        if dict_update_rst['updated']:  # initialize a tbl compiled_ga_media_daily_log
+            o_sv_plugin_daemon = svPluginDaemonJob('integrate_db', s_config_loc_param, 'mode=clear')
+            del o_sv_plugin_daemon
         return dict_rst

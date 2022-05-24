@@ -81,8 +81,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_bGoogleAdsProcess = False
         self.__g_sDataPath = None
         self.__g_sRetrieveMonth = None
-        self.__g_sNvrPnsInfoFilePath = None
-        self.__g_sFbPnsInfoFilePath = None
         self.__g_dictNvadMergedDailyLog = None
         self.__g_dictAdwMergedDailyLog = None
         self.__g_dictKkoMergedDailyLog = None
@@ -100,8 +98,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_bGoogleAdsProcess = False
         self.__g_sDataPath = None
         self.__g_sRetrieveMonth = None
-        self.__g_sNvrPnsInfoFilePath = None
-        self.__g_sFbPnsInfoFilePath = None
         self.__g_dictNvadMergedDailyLog = None
         self.__g_dictAdwMergedDailyLog = None
         self.__g_dictKkoMergedDailyLog = None
@@ -131,14 +127,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         s_cid = dict_nvr_ad_acct['customer_id']
         self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id)
-        self.__g_sNvrPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'naver_ad', s_cid, 'conf', 'contract_pns_info.tsv')
-        self.__g_sFbPnsInfoFilePath = os.path.join(self.__g_sDataPath, 'fb_biz', dict_acct_info['fb_biz_aid'], 'conf', 'contract_pns_info.tsv')
 
         with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-        if self.__g_sRetrieveMonth != None:
+        
+        if self.__g_sMode == 'clear':
+            self.__truncateCompiledTable()
+            self._task_post_proc(self._g_oCallback)
+            return
+        elif self.__g_sRetrieveMonth != None:
             dictDateRange = self.__deleteCertainMonth()
         else:
             dictDateRange = self.__getTouchDateRange()
@@ -172,13 +171,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for date in date_generated:
             if not self._continue_iteration():
                 break
-            
             sDate = date.strftime('%Y-%m-%d')
             self.__compileDailyRecord(sDate)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data:', suffix = 'Complete', length = 50)
             nIdx += 1
         
         self._task_post_proc(self._g_oCallback)
+
+    def __truncateCompiledTable(self):
+        self._printDebug('-> clear ga media daily compiled log')
+        with sv_mysql.SvMySql() as oSvMysql:
+            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_app_name('svplugins.integrate_db')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
+            oSvMysql.truncateTable('compiled_ga_media_daily_log')
 
     def __deleteCertainMonth(self):
         dictRst = {'start_date': None, 'end_date': None}

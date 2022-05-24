@@ -146,6 +146,12 @@ class svPluginDaemonJob():
     __g_oLogger = None
 
     def __init__(self, *lst_plugin_params):
+        """ 
+        lst_plugin_params should be consisted of params below 
+        :1st_param: s_plugin_name
+        :2nd_param: 'config_loc=1/1'
+        :3rd_param: 'param1=a\r\nparam2=b'
+        """
         # https://docs.python.org/3.6/library/importlib.html
         # logging.info('svPluginDaemonJob has been started')
         s_plugin_title = lst_plugin_params[0]

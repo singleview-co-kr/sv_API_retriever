@@ -404,7 +404,10 @@ class SvCampaignParser(sv_object.ISvObject):
         return dict_rst
 
     def get_branded_trunc(self, s_brded_terms_path):
-        """ called by self.decideBrandedByTerm() """
+        """ 
+        called by self.decideBrandedByTerm()
+        call from svload.pandas_plugins.brded_term:get_list() 
+        """
         if self.__g_lstBrandedTrunc != None: # sentinel to prevent duplicated process
             return self.__g_lstBrandedTrunc
         lst_branded_trunc = []
@@ -417,19 +420,31 @@ class SvCampaignParser(sv_object.ISvObject):
                             lst_branded_trunc.append(lst_term[0])
             except FileNotFoundError:
                 pass
-        return lst_branded_trunc
+        return self.__get_unique_sored_trimmed_list(lst_branded_trunc)
     
     def set_branded_trunc(self, s_brded_terms_path, lst_line):
-        print(lst_line)
-        if s_brded_terms_path.find('/branded_term.conf') > -1:
+        """ call from svload.pandas_plugins.brded_term:update_list() """
+        dict_rst = {'updated': False}
+        if s_brded_terms_path.find('/branded_term.conf') == -1:
+            return dict_rst
+
+        lst_old_branded_term = self.get_branded_trunc(s_brded_terms_path)
+        lst_line = self.__get_unique_sored_trimmed_list(lst_line)
+        if lst_old_branded_term != lst_line:
             try:
                 with open(s_brded_terms_path, 'w') as fp:
                     for s_term in lst_line:
                         if len(s_term):
-                            fp.write("%s\n" % s_term)
+                            fp.write("%s\n" % s_term.strip())
+                dict_rst['updated'] = True
             except FileNotFoundError:
                 pass
+        return dict_rst
 
+    def __get_unique_sored_trimmed_list(self, lst_source):
+        lst_source = list(set(lst_source))  # get unique
+        lst_source.sort()  # get sorted
+        return [s_term.strip() for s_term in lst_source]  # get trimmed
 
 #if __name__ == '__main__': # for console debugging
 #	oSvCampaignParser = SvCampaignParser()

@@ -1042,13 +1042,10 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
         self.__g_sBrandedTruncPath = os.path.join(settings.SV_STORAGE_ROOT, s_sv_acct_id, str(n_brand_id), 'branded_term.conf')
 
         s_act = request.POST.get('act')
-        s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'update_brded_term':
-            # if request.POST['contract_id'] == '':
-            #     dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
-            #     return render(request, "svload/deny.html", context=dict_context)
+            s_config_loc_param = 'config_loc=' + s_sv_acct_id + '/' + str(n_brand_id)
             o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
-            o_brded_term.update_list(request)
+            o_brded_term.update_list(request, s_config_loc_param)
             del o_brded_term
             o_redirect = redirect('svload:brded_term_list', sv_brand_id=n_brand_id)
         return o_redirect
