@@ -21,4 +21,5 @@ urlpatterns = [
     path('pns_contract/<int:sv_brand_id>/', views.PnsContractView.as_view(), name='pns_contract_list'),
     path('pns_contract/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.PnsContractView.as_view(), name='pns_contract_list_period'),
     path('pns_contract_update/<int:sv_brand_id>/<int:contract_id>/', views.PnsContractView.as_view(), name='pns_contract_list_update'),
+    path('brded_term/<int:sv_brand_id>/', views.BrdedTermView.as_view(), name='brded_term_list'),
 ]

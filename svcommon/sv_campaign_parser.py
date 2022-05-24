@@ -157,7 +157,7 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_term is None:
             return dict_rst
         if self.__g_lstBrandedTrunc is None:
-            self.__g_lstBrandedTrunc = self.__getBrandedTrunc(s_brded_terms_path)
+            self.__g_lstBrandedTrunc = self.get_branded_trunc(s_brded_terms_path)
             if len(self.__g_lstBrandedTrunc) == 0:
                 dict_rst['b_error'] = True
                 dict_rst['s_err_msg'] = s_brded_terms_path + ' is required for better analysis!'
@@ -403,7 +403,7 @@ class SvCampaignParser(sv_object.ISvObject):
                     break
         return dict_rst
 
-    def __getBrandedTrunc(self, s_brded_terms_path):
+    def get_branded_trunc(self, s_brded_terms_path):
         """ called by self.decideBrandedByTerm() """
         if self.__g_lstBrandedTrunc != None: # sentinel to prevent duplicated process
             return self.__g_lstBrandedTrunc
@@ -412,11 +412,23 @@ class SvCampaignParser(sv_object.ISvObject):
             try:
                 with open(s_brded_terms_path, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
-                    for term in reader:
-                        lst_branded_trunc.append(term[0])
+                    for lst_term in reader:
+                        if len(lst_term):
+                            lst_branded_trunc.append(lst_term[0])
             except FileNotFoundError:
                 pass
         return lst_branded_trunc
+    
+    def set_branded_trunc(self, s_brded_terms_path, lst_line):
+        print(lst_line)
+        if s_brded_terms_path.find('/branded_term.conf') > -1:
+            try:
+                with open(s_brded_terms_path, 'w') as fp:
+                    for s_term in lst_line:
+                        if len(s_term):
+                            fp.write("%s\n" % s_term)
+            except FileNotFoundError:
+                pass
 
 
 #if __name__ == '__main__': # for console debugging

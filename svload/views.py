@@ -1,4 +1,4 @@
-# import os.path
+import os
 
 # begin - django related
 from django.shortcuts import render, redirect
@@ -22,6 +22,7 @@ from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
 from .pandas_plugins.contract import PnsInfo
+from .pandas_plugins.brded_term import BrdedTerm
 from .visualizer import Visualizer
 
 # dash plotly visualiztion with AI ML
@@ -1001,6 +1002,70 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
                        })
 
 
+class BrdedTermView(LoginRequiredMixin, TemplateView):
+    __g_oSvDb = None
+    __g_dictBrandInfo = {}
+
+    def __init__(self):
+        self.__g_oSvDb = SvMySql()
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+        self.__g_sBrandedTruncPath = None
+        return
+
+    def __del__(self):
+        self.__g_sBrandedTruncPath = None
+        del self.__g_oSvDb
+
+    def get(self, request, *args, **kwargs):
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        s_sv_acct_id = str(self.__g_dictBrandInfo['dict_ret']['n_acct_id'])
+        s_brand_id = str(self.__g_dictBrandInfo['dict_ret']['n_brand_id'])
+        self.__g_sBrandedTruncPath = os.path.join(settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
+        return self.__contract_list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+
+        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if dict_rst['b_error']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        s_sv_acct_id = str(dict_rst['dict_ret']['n_acct_id'])
+        self.__g_sBrandedTruncPath = os.path.join(settings.SV_STORAGE_ROOT, s_sv_acct_id, str(n_brand_id), 'branded_term.conf')
+
+        s_act = request.POST.get('act')
+        s_return_url = request.META.get('HTTP_REFERER')
+        if s_act == 'update_brded_term':
+            # if request.POST['contract_id'] == '':
+            #     dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+            #     return render(request, "svload/deny.html", context=dict_context)
+            o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
+            o_brded_term.update_list(request)
+            del o_brded_term
+            o_redirect = redirect('svload:brded_term_list', sv_brand_id=n_brand_id)
+        return o_redirect
+
+    def __contract_list(self, request, *args, **kwargs):
+        o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
+        lst_brded_term_list = o_brded_term.get_list()
+        del o_brded_term
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/brded_term_list.html',
+                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
+                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'lst_brded_term_list': lst_brded_term_list
+                       })
+
+
 class Morpheme(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
     __g_nCntToVisitorNounRank = 100  # 추출할 순위 수
@@ -1205,7 +1270,7 @@ def get_brand_info(o_db, request, kwargs):
     o_db.set_reserved_tag_value({'brand_id': n_brand_id})
 
     dict_rst['s_msg'] = 'success'
-    dict_rst['dict_ret'] = {'n_brand_id': n_brand_id,
+    dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'n_brand_id': n_brand_id,
                             # 'n_owner_id': request.user.pk, 'n_ga_view_id': n_ga_view_id,
                             's_brand_name': s_brand_name, 'lst_owned_brand': lst_owned_brand}
     return dict_rst
