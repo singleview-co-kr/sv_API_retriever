@@ -133,10 +133,14 @@ class SvCampaignParser(sv_object.ISvObject):
         except KeyError:
             return 'err_ua'
 
-    def get_source_id_dict(self):
+    def get_source_id_dict(self, b_inverted=False):
+        if b_inverted:
+            return {v: k for k, v in self.__g_dictSourceId.items()}
         return self.__g_dictSourceId
     
-    def get_pns_contract_type_dict(self):
+    def get_pns_contract_type_dict(self, b_inverted=False):
+        if b_inverted:
+            return {v: k for k, v in self.__g_dictPnsContractType.items()}
         return self.__g_dictPnsContractType
 
     def validateGaMediumTag(self, s_ga_medium_tag):

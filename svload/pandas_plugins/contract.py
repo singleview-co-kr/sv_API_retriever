@@ -28,9 +28,9 @@ class PnsInfo:
         o_sv_campaign_parser = SvCampaignParser()
         self.__g_dictSource = o_sv_campaign_parser.get_source_id_dict()
         self.__g_dictContractType = o_sv_campaign_parser.get_pns_contract_type_dict()
+        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_dict(True)
+        self.__g_dictContractTypeInverted = o_sv_campaign_parser.get_pns_contract_type_dict(True)
         del o_sv_campaign_parser
-        self.__g_dictSourceInverted = {v: k for k, v in self.__g_dictSource.items()}
-        self.__g_dictContractTypeInverted = {v: k for k, v in self.__g_dictContractType.items()}
         super().__init__()
 
     def __enter__(self):

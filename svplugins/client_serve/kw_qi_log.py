@@ -39,7 +39,8 @@ else: # for platform running
 
 
 class SvKeywordQi():
-    
+    __g_dictSourceInverted = None
+
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
@@ -76,10 +77,12 @@ class SvKeywordQi():
     def proc(self, s_mode):
         # python3.7 task.py config_loc=1/1 mode=add_nvr_qi_sql
 
-        # o_sv_campaign_parser = sv_campaign_parser.SvCampaignParser()
-        # self.__g_dictSource = o_sv_campaign_parser.get_source_id_dict()
-        # self.__g_dictContractType = o_sv_campaign_parser.get_pns_contract_type_dict()
-        # del o_sv_campaign_parser
+        o_sv_campaign_parser = sv_campaign_parser.SvCampaignParser()
+        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_dict(True)
+        del o_sv_campaign_parser
+
+        # print(self.__g_dictSourceInverted)
+        # return
 
         dt_yesterday = datetime.now() - timedelta(1)
         self.__g_sYesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
@@ -93,7 +96,7 @@ class SvKeywordQi():
         """
         transfer de-normalized table to BI db
         """
-        lst_sv_addr = None
+        lst_nvad_master_qi = None
         # begin - ext bi denorm word count date range
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
@@ -137,40 +140,25 @@ class SvKeywordQi():
         del lst_nvad_ad_grp
 
         for dict_single_qi in lst_nvad_master_qi:
-            print(dict_single_qi)
+            dict_single_qi['ad_group_name'] = dict_naver_ad_grp[dict_single_qi['ad_group_id']]
+            del dict_single_qi['ad_group_id']
         
+        # print(lst_nvad_master_qi)
         
-        return
         n_idx = 0
-        n_sentinel = len(lst_sv_addr)
+        n_sentinel = len(lst_nvad_master_qi)
         if n_sentinel:
             self.__print_debug('transfer naver master QI via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-                for dict_single_wc in lst_sv_addr:
+                for dict_single_qi in lst_nvad_master_qi:
                     if not self.__continue_iteration():
                         return
-                    s_addr_full = None
-                    if dict_single_wc['addr_do'] in lst_standardize_metropolis:
-                        if dict_single_wc['addr_si'] != 'None':
-                            s_addr_full = dict_single_wc['addr_si']
-                    else:
-                        if dict_single_wc['addr_do'] != 'None':
-                            s_addr_full = dict_single_wc['addr_do']
-                        if dict_single_wc['addr_si'] != 'None':
-                            s_addr_full += ' ' + dict_single_wc['addr_si']
-                    
-                    if dict_single_wc['addr_gu_gun'] != 'None':
-                        s_addr_full += ' ' + dict_single_wc['addr_gu_gun']
-                    if dict_single_wc['addr_dong_myun_eup'] != 'None':
-                        s_addr_full += ' ' + dict_single_wc['addr_dong_myun_eup']
-                    o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
-                                        dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
-                                        dict_single_wc['addr_dong_myun_eup'], s_addr_full,
-                                        dict_single_wc['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    o_sv_mysql.executeQuery('insertNvadMasterQiDenorm', self.__g_dictSourceInverted['naver'], 
+                                                dict_single_qi['ad_group_name'], dict_single_qi['ad_keyword'], 
+                                                dict_single_qi['quality_index'], dict_single_qi['check_date'])
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer naver master QI data:', suffix = 'Complete', length = 50)
                     n_idx += 1
-        del lst_sv_addr
-        del dict_standardize_metropolis
+        del lst_nvad_master_qi

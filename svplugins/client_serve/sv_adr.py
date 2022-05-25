@@ -126,7 +126,6 @@ class SvAddress():
         del o_sv_addr_parser
 
         lst_standardize_metropolis = dict_standardize_metropolis.values()
-        # return
         n_idx = 0
         n_sentinel = len(lst_sv_addr)
         if n_sentinel:
