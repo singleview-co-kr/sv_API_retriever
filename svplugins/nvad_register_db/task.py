@@ -64,7 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, May 2022')
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -75,6 +75,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvadPathAbs = None
         self.__g_sNvadDataPathAbs = None
         self.__g_sNvadConfPathAbs = None
+        self.__g_oSvCampaignParser = None
         self.__g_lstDatadateToCompile = [] # create date list to compile NVAD DB
 
     def __del__(self):
@@ -85,6 +86,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvadPathAbs = None
         self.__g_sNvadDataPathAbs = None
         self.__g_sNvadConfPathAbs = None
+        self.__g_oSvCampaignParser = None
         self.__g_lstDatadateToCompile = [] # create date list to compile NVAD DB
 
     def do_task(self, o_callback):
@@ -148,6 +150,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
         
         # compile registered stat datafile
+        self.__g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         nIdx = 0
         nSentinel = len(self.__g_lstDatadateToCompile)
         for nDate in self.__g_lstDatadateToCompile:
@@ -172,7 +175,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return False
 
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
-        oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
+        # oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
@@ -299,7 +302,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     }
             # translate compiled log
             for s_campaign_id, dict_daily_log in dictCompliedDailyLog.items():
-                dict_campaign_info = self.__parseCampaignCode(oSvMysql, dict_daily_log, sCompileDate)
+                dict_campaign_info = self.__parse_campaign_code(oSvMysql, dict_daily_log, sCompileDate)
                 dict_daily_log['source'] = dict_campaign_info['source']
                 dict_daily_log['rst_type'] = dict_campaign_info['rst_type']
                 dict_daily_log['media'] = dict_campaign_info['media']
@@ -344,7 +347,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 oSvMysql.executeQuery('insertAssembledNvadLog', 
                     cid, dict_daily_log['campaign_id'], dict_daily_log['campaign_name'], dict_daily_log['group_id'],
                     dict_daily_log['ua'], dict_daily_log['kw_id'], dict_daily_log['term'], dict_daily_log['rst_type'],
-                    oSvCampaignParser.getSvMediumTag(dict_daily_log['media']), dict_daily_log['brd'], 
+                    self.__g_oSvCampaignParser.getSvMediumTag(dict_daily_log['media']), dict_daily_log['brd'], 
                     dict_daily_log['campaign_1st'], dict_daily_log['campaign_2nd'], dict_daily_log['campaign_3rd'], nCost, 
                     dict_daily_log['imp'], dict_daily_log['click'], dict_daily_log['conv_cnt'], dict_daily_log['conv_amnt'], sLogDate)
             
@@ -411,49 +414,44 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del lst_contract_info
         return dict_rst
 
-    def __parseCampaignCode(self, oSvMysql, dictCompliedDailyLog, sCompileDate):
-        sCampaignCode = dictCompliedDailyLog['grp_name']
-        aCampaignDefinition = sCampaignCode.split('_')
-        if len(aCampaignDefinition) > 5:
-            sSourceTitle = aCampaignDefinition[0]
-            if sSourceTitle == 'NV':
-                dictCampaignInfo = {'source':'','rst_type':'','media':'','brd':0,'campaign_1st':'','campaign_2nd':'','campaign_3rd':''}
-                dictCampaignInfo['source'] = sSourceTitle
-                dictCampaignInfo['rst_type'] = aCampaignDefinition[1]
-                dictCampaignInfo['media'] = aCampaignDefinition[2]
-                
-                if aCampaignDefinition[2] == 'DISP' and aCampaignDefinition[3] == 'BRS':
-                    dictCampaignInfo['brd'] = 1
-                if aCampaignDefinition[2] == 'CPC' and aCampaignDefinition[3] == 'NVSHOPPING':
-                    dictCampaignInfo['term'] = 'nvshopping'
-                if aCampaignDefinition[3] == 'BR':
-                    dictCampaignInfo['brd'] = 1
-
-                dictCampaignInfo['campaign_1st'] = aCampaignDefinition[3]
-                dictCampaignInfo['campaign_2nd'] = aCampaignDefinition[4]
-                dictCampaignInfo['campaign_3rd'] = aCampaignDefinition[5]
-            elif sSourceTitle == 'GG':
-                self._printDebug(aCampaignDefinition)
-            elif sSourceTitle == 'FB':
-                self._printDebug(aCampaignDefinition)
+    def __parse_campaign_code(self, o_sv_mysql, dict_complied_daily_log, s_compile_date):
+        s_campaign_code = dict_complied_daily_log['grp_name']
+        dict_campaign_info = {'source': 'NV','rst_type': 'PS','media': '','brd': 0,
+                            'campaign_1st': '','campaign_2nd': '','campaign_3rd': '', 'term': ''}
+        if s_campaign_code.startswith('NV_PS_'):  # if follow sv campaign naming convention
+            dict_parse_rst = self.__g_oSvCampaignParser.parse_campaign_code(s_campaign_code)
+            if dict_parse_rst['source_code'] == 'NV':
+                dict_campaign_info['media'] = dict_parse_rst['medium_code']   # aCampaignDefinition[2]
+                if dict_parse_rst['medium_code'] == 'CPC' and dict_parse_rst['campaign1st'] == 'NVSHOPPING':
+                    dict_campaign_info['term'] = 'nvshopping'
+                dict_campaign_info['campaign_1st'] = dict_parse_rst['campaign1st']
+                dict_campaign_info['campaign_2nd'] = dict_parse_rst['campaign2nd']
+                dict_campaign_info['campaign_3rd'] = dict_parse_rst['campaign3rd']
+                dict_campaign_info['brd'] = int(dict_parse_rst['brd'])
             else:
-                dictCampaignInfo = {}
+                self._printDebug('weird campaign info detected')
+                self._printDebug(dict_parse_rst)
         else:
-            lstCampaign = oSvMysql.executeQuery('getCampaignInfo', dictCompliedDailyLog['campaign_id'], sCompileDate)
-            nCampaignType = lstCampaign[0]['campaign_type']
-            if nCampaignType == 1:
-                dictCampaignInfo = {'source':'NV','rst_type':'PS','media':'CPC','brd':0,'campaign_1st':dictCompliedDailyLog['campaign_name'], \
-                    'campaign_2nd':'','campaign_3rd':''}
-            elif nCampaignType == 2:
-                dictCampaignInfo = {'source':'NV','rst_type':'PS','media':'CPC','brd':0,'campaign_1st':'NVSHOP', \
-                    'campaign_2nd':'', 'campaign_3rd':'', 'term':'nvshop' }
-            elif nCampaignType == 4:
-                dictCampaignInfo = {'source':'NV','rst_type':'PS','media':'DISP','brd':1,'campaign_1st':'BRS', \
-                    'campaign_2nd':dictCompliedDailyLog['grp_name'],'campaign_3rd':''}
+            lst_campaign = o_sv_mysql.executeQuery('getCampaignInfo', dict_complied_daily_log['campaign_id'], s_compile_date)
+            n_campaign_type = lst_campaign[0]['campaign_type']
+            del lst_campaign
+            if n_campaign_type == 1:
+                dict_campaign_info['media'] = 'CPC'
+                dict_campaign_info['campaign_1st'] = dict_complied_daily_log['campaign_name']
+                dict_campaign_info['campaign_2nd'] = dict_complied_daily_log['grp_name']
+            elif n_campaign_type == 2:
+                dict_campaign_info['media'] = 'CPC'
+                dict_campaign_info['campaign_1st'] = 'NVSHOP'
+                dict_campaign_info['term'] = 'nvshop'
+            elif n_campaign_type == 4:
+                dict_campaign_info['media'] = 'DISP'
+                dict_campaign_info['campaign_1st'] = 'BRS'
+                dict_campaign_info['campaign_2nd'] = dict_complied_daily_log['grp_name']
+                dict_campaign_info['brd'] = 1
             else:
-                self._printDebug('werid campaign info')
-                dictCampaignInfo = {}
-        return dictCampaignInfo
+                self._printDebug('weird campaign info detected')
+                self._printDebug(s_campaign_code + '@' + s_compile_date)
+        return dict_campaign_info
 
     def __parseNvadDataFile(self, sSvAcctId, sAcctTitle, cid):
         self._printDebug('-> '+ cid +' is registering NVAD data files')
