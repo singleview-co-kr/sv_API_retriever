@@ -46,6 +46,8 @@ class SvCampaignParser(sv_object.ISvObject):
     """
     # __g_oLogger = None
     # caution! sv campaign code does not allow NS but allow PNS only, as pure NS could not be designated
+    __g_dictSourceId = {1:'naver', 2:'facebook'}  # facebook PNS is mainly for instagram but API depends on facebook
+    __g_dictPnsContractType = {1:'파블',2:'체험단', 3:'상위노출', 4:'인플루언서', 5:'카페활동', 6:'연관검색어'}
     __g_lstLatestSvCampaignPrefix = [
         'NV_PS_CPC_',
         'NV_PS_DISP_BRS_',
@@ -130,6 +132,12 @@ class SvCampaignParser(sv_object.ISvObject):
             return self.__g_dictUaTag[sUa]
         except KeyError:
             return 'err_ua'
+
+    def get_source_id_dict(self):
+        return self.__g_dictSourceId
+    
+    def get_pns_contract_type_dict(self):
+        return self.__g_dictPnsContractType
 
     def validateGaMediumTag(self, s_ga_medium_tag):
         s_ga_medium_tag = s_ga_medium_tag.lower()

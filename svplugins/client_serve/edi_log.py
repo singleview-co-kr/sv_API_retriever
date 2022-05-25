@@ -32,8 +32,6 @@ from datetime import timedelta
 if __name__ == 'edi_log': # for console debugging
     sys.path.append('../../svcommon')
     import sv_mysql
-
-    sys.path.append('../edi_register_db')
     import sv_hypermart_model
 else: # for platform running
     from svcommon import sv_mysql

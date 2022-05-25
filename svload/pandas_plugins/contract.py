@@ -6,6 +6,8 @@ import re
 # for logger
 import logging
 
+from svcommon.sv_campaign_parser import SvCampaignParser
+
 logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
@@ -13,16 +15,20 @@ class PnsInfo:
     """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
-    __g_dictSource = {1:'naver', 2:'facebook'}  # facebook PNS is mainly for instagram but API depends on facebook
-    __g_dictSourceInverted = {}
-    __g_dictContractType = {1:'파블',2:'체험단', 3:'상위노출', 4:'인플루언서', 5:'카페활동', 6:'연관검색어'}
-    __g_dictContractTypeInverted = {}
+    __g_dictSource = None
+    __g_dictSourceInverted = None
+    __g_dictContractType = None
+    __g_dictContractTypeInverted = None
 
     def __init__(self, o_sv_db=None):
         """ o_sv_db=None for calling from svplugins.integrate_db """
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
         if o_sv_db:
             self.__g_oSvDb = o_sv_db
+        o_sv_campaign_parser = SvCampaignParser()
+        self.__g_dictSource = o_sv_campaign_parser.get_source_id_dict()
+        self.__g_dictContractType = o_sv_campaign_parser.get_pns_contract_type_dict()
+        del o_sv_campaign_parser
         self.__g_dictSourceInverted = {v: k for k, v in self.__g_dictSource.items()}
         self.__g_dictContractTypeInverted = {v: k for k, v in self.__g_dictContractType.items()}
         super().__init__()
@@ -240,8 +246,8 @@ class NvrBrsInfo:
     __g_oSvDb = None
     __g_lstUa = ['M', 'P']
     __g_lstContractStatus = ['집행 중', '집행 대기', '집행 중 취소', '종료']
-    __g_lstUaHintMob = ['모바', 'MO']
-    __g_lstUaHintPc = ['PC', '피시', '피씨', '데스크']
+    __g_lstUaDictionaryMob = ['모바', 'MO']
+    __g_lstUaDictionaryPc = ['PC', '피시', '피씨', '데스크']
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -455,31 +461,31 @@ class NvrBrsInfo:
     def __decide_ua(self, lst_single_line):
         # decide UA as correctly as possible depends on contract context
         s_template_name = lst_single_line[5]  # by naver brs page template name
-        if s_template_name.find(self.__g_lstUaHintMob[0]) != -1:
+        if s_template_name.find(self.__g_lstUaDictionaryMob[0]) != -1:
             return self.__g_lstUa[0]
-        elif s_template_name.find(self.__g_lstUaHintPc[0]) != -1:
+        elif s_template_name.find(self.__g_lstUaDictionaryPc[0]) != -1:
             return self.__g_lstUa[1]
 
         s_contract_name = lst_single_line[3].upper()
-        for s_ua_hint in self.__g_lstUaHintMob:
+        for s_ua_hint in self.__g_lstUaDictionaryMob:
             if s_contract_name.find(s_ua_hint) != -1:
                 return self.__g_lstUa[0]
-        for s_ua_hint in self.__g_lstUaHintPc:
+        for s_ua_hint in self.__g_lstUaDictionaryPc:
             if s_contract_name.find(s_ua_hint) != -1:
                 return self.__g_lstUa[1]
 
         s_conntected_ad_group = lst_single_line[4]  # if SV naming convention
-        for s_ua_hint in self.__g_lstUaHintMob:
+        for s_ua_hint in self.__g_lstUaDictionaryMob:
             if s_conntected_ad_group.find(s_ua_hint) != -1:
                 return self.__g_lstUa[0]
-        for s_ua_hint in self.__g_lstUaHintPc:
+        for s_ua_hint in self.__g_lstUaDictionaryPc:
             if s_conntected_ad_group.find(s_ua_hint) != -1:
                 return self.__g_lstUa[1]
 
         if s_conntected_ad_group.find('NV_PS_DISP_BRS') != -1:
-            if s_conntected_ad_group.find(self.__g_lstUaHintMob[1]) != -1:
+            if s_conntected_ad_group.find(self.__g_lstUaDictionaryMob[1]) != -1:
                 return self.__g_lstUa[0]
-            elif s_conntected_ad_group.find(self.__g_lstUaHintPc[0]) != -1:
+            elif s_conntected_ad_group.find(self.__g_lstUaDictionaryPc[0]) != -1:
                 return self.__g_lstUa[1]
         return 'e'  # means error
 

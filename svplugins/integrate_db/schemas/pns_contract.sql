@@ -1,7 +1,7 @@
 CREATE TABLE `pns_contract` (
   `contract_id` bigint(11) NOT NULL AUTO_INCREMENT,
-  `source_id` SMALLINT(3) UNSIGNED NOT NULL,
-  `contract_type` SMALLINT(3) UNSIGNED NOT NULL DEFAULT 0,
+  `source_id` TINYINT(3) UNSIGNED NOT NULL,
+  `contract_type` TINYINT(3) UNSIGNED NOT NULL DEFAULT 0,
   `media_term` varchar(100) NOT NULL,
   `contractor_id` varchar(25) DEFAULT NULL,
   `cost_incl_vat` bigint(11) DEFAULT 0,

@@ -44,6 +44,7 @@ if __name__ == '__main__': # for console debugging
     import ga_media_log
     import ga_int_search_log
     import ga_itemperf_log
+    import kw_qi_log
     import word_cloud
     import edi_log
     import sv_adr
@@ -56,6 +57,7 @@ else: # for platform running
     from svplugins.client_serve import ga_media_log
     from svplugins.client_serve import ga_int_search_log
     from svplugins.client_serve import ga_itemperf_log
+    from svplugins.client_serve import kw_qi_log
     from svplugins.client_serve import word_cloud
     from svplugins.client_serve import edi_log
     from svplugins.client_serve import sv_adr
@@ -71,7 +73,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 16th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, May 2022')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -159,6 +161,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     self._printDebug, self._printProgressBar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
+        elif self.__g_sMode in ['add_nvr_qi_sql']:
+            self._printDebug('-> transfer de-normed Naver CPC keyword quality index to BI DB via SQL')
+            o_kw_qi_log = kw_qi_log.SvKeywordQi()
+            o_kw_qi_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
+                                  self._printDebug, self._printProgressBar, self._continue_iteration)
+            o_kw_qi_log.proc(self.__g_sMode)
+            del o_kw_qi_log
         elif self.__g_sMode in ['add_wc_sql']:
             self._printDebug('-> transfer de-normed word cloud to BI DB via SQL')
             o_ga_media_log = word_cloud.SvWordCloud()
