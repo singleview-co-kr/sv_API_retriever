@@ -76,13 +76,9 @@ class SvKeywordQi():
 
     def proc(self, s_mode):
         # python3.7 task.py config_loc=1/1 mode=add_nvr_qi_sql
-
         o_sv_campaign_parser = sv_campaign_parser.SvCampaignParser()
         self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_dict(True)
         del o_sv_campaign_parser
-
-        # print(self.__g_dictSourceInverted)
-        # return
 
         dt_yesterday = datetime.now() - timedelta(1)
         self.__g_sYesterday = datetime.strftime(dt_yesterday, '%Y%m%d')
@@ -142,8 +138,10 @@ class SvKeywordQi():
         for dict_single_qi in lst_nvad_master_qi:
             dict_single_qi['ad_group_name'] = dict_naver_ad_grp[dict_single_qi['ad_group_id']]
             del dict_single_qi['ad_group_id']
-        
-        # print(lst_nvad_master_qi)
+
+        if 'naver' not in self.__g_dictSourceInverted:
+            self.__print_debug('[naver] is an invalid source specifier')
+            return
         
         n_idx = 0
         n_sentinel = len(lst_nvad_master_qi)
@@ -156,7 +154,7 @@ class SvKeywordQi():
                 for dict_single_qi in lst_nvad_master_qi:
                     if not self.__continue_iteration():
                         return
-                    o_sv_mysql.executeQuery('insertNvadMasterQiDenorm', self.__g_dictSourceInverted['naver'], 
+                    o_sv_mysql.executeQuery('insertNvadMasterQiDenorm', 'naver', 
                                                 dict_single_qi['ad_group_name'], dict_single_qi['ad_keyword'], 
                                                 dict_single_qi['quality_index'], dict_single_qi['check_date'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer naver master QI data:', suffix = 'Complete', length = 50)
