@@ -950,8 +950,6 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
         elif s_act == 'inquiry_contract':
             s_period_from = request.POST.get('contract_period_from')
             s_period_to = request.POST.get('contract_period_to')
-            print(s_period_from)
-            print(s_period_to)
             o_redirect = redirect('svload:pns_contract_list_period',
                                   sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
         return o_redirect

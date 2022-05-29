@@ -163,8 +163,7 @@ class SvCampaignParser(sv_object.ISvObject):
                 return True
         return False
 
-    def decideBrandedByTerm(self, s_brded_terms_path, s_term):
-        # self._printDebug(s_brded_terms_path + ' is required for better analysis!')
+    def decide_brded_by_term(self, s_brded_terms_path, s_term):
         dict_rst = {'b_brded': False, 'b_error': False, 's_err_msg': None}
         if s_term is None:
             return dict_rst
@@ -172,9 +171,8 @@ class SvCampaignParser(sv_object.ISvObject):
             self.__g_lstBrandedTrunc = self.get_branded_trunc(s_brded_terms_path)
             if len(self.__g_lstBrandedTrunc) == 0:
                 dict_rst['b_error'] = True
-                dict_rst['s_err_msg'] = s_brded_terms_path + ' is required for better analysis!'
+                dict_rst['s_err_msg'] = '브랜디드 키워드 목록을 등록하면 온라인 브랜딩을 측정할 수 있습니다!'
                 return dict_rst
-
         if s_term not in self.__g_lstGaUselessTerm:
             for sBrandedTrunc in self.__g_lstBrandedTrunc:
                 if s_term.find(sBrandedTrunc) > -1:

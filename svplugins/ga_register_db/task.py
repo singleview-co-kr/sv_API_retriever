@@ -66,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 29th, May 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -478,7 +478,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sCampaign2nd = dictCampaignRst['campaign2nd']
         sCampaign3rd = dictCampaignRst['campaign3rd']
         # finally determine branded by term
-        dict_brded_rst = self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm)
+        dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
         if dict_brded_rst['b_error'] == True:
             self._printDebug(dict_brded_rst['s_err_msg'])
         elif dict_brded_rst['b_brded']:
