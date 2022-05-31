@@ -70,7 +70,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 24th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -1210,7 +1210,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sIdx in dictNvPnsInfo:
                 if nTouchingDate <= self.__g_nPnsTouchingDate: # for the old & non-systematic & complicated situation
                     sTerm = dictNvPnsInfo[sIdx]['term'] + '_' + dictNvPnsInfo[sIdx]['service_type'] + '_' + dictNvPnsInfo[sIdx]['nick'] + '_' + dictNvPnsInfo[sIdx]['regdate']
-                    sCamp1st = self.__g_oSvCampaignParser.getSvPnsServiceTypeTag( dictNvPnsInfo[sIdx]['service_type'] )
+                    sCamp1st = self.__g_oSvCampaignParser.get_sv_pns_contract_type_named_tag( dictNvPnsInfo[sIdx]['service_type'] )
                     if sCamp1st == 'RELATED':
                         sTerm = dictNvPnsInfo[sIdx]['term']
 
@@ -1222,7 +1222,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     aIdx = sIdx.split('_')
                     nRegdatePos = len(aIdx) - 2
                     nUaPos = len(aIdx) - 1
-                    sCamp1st = self.__g_oSvCampaignParser.getSvPnsServiceTypeTag(aIdx[1])
+                    sCamp1st = self.__g_oSvCampaignParser.get_sv_pns_contract_type_named_tag(aIdx[1])
                     if sCamp1st == 'RELATED':
                         sTerm = aIdx[0]
                     sCamp2nd = aIdx[nRegdatePos]
@@ -1242,7 +1242,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 aIdx = sIdx.split('_')
                 nRegdatePos = len(aIdx) - 2
                 nUaPos = len(aIdx) - 1
-                sCamp1st = self.__g_oSvCampaignParser.getSvPnsServiceTypeTag(aIdx[1])
+                sCamp1st = self.__g_oSvCampaignParser.get_sv_pns_contract_type_named_tag(aIdx[1])
                 sTerm = aIdx[0]
                 sCamp2nd = aIdx[nRegdatePos]
                 sCamp3rd = '00'

@@ -64,7 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 25th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -347,7 +347,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 oSvMysql.executeQuery('insertAssembledNvadLog', 
                     cid, dict_daily_log['campaign_id'], dict_daily_log['campaign_name'], dict_daily_log['group_id'],
                     dict_daily_log['ua'], dict_daily_log['kw_id'], dict_daily_log['term'], dict_daily_log['rst_type'],
-                    self.__g_oSvCampaignParser.getSvMediumTag(dict_daily_log['media']), dict_daily_log['brd'], 
+                    self.__g_oSvCampaignParser.get_sv_medium_tag(dict_daily_log['media']), dict_daily_log['brd'], 
                     dict_daily_log['campaign_1st'], dict_daily_log['campaign_2nd'], dict_daily_log['campaign_3rd'], nCost, 
                     dict_daily_log['imp'], dict_daily_log['click'], dict_daily_log['conv_cnt'], dict_daily_log['conv_amnt'], sLogDate)
             

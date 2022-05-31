@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 20th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -301,7 +301,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sUaType = aReportType[2]
                 sSource = aReportType[3].strip()
                 sRstType = aReportType[4].strip()
-                sMedium = self.__g_oSvCampaignParser.getSvMediumTag(aReportType[5]).strip()
+                sMedium = self.__g_oSvCampaignParser.get_sv_medium_tag(aReportType[5])
                 bBrd = aReportType[6]
                 sCampaign1st = aReportType[7].strip()
                 sCampaign2nd = aReportType[8].strip()

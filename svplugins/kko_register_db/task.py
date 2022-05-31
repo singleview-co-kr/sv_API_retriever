@@ -342,7 +342,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sUaType = aReportType[2]
                 sSource = aReportType[3]
                 sRstType = aReportType[4]
-                sMedium = self.__g_oSvCampaignParser.getSvMediumTag(aReportType[5])
+                sMedium = self.__g_oSvCampaignParser.get_sv_medium_tag(aReportType[5])
                 bBrd = aReportType[6]
                 sCampaign1st = aReportType[7]
                 sCampaign2nd = aReportType[8]

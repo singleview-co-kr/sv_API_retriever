@@ -17,9 +17,11 @@ urlpatterns = [
     path('budget_update/<int:sv_brand_id>/<int:budget_id>/', views.BudgetView.as_view(), name='budget_update'),
     path('nvr_brs_contract/<int:sv_brand_id>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list'),
     path('nvr_brs_contract/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list_period'),
-    path('nvr_brs_contract_update/<int:sv_brand_id>/<int:contract_srl>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_list_update'),
+    path('nvr_brs_contract_update/<int:sv_brand_id>/<int:contract_srl>/', views.NvrBrsContractView.as_view(), name='nvr_brs_contract_update'),
     path('pns_contract/<int:sv_brand_id>/', views.PnsContractView.as_view(), name='pns_contract_list'),
     path('pns_contract/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.PnsContractView.as_view(), name='pns_contract_list_period'),
-    path('pns_contract_update/<int:sv_brand_id>/<int:contract_id>/', views.PnsContractView.as_view(), name='pns_contract_list_update'),
+    path('pns_contract_update/<int:sv_brand_id>/<int:contract_id>/', views.PnsContractView.as_view(), name='pns_contract_update'),
     path('brded_term/<int:sv_brand_id>/', views.BrdedTermView.as_view(), name='brded_term_list'),
+    path('campaign_alias/<int:sv_brand_id>/', views.CampaignAliasView.as_view(), name='campaign_alias_list'),
+    path('campaign_alias_update/<int:sv_brand_id>/<int:alias_id>/', views.CampaignAliasView.as_view(), name='campaign_alias_update'),
 ]

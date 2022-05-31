@@ -23,6 +23,7 @@ from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
 from .pandas_plugins.contract import PnsInfo
 from .pandas_plugins.brded_term import BrdedTerm
+from .pandas_plugins.campaign_alias import CampaignAliasInfo
 from .visualizer import Visualizer
 
 # dash plotly visualiztion with AI ML
@@ -671,7 +672,10 @@ class BudgetView(LoginRequiredMixin, TemplateView):
         return
 
     def __del__(self):
-        del self.__g_oSvDb
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictBrandInfo:
+            del self.__g_dictBrandInfo
 
     def get(self, request, *args, **kwargs):
         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
@@ -688,12 +692,12 @@ class BudgetView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
-        if dict_rst['b_error']:
-            dict_context = {'err_msg': dict_rst['s_msg']}
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'add_budget':
@@ -789,7 +793,10 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
         return
 
     def __del__(self):
-        del self.__g_oSvDb
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictBrandInfo:
+            del self.__g_dictBrandInfo
 
     def get(self, request, *args, **kwargs):
         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
@@ -806,12 +813,12 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
-        if dict_rst['b_error']:
-            dict_context = {'err_msg': dict_rst['s_msg']}
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'add_contract_bulk':
@@ -898,7 +905,10 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
         return
 
     def __del__(self):
-        del self.__g_oSvDb
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictBrandInfo:
+            del self.__g_dictBrandInfo
 
     def get(self, request, *args, **kwargs):
         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
@@ -915,12 +925,12 @@ class PnsContractView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
-        if dict_rst['b_error']:
-            dict_context = {'err_msg': dict_rst['s_msg']}
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         s_act = request.POST.get('act')
         s_return_url = request.META.get('HTTP_REFERER')
         if s_act == 'add_contract_bulk':
@@ -1013,7 +1023,10 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
 
     def __del__(self):
         self.__g_sBrandedTruncPath = None
-        del self.__g_oSvDb
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictBrandInfo:
+            del self.__g_dictBrandInfo
 
     def get(self, request, *args, **kwargs):
         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
@@ -1030,13 +1043,13 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
 
-        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
-        if dict_rst['b_error']:
-            dict_context = {'err_msg': dict_rst['s_msg']}
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
-        s_sv_acct_id = str(dict_rst['dict_ret']['n_acct_id'])
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
+        s_sv_acct_id = str(self.__g_dictBrandInfo['dict_ret']['n_acct_id'])
         self.__g_sBrandedTruncPath = os.path.join(settings.SV_STORAGE_ROOT, s_sv_acct_id, str(n_brand_id), 'branded_term.conf')
 
         s_act = request.POST.get('act')
@@ -1058,6 +1071,113 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'lst_brded_term_list': lst_brded_term_list
+                       })
+
+
+class CampaignAliasView(LoginRequiredMixin, TemplateView):
+    __g_oSvDb = None
+    __g_dictBrandInfo = {}
+
+    def __init__(self):
+        self.__g_oSvDb = SvMySql()
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+        return
+
+    def __del__(self):
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictBrandInfo:
+            del self.__g_dictBrandInfo
+
+    def get(self, request, *args, **kwargs):
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        if 'alias_id' in kwargs:
+            return self.__alias_detail(request, *args, **kwargs)
+        else:
+            return self.__alias_list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+
+        self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if self.__g_dictBrandInfo['b_error']:
+            dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+
+        n_acct_id = self.__g_dictBrandInfo['dict_ret']['n_acct_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
+        s_act = request.POST.get('act')
+        s_return_url = request.META.get('HTTP_REFERER')
+        if s_act == 'add_alias_bulk':
+            o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
+            dict_rst = o_campaign_alias_info.add_alias_bulk(request)
+            del o_campaign_alias_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+        elif s_act == 'add_alias_single':
+            o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
+            o_campaign_alias_info.add_alias_single(request)
+            del o_campaign_alias_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+        elif s_act == 'update_alias':
+            if request.POST['contract_id'] == '':
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
+            o_campaign_alias_info.update_alias(request)
+            del o_campaign_alias_info
+            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+        return o_redirect
+
+    def __alias_list(self, request, *args, **kwargs):
+        n_acct_id = self.__g_dictBrandInfo['dict_ret']['n_acct_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
+        o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
+        dict_alias_info = o_campaign_alias_info.get_list()
+        dict_source_type = o_campaign_alias_info.get_source_type_dict()
+        del o_campaign_alias_info
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/campalign_alias_list.html',
+                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
+                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'dict_source_type': dict_source_type, 
+                       'lst_campaign_alias_table': dict_alias_info['lst_alias_rst'],
+                       })
+
+    def __alias_detail(self, request, *args, **kwargs):
+        if 'alias_id' not in kwargs:
+            raise Exception('invalid alias id')
+
+        n_alias_id = int(kwargs['alias_id'])
+        n_acct_id = self.__g_dictBrandInfo['dict_ret']['n_acct_id']
+        n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
+        o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
+        dict_alias_info = o_campaign_alias_info.get_detail_by_id(n_alias_id)
+        dict_source_type = o_campaign_alias_info.get_source_type_dict()
+        dict_search_rst_type = o_campaign_alias_info.get_search_rst_type_id_dict()
+        dict_medium_type = o_campaign_alias_info.get_medium_type_id_dict()
+        del o_campaign_alias_info
+        s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/campaign_alias_detail.html',
+                      {'s_brand_name': s_brand_name,
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'dict_source_type': dict_source_type, 
+                       'dict_search_rst_type': dict_search_rst_type,
+                       'dict_medium_type': dict_medium_type,
+                       'dict_alias_info': dict_alias_info,
                        })
 
 
@@ -1262,7 +1382,7 @@ def get_brand_info(o_db, request, kwargs):
     o_db.set_tbl_prefix(s_tbl_prefix)
     o_db.set_app_name(__name__)
     o_db.initialize({'n_acct_id': n_acct_id, 'n_brand_id': n_brand_id})
-    o_db.set_reserved_tag_value({'brand_id': n_brand_id})
+    # o_db.set_reserved_tag_value({'brand_id': n_brand_id})
 
     dict_rst['s_msg'] = 'success'
     dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'n_brand_id': n_brand_id,
