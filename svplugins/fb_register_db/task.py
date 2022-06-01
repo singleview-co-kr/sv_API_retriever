@@ -53,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -231,8 +231,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dictCampaignInfo['campaign_code'] = aUtmCampaignCode[1]
                                 continue
                         
-                        dictCode = self.__g_oSvCampaignParser.parseCampaignCodeFb(dictCampaignInfo, dictCampaignNameAlias)
-                        sUa = self.__g_oSvCampaignParser.getUa(row[6])
+                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo, dictCampaignNameAlias)
+                        sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                         if dictCode['source'] == 'unknown':  # for debugging
                             self._printDebug(row)
 

@@ -26,9 +26,9 @@ class PnsInfo:
         if o_sv_db:
             self.__g_oSvDb = o_sv_db
         o_sv_campaign_parser = SvCampaignParser()
-        self.__g_dictSource = o_sv_campaign_parser.get_source_id_dict()
+        self.__g_dictSource = o_sv_campaign_parser.get_source_id_title_dict()
         self.__g_dictContractType = o_sv_campaign_parser.get_pns_contract_type_dict()
-        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_dict(True)
+        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_title_dict(True)
         self.__g_dictContractTypeInverted = o_sv_campaign_parser.get_pns_contract_type_dict(True)
         del o_sv_campaign_parser
         super().__init__()

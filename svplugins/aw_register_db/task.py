@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -241,11 +241,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             else:
                                 return
                     
-                    sUa = self.__g_oSvCampaignParser.getUa(row[6])
+                    sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                     sTerm = row[2]
                     sPlacement = None
                     # diff between "adwords term" and "adwords placement"
-                    if self.__g_oSvCampaignParser.decideAwPlacementTagByTerm(sTerm) == True:
+                    if self.__g_oSvCampaignParser.get_gad_placement_tag_by_term(sTerm) == True:
                         sPlacement = sTerm
                         sTerm = None
                     # finally determine branded by term

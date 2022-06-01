@@ -44,7 +44,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -204,7 +204,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self._printDebug('weird kakao moment log!')
                         return
                 
-                sUa = self.__g_oSvCampaignParser.getUa(row[6])
+                sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                 nImpression = int(row[8])
                 nClick = int(row[9])
                 nCost = int(row[7])
@@ -300,7 +300,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                         self._printDebug('weird kakao moment log!')
                         return
-                sUa = self.__g_oSvCampaignParser.getUa(row[5])
+                sUa = self.__g_oSvCampaignParser.get_ua(row[5])
                 nImpression = int(row[6])
                 nClick = int(row[7])
                 nCost = int(row[9])

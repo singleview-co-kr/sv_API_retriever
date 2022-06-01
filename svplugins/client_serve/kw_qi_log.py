@@ -77,7 +77,7 @@ class SvKeywordQi():
     def proc(self, s_mode):
         # python3.7 task.py config_loc=1/1 mode=add_nvr_qi_sql
         o_sv_campaign_parser = sv_campaign_parser.SvCampaignParser()
-        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_dict(True)
+        self.__g_dictSourceInverted = o_sv_campaign_parser.get_source_id_title_dict(True)
         del o_sv_campaign_parser
 
         dt_yesterday = datetime.now() - timedelta(1)

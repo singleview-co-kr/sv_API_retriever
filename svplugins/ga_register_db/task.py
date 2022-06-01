@@ -66,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 29th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -200,7 +200,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 continue
             lst_file_info = s_filename.split('_')
             s_data_date = lst_file_info[0]
-            s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
+            s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file_info[1])
             s_specifier = lst_file_info[2]
             if s_specifier in dict_query:  #lst_analyzing_filename:
                 s_attr_name = dict_query[s_specifier]
@@ -266,7 +266,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
             aFile = sFilename.split('_')
             sDataDate = aFile[0]
-            sUaType = self.__g_oSvCampaignParser.getUa(aFile[1])
+            sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
             sSpecifier = aFile[2]
             if sSpecifier in dictQuery:  #lst_analyzing_filename:
                 sIdxName = dictQuery[sSpecifier]
@@ -428,7 +428,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if aQuery[0] == 'utm_term':
                             sTerm = aQuery[1]
             # same source code needs to be method - end
-        dictValidMedium = self.__g_oSvCampaignParser.validateGaMediumTag(sMedium)
+        dictValidMedium = self.__g_oSvCampaignParser.validate_ga_medium_tag(sMedium)
         if dictValidMedium['medium'] != 'weird':
             sMedium = dictValidMedium['medium']
             if dictValidMedium['found_pos'] > -1:

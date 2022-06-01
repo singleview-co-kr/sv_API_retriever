@@ -15,9 +15,12 @@ class CampaignAliasInfo:
     """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
-    __g_dictSource = None
-    __g_dictSearchRstTypeId = None
-    __g_dictMediumTypeId = None
+    __g_dictSourceIdTitle = None
+    __g_dictSourceIdTag = None
+    __g_dictSearchRstTypeIdTitle = None
+    __g_dictSearchRstTypeIdTag = None
+    __g_dictMediumTypeIdTitle = None
+    __g_dictMediumTypeIdTag = None
 
     def __init__(self, n_acct_id, n_brand_id):
         """ """
@@ -30,9 +33,13 @@ class CampaignAliasInfo:
         self.__g_oSvDb.initialize({'n_acct_id': n_acct_id, 'n_brand_id': n_brand_id})
 
         o_sv_campaign_parser = SvCampaignParser()
-        self.__g_dictSource = o_sv_campaign_parser.get_source_id_dict()
-        self.__g_dictSearchRstTypeId = o_sv_campaign_parser.get_search_rst_type_id_dict()
-        self.__g_dictMediumTypeId = o_sv_campaign_parser.get_medium_type_id_dict()
+        self.__g_dictSourceIdTitle = o_sv_campaign_parser.get_source_id_title_dict()
+        self.__g_dictSourceIdTag = o_sv_campaign_parser.get_source_id_tag_dict()
+        self.__g_dictSearchRstTypeIdTitle = o_sv_campaign_parser.get_search_rst_type_id_title_dict()
+        self.__g_dictSearchRstTypeIdTag = o_sv_campaign_parser.get_search_rst_type_id_tag_dict()
+        self.__g_dictMediumTypeIdTitle = o_sv_campaign_parser.get_medium_type_id_title_dict()
+        self.__g_dictMediumTypeIdTag = o_sv_campaign_parser.get_medium_type_id_tag_dict()
+        
         del o_sv_campaign_parser
         super().__init__()
 
@@ -49,13 +56,13 @@ class CampaignAliasInfo:
     #     self.__g_bPeriodDebugMode = True
 
     def get_source_type_dict(self):
-        return self.__g_dictSource
+        return self.__g_dictSourceIdTitle
     
-    def get_search_rst_type_id_dict(self):
-        return self.__g_dictSearchRstTypeId
+    def get_search_rst_type_id_title_dict(self):
+        return self.__g_dictSearchRstTypeIdTitle
 
-    def get_medium_type_id_dict(self):
-        return self.__g_dictMediumTypeId
+    def get_medium_type_id_title_dict(self):
+        return self.__g_dictMediumTypeIdTitle
     
     def get_list(self):
         """
@@ -64,7 +71,13 @@ class CampaignAliasInfo:
         """
         lst_alias_rst = self.__g_oSvDb.executeQuery('getCampaignAliasList')
         for dict_single_alias in lst_alias_rst:
-            dict_single_alias['source_name'] = self.__g_dictSource[dict_single_alias['source_id']]
+            dict_single_alias['source_name'] = self.__g_dictSourceIdTitle[dict_single_alias['source_id']]
+            s_sv_campaign_convention = self.__get_source_tag_by_id(dict_single_alias['source_id']) + '_' + \
+                self.__get_search_rst_tag_by_id(dict_single_alias['search_rst_id']) + '_' + \
+                self.__get_medium_tag_by_id(dict_single_alias['medium_id']) + '_' + \
+                dict_single_alias['sv_lvl_1'] + '_' + dict_single_alias['sv_lvl_2'] + '_' + \
+                dict_single_alias['sv_lvl_3']
+            dict_single_alias['sv_conventional_alias'] = s_sv_campaign_convention
             del dict_single_alias['source_id']
         return {'lst_alias_rst': lst_alias_rst}
 
@@ -75,10 +88,12 @@ class CampaignAliasInfo:
         :return:
         """
         lst_alias_detail = self.__g_oSvDb.executeQuery('getCampaignAliasDetailById', n_alias_id)
-        # print(lst_alias_detail[0]['source_id'])
-        # 'source_id' 1 
-        # 'search_rst_id' 1
-        # 'medium_id' 2
+        s_sv_campaign_convention = self.__get_source_tag_by_id(lst_alias_detail[0]['source_id']) + '_' + \
+            self.__get_search_rst_tag_by_id(lst_alias_detail[0]['search_rst_id']) + '_' + \
+            self.__get_medium_tag_by_id(lst_alias_detail[0]['medium_id']) + '_' + \
+            lst_alias_detail[0]['sv_lvl_1'] + '_' + lst_alias_detail[0]['sv_lvl_2'] + '_' + \
+            lst_alias_detail[0]['sv_lvl_3']
+        lst_alias_detail[0]['sv_conventional_alias'] = s_sv_campaign_convention
         return lst_alias_detail[0]
 
     def add_alias_single(self, request):
@@ -89,7 +104,7 @@ class CampaignAliasInfo:
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
-        if int(lst_query_value[0]) not in self.__g_dictSource:
+        if int(lst_query_value[0]) not in self.__g_dictSourceIdTitle:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invaid source'
             return dict_rst
@@ -122,7 +137,7 @@ class CampaignAliasInfo:
                 dict_rst['b_error'] = True
                 dict_rst['s_msg'] = 'weird campaign alias info'
                 return dict_rst
-            n_source_id = self.__g_dictSourceInverted[lst_single_line[2]]
+            # n_source_id = self.__g_dictSourceInverted[lst_single_line[2]]
             
             dt_regdate = datetime.strptime(lst_single_line[9], '%Y-%m-%d')
             self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_targeted_term,
@@ -156,3 +171,12 @@ class CampaignAliasInfo:
         #     s_contract_status = '집행 중 취소'
         # self.__g_oSvDb.executeQuery('updatePnsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
         return
+    
+    def __get_source_tag_by_id(self, n_source_id):
+        return self.__g_dictSourceIdTag[n_source_id]
+
+    def __get_search_rst_tag_by_id(self, n_search_rst_id):
+        return self.__g_dictSearchRstTypeIdTag[n_search_rst_id]
+    
+    def __get_medium_tag_by_id(self, n_medium_id):
+        return self.__g_dictMediumTypeIdTag[n_medium_id]

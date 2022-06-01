@@ -107,7 +107,7 @@ class svItemPerformance():
             lst_file_info = s_filename.split('_')
             s_data_date = lst_file_info[0]
             n_first_detected_date = int(s_data_date)
-            s_ua_type = self.__g_oSvCampaignParser.getUa(lst_file_info[1])
+            s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file_info[1])
             s_specifier = lst_file_info[2]
             if s_specifier in dict_query:  # lst_analyzing_filename:
                 s_attr_name = dict_query[s_specifier]
