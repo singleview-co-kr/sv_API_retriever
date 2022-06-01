@@ -1,3 +1,4 @@
+import sys
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 import random
@@ -6,7 +7,11 @@ import re
 # for logger
 import logging
 
-from svcommon.sv_campaign_parser import SvCampaignParser
+if __name__ == 'contract': # for calling from svplugins.integrate_db.task
+    sys.path.append('../../svcommon')
+    from sv_campaign_parser import SvCampaignParser
+else: # for platform running
+    from svcommon.sv_campaign_parser import SvCampaignParser
 
 logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
