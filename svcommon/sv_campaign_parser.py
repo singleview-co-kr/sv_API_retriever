@@ -220,6 +220,25 @@ class SvCampaignParser(sv_object.ISvObject):
             return {v: k for k, v in self.__g_dictPnsContractType.items()}
         return self.__g_dictPnsContractType
 
+    def validate_sv_campaign_level_tag(self, s_sv_campaign_level_tag):
+        """ 
+        validate sv campaign level 1 2 3 4
+        :param 
+        """
+        dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
+        s_sv_campaign_level_tag = s_sv_campaign_level_tag.strip()
+        if len(s_sv_campaign_level_tag) == 0:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'empty string'
+            return dict_rst
+        if not s_sv_campaign_level_tag.isalnum():
+            print(s_sv_campaign_level_tag)
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'alphanumeric allowed only'
+            return dict_rst
+        dict_rst['dict_ret'] = s_sv_campaign_level_tag.upper()
+        return dict_rst
+
     def validate_ga_medium_tag(self, s_ga_medium_tag):
         s_ga_medium_tag = s_ga_medium_tag.lower()
         dictRst = {'medium':'weird', 'found_pos':-1}

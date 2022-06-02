@@ -1121,15 +1121,15 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
             if dict_rst['b_error']:
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:campaign_alias_list', sv_brand_id=n_brand_id)
         elif s_act == 'add_alias_single':
             o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
-            o_campaign_alias_info.add_alias_single(request)
+            dict_rst = o_campaign_alias_info.add_alias_single(request)
             del o_campaign_alias_info
             if dict_rst['b_error']:
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
-            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:campaign_alias_list', sv_brand_id=n_brand_id)
         elif s_act == 'update_alias':
             if request.POST['contract_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
@@ -1137,7 +1137,7 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
             o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
             o_campaign_alias_info.update_alias(request)
             del o_campaign_alias_info
-            o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:campaign_alias_list', sv_brand_id=n_brand_id)
         return o_redirect
 
     def __alias_list(self, request, *args, **kwargs):
@@ -1146,13 +1146,17 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
         o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
         dict_alias_info = o_campaign_alias_info.get_list()
         dict_source_type = o_campaign_alias_info.get_source_type_dict()
+        dict_search_rst_type = o_campaign_alias_info.get_search_rst_type_id_title_dict()
+        dict_medium_type = o_campaign_alias_info.get_medium_type_id_title_dict()
         del o_campaign_alias_info
         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
         return render(request, 'svload/campalign_alias_list.html',
                       {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
-                       'dict_source_type': dict_source_type, 
+                       'dict_source_type': dict_source_type,
+                       'dict_search_rst_type': dict_search_rst_type,
+                       'dict_medium_type': dict_medium_type,
                        'lst_campaign_alias_table': dict_alias_info['lst_alias_rst'],
                        })
 

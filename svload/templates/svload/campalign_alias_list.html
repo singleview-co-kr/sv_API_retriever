@@ -52,7 +52,7 @@
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>기간 예산 내역 <small></small></h2>
+                    <h2>기간 비표준 캠페인명 대치 정보 내역 <small></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
                         </li>
@@ -99,7 +99,7 @@
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>싱글뷰 웹엔진 PNS 정보를 그대로 복붙하기 <small></small></h2>
+                    <h2>탭으로 구분하여 복붙하기 <small></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-down"></i></a>
                         </li>
@@ -121,8 +121,8 @@
                     <form method="POST" id='frm_alias_appending_bulk' enctype="multipart/form-data">
                     <input type="hidden" id="act" name="act" value="add_alias_bulk" />
                     {% csrf_token %}
-                        <label for="message">번호	Query ID	GA인식 소스	서비스명	utm_term	고정 비용 VAT포함	클릭수	클릭단가	비용 배분 기간	등록일</label>
-                        <textarea id="multiple_alias" name="multiple_alias" required="required" class="form-control" rows="10"></textarea>
+                        <label for="message">campaign_name	source_tag	rst_type_tag	medium_tag	camp1st	camp2nd	camp3rd	regdate</label>
+                        <textarea id="multiple_campaign_alias" name="multiple_campaign_alias" required="required" class="form-control" rows="10"></textarea>
                         <button type="submit" id='btn_add_alias_bulk' class="btn btn-primary">추가하기</button>
                     </form>
                 </div>
@@ -133,7 +133,7 @@
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>Paid NS 개별 추가하기 <small></small></h2>
+                    <h2>비표준 캠페인명 대치 정보 개별 추가하기 <small></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-down"></i></a>
                         </li>
@@ -157,10 +157,16 @@
                     <input type="hidden" id="act" name="act" value="add_alias_single" />
                     {% csrf_token %}
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="source_id">계약 매체<span class="required">*</span></label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">수집된 비표준 캠페인명</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <input type="text" class="form-control col-md-7 col-xs-12" name="media_campaign_title" value="">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">소스 종류<span class="required">*</span></label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <select class="form-control" name="source_id">
-                                <option value="">계약 매체 선택</option>
+                                <option value="">소스 선택</option>
                                 {% for n_id, s_source in dict_source_type.items %}
                                     <option value="{{n_id}}">{{s_source}}</option>
                                 {% endfor %}
@@ -168,50 +174,43 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="alias_type">계약 유형<span class="required">*</span></label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">검색 결과 유형<span class="required">*</span></label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <select class="form-control" name="alias_type">
-                                <option value="">계약 유형 선택</option>
-                                {% for n_id, s_alias_type in dict_alias_type.items %}
-                                    <option value="{{n_id}}">{{s_alias_type}}</option>
+                                <select class="form-control" name="search_rst_type_id">
+                                <option value="">검색 결과 선택</option>
+                                {% for n_id, s_search_rst in dict_search_rst_type.items %}
+                                    <option value="{{n_id}}">{{s_search_rst}}</option>
                                 {% endfor %}
                                 </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">목표 키워드</label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">매체 유형<span class="required">*</span></label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="media_term" required="required" value="">
+                                <select class="form-control" name="media_type_id">
+                                <option value="">매체 선택</option>
+                                {% for n_id, s_medium in dict_medium_type.items %}
+                                    <option value="{{n_id}}">{{s_medium}}</option>
+                                {% endfor %}
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약자 ID</label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">캠페인 수준 1</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="alias_id" required="required" value="">
+                                <input type="text" class="form-control col-md-7 col-xs-12" placeholder="영문 대문자 혹은 숫자만 허용, 비우면 00" name="sv_lvl_1" value="">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">계약 비용(부가세포함)</label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">캠페인 수준 2</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="cost_incl_vat" required="required" value="">
+                                <input type="text" class="form-control col-md-7 col-xs-12" placeholder="영문 대문자 혹은 숫자만 허용, 비우면 00" name="sv_lvl_2" value="">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">대행사 수수료%</label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">캠페인 수준 3</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="agency_rate_percent" placeholder="00%" required="required" value="">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">시행시작일</label>
-                            <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="execute_date_begin" placeholder="YYYY-MM-DD" required="required" value="">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">시행종료일</label>
-                            <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input type="text" class="form-control col-md-7 col-xs-12" name="execute_date_end" placeholder="YYYY-MM-DD" required="required" value="">
+                                <input type="text" class="form-control col-md-7 col-xs-12" placeholder="영문 대문자 혹은 숫자만 허용, 비우면 00" name="sv_lvl_3" value="">
                             </div>
                         </div>
                         <div class="form-group">
@@ -223,7 +222,7 @@
                         <div class="ln_solid"></div>
                         <div class="form-group">
                             <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
-                                <button type="submit" id='btn_add_alias_barter' class="btn btn-success">추가</button>
+                                <button type="submit" id='btn_add_campaign_alias' class="btn btn-success">추가</button>
                             </div>
                         </div>
                     </form>
@@ -275,7 +274,7 @@ jQuery("#btn_alias_enquiry").click(function (e) {
 
 <script type="text/javascript">
 jQuery("#btn_add_alias_bulk").click(function(){
-    sMultipleAlias = jQuery("#multiple_alias").val();
+    sMultipleAlias = jQuery("#multiple_campaign_alias").val();
     if(sMultipleAlias.length == 0)
     {
         alert('캠페인 대치 목록 정보를 입력하세요.');

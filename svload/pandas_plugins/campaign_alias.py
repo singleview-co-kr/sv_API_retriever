@@ -17,10 +17,13 @@ class CampaignAliasInfo:
     __g_oSvDb = None
     __g_dictSourceIdTitle = None
     __g_dictSourceIdTag = None
+    __g_dictSourceTagId = None
     __g_dictSearchRstTypeIdTitle = None
     __g_dictSearchRstTypeIdTag = None
+    __g_dictSearchRstTypeTagId = None
     __g_dictMediumTypeIdTitle = None
     __g_dictMediumTypeIdTag = None
+    __g_dictMediumTypeTagId = None
 
     def __init__(self, n_acct_id, n_brand_id):
         """ """
@@ -35,11 +38,13 @@ class CampaignAliasInfo:
         o_sv_campaign_parser = SvCampaignParser()
         self.__g_dictSourceIdTitle = o_sv_campaign_parser.get_source_id_title_dict()
         self.__g_dictSourceIdTag = o_sv_campaign_parser.get_source_id_tag_dict()
+        self.__g_dictSourceTagId = o_sv_campaign_parser.get_source_id_tag_dict(True)
         self.__g_dictSearchRstTypeIdTitle = o_sv_campaign_parser.get_search_rst_type_id_title_dict()
         self.__g_dictSearchRstTypeIdTag = o_sv_campaign_parser.get_search_rst_type_id_tag_dict()
+        self.__g_dictSearchRstTypeTagId = o_sv_campaign_parser.get_search_rst_type_id_tag_dict(True)
         self.__g_dictMediumTypeIdTitle = o_sv_campaign_parser.get_medium_type_id_title_dict()
         self.__g_dictMediumTypeIdTag = o_sv_campaign_parser.get_medium_type_id_tag_dict()
-        
+        self.__g_dictMediumTypeTagId = o_sv_campaign_parser.get_medium_type_id_tag_dict(True)
         del o_sv_campaign_parser
         super().__init__()
 
@@ -98,18 +103,38 @@ class CampaignAliasInfo:
 
     def add_alias_single(self, request):
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
-        lst_query_title = ['source_id', 'contract_type', 'media_term', 'contractor_id',
-                            'cost_incl_vat', 'agency_rate_percent', 'execute_date_begin', 
-                            'execute_date_end', 'regdate']
+        lst_query_title = ['media_campaign_title', 'source_id', 'search_rst_type_id', 
+                            'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'regdate']
+
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
-        if int(lst_query_value[0]) not in self.__g_dictSourceIdTitle:
+        
+        s_media_campaign_title = lst_query_value[0].strip()
+        n_source_id = int(lst_query_value[1])
+        if n_source_id not in self.__g_dictSourceIdTitle:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invaid source'
             return dict_rst
+        n_search_rst_id = int(lst_query_value[2])
+        if n_search_rst_id not in self.__g_dictSearchRstTypeIdTitle:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'invaid search rst'
+            return dict_rst
+        n_medium_id = int(lst_query_value[3])
+        if n_medium_id not in self.__g_dictMediumTypeIdTitle:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'invaid medium'
+            return dict_rst
 
-        if len(lst_query_value[8]) > 0:
+        o_sv_campaign_parser = SvCampaignParser()
+        s_sv_lvl_1 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_query_value[4])['dict_ret']
+        s_sv_lvl_2 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_query_value[5])['dict_ret']
+        s_sv_lvl_3 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_query_value[6])['dict_ret']
+        s_sv_lvl_4 = None
+        del o_sv_campaign_parser
+
+        if len(lst_query_value[7]) > 0:
             try:
                 dt_regdate = datetime.strptime(lst_query_value[8], '%Y-%m-%d')
             except ValueError:
@@ -118,36 +143,45 @@ class CampaignAliasInfo:
                 return dict_rst
         else:
             dt_regdate = datetime.today()
-        self.__g_oSvDb.executeQuery('insertPnsContract', lst_query_value[0], lst_query_value[1], 
-                                    lst_query_value[2].strip(), lst_query_value[3].strip(), dt_regdate)
 
+        self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_media_campaign_title,
+                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, dt_regdate)
+        return dict_rst
+        
     def add_alias_bulk(self, request):
         """ 
         copy & paste multiple campaign alias
         :param 
         """
+        o_sv_campaign_parser = SvCampaignParser()
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         # begin - construct campaign alias info list
         s_multiple_campaign_alias = request.POST.get('multiple_campaign_alias')
         lst_line = s_multiple_campaign_alias.splitlines()
-        # [0] 번호 [1] Query ID [2] GA인식 소스 [3] 서비스명 [4] utm_term [5] 고정 비용 VAT포함 [6] 클릭수 [7] 클릭단가 [8] 비용 배분 기간 [9] 등록일
+        # ['범퍼애드_테이블청소', 'YT', 'PS', 'DISP', 'WIPES', 'TABLE', '20190402', '2019-04-03']
         for s_line in lst_line:
             lst_single_line = s_line.split('\t')
-            if len(lst_single_line) != 10:
+            if len(lst_single_line) != 8:
                 dict_rst['b_error'] = True
                 dict_rst['s_msg'] = 'weird campaign alias info'
                 return dict_rst
-            # n_source_id = self.__g_dictSourceInverted[lst_single_line[2]]
-            
-            dt_regdate = datetime.strptime(lst_single_line[9], '%Y-%m-%d')
-            self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_targeted_term,
-                                        s_contractor_id, s_contract_amnt_incl_vat, '50%', 
-                                        dt_execute_begin, dt_execute_end, dt_regdate)
-            del dt_execute_begin
-            del dt_execute_end
+
+            s_media_campaign_title = lst_single_line[0].strip()
+            n_source_id = self.__g_dictSourceTagId[lst_single_line[1].strip()]
+            n_search_rst_id = self.__g_dictSearchRstTypeTagId[lst_single_line[2].strip()]
+            n_medium_id = self.__g_dictMediumTypeTagId[lst_single_line[3].strip()]
+            s_sv_lvl_1 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_single_line[4])['dict_ret']
+            s_sv_lvl_2 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_single_line[5])['dict_ret']
+            s_sv_lvl_3 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_single_line[6])['dict_ret']
+            s_sv_lvl_4 = None
+            dt_regdate = datetime.strptime(lst_single_line[7], '%Y-%m-%d')
+            self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_media_campaign_title,
+                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, dt_regdate)
+
             del dt_regdate
         del lst_line
         # end - construct campaign alias info list
+        del o_sv_campaign_parser
         return dict_rst
     
     def update_contract(self, request):
