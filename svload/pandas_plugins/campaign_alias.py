@@ -101,11 +101,10 @@ class CampaignAliasInfo:
         lst_alias_detail[0]['sv_conventional_alias'] = s_sv_campaign_convention
         return lst_alias_detail[0]
 
-    def add_alias_single(self, request):
+    def __validate_alias_single(self, request):
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         lst_query_title = ['media_campaign_title', 'source_id', 'search_rst_type_id', 
                             'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'regdate']
-
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
@@ -134,20 +133,63 @@ class CampaignAliasInfo:
         s_sv_lvl_4 = None
         del o_sv_campaign_parser
 
-        if len(lst_query_value[7]) > 0:
+        if request.POST['act'] != 'update_alias' and len(lst_query_value[7]) > 0:
             try:
-                dt_regdate = datetime.strptime(lst_query_value[8], '%Y-%m-%d')
+                dt_regdate = datetime.strptime(lst_query_value[7], '%Y-%m-%d')
             except ValueError:
                 dict_rst['b_error'] = True
-                dict_rst['s_msg'] = lst_query_title[8] + ' is invalid date'
+                dict_rst['s_msg'] = lst_query_title[7] + ' is invalid date'
                 return dict_rst
         else:
             dt_regdate = datetime.today()
 
-        self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_media_campaign_title,
-                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, dt_regdate)
+        dict_rst['dict_ret'] = {'n_source_id': n_source_id, 
+                                's_media_campaign_title': s_media_campaign_title, 
+                                'n_search_rst_id': n_search_rst_id, 
+                                'n_medium_id': n_medium_id, 
+                                's_sv_lvl_1': s_sv_lvl_1, 
+                                's_sv_lvl_2': s_sv_lvl_2, 
+                                's_sv_lvl_3': s_sv_lvl_3, 
+                                's_sv_lvl_4': s_sv_lvl_4, 
+                                'dt_regdate': dt_regdate}
         return dict_rst
-        
+
+    def add_alias_single(self, request):
+        dict_rst = self.__validate_alias_single(request)
+        if dict_rst['b_error']:
+            return dict_rst
+        self.__g_oSvDb.executeQuery('insertCampaignAlias', 
+                                        dict_rst['dict_ret']['n_source_id'],
+                                        dict_rst['dict_ret']['s_media_campaign_title'], 
+                                        dict_rst['dict_ret']['n_search_rst_id'],
+                                        dict_rst['dict_ret']['n_medium_id'], 
+                                        dict_rst['dict_ret']['s_sv_lvl_1'],
+                                        dict_rst['dict_ret']['s_sv_lvl_2'], 
+                                        dict_rst['dict_ret']['s_sv_lvl_3'],
+                                        dict_rst['dict_ret']['s_sv_lvl_4'], 
+                                        dict_rst['dict_ret']['dt_regdate'])
+        return dict_rst
+    
+    def update_alias(self, request):
+        """
+        data for campaign alias detail screen
+        :return:
+        """
+        n_alias_id = int(request.POST['alias_id'])
+        dict_rst = self.__validate_alias_single(request)
+        if dict_rst['b_error']:
+            return dict_rst
+        self.__g_oSvDb.executeQuery('updateCampaignAliasById', 
+                                        dict_rst['dict_ret']['n_source_id'],
+                                        dict_rst['dict_ret']['n_search_rst_id'],
+                                        dict_rst['dict_ret']['n_medium_id'], 
+                                        dict_rst['dict_ret']['s_sv_lvl_1'],
+                                        dict_rst['dict_ret']['s_sv_lvl_2'], 
+                                        dict_rst['dict_ret']['s_sv_lvl_3'],
+                                        dict_rst['dict_ret']['s_sv_lvl_4'],
+                                        n_alias_id)
+        return
+
     def add_alias_bulk(self, request):
         """ 
         copy & paste multiple campaign alias
@@ -183,28 +225,6 @@ class CampaignAliasInfo:
         # end - construct campaign alias info list
         del o_sv_campaign_parser
         return dict_rst
-    
-    def update_contract(self, request):
-        """
-        data for campaign alias detail screen
-        :return:
-        """
-        # n_contract_srl = int(request.POST['contract_srl'])
-        # dict_contract = self.get_detail_by_srl(n_contract_srl)
-        # s_ua = request.POST['ua'].strip()
-        # if s_ua not in self.__g_lstUa:
-        #     s_ua = dict_contract['ua']
-
-        # s_refund_amnt = request.POST['refund_amnt'].replace(',', '')
-        # if not str.isdigit(s_refund_amnt):
-        #     s_refund_amnt = dict_contract['refund_amnt']
-        
-        # if int(s_refund_amnt) == 0:
-        #     s_contract_status = dict_contract['contract_status']
-        # else:
-        #     s_contract_status = '집행 중 취소'
-        # self.__g_oSvDb.executeQuery('updatePnsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
-        return
     
     def __get_source_tag_by_id(self, n_source_id):
         return self.__g_dictSourceIdTag[n_source_id]

@@ -1131,7 +1131,7 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
                 return render(request, "svload/deny.html", context=dict_context)
             o_redirect = redirect('svload:campaign_alias_list', sv_brand_id=n_brand_id)
         elif s_act == 'update_alias':
-            if request.POST['contract_id'] == '':
+            if request.POST['alias_id'] == '':
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
             o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)

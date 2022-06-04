@@ -47,8 +47,8 @@ class SvCampaignParser(sv_object.ISvObject):
     # __g_oLogger = None
     # caution! sv campaign code does not allow NS but allow PNS only, as pure NS could not be designated
     __g_lstSourceInfo = [ # (id, title, tag_name)
-        (1, 'naver', 'NV'),
         (1, 'naver', 'NVR'),
+        (1, 'naver', 'NV'),
         (2, 'google', 'GG'),
         (3, 'youtube', 'YT'),
         (4, 'facebook', 'FB'),  # facebook PNS is mainly for instagram but API depends on facebook
@@ -78,8 +78,8 @@ class SvCampaignParser(sv_object.ISvObject):
         (1, 'cpc', 'CPC'),
         (2, 'display', 'DISP'),
         (3, 'cpi', 'CPI'),
-        (4, 'organic', 'REF'),
-        (4, 'organic', 'PAGE')
+        (4, 'organic', 'PAGE'),
+        (4, 'organic', 'REF')
     ]
     __g_dictMediumIdTitle = None  # {1:'Cost Per Click', 2:'Display', 3:'Cost Per Impression', 4:'Referral'} 
     __g_dictMediumTagTitle = None  # {'CPC':'cpc', 'DISP':'display', 'CPI':'cpi', 'REF':'organic', 'PAGE':'organic'}
