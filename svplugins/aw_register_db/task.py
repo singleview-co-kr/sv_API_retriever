@@ -44,17 +44,20 @@ import codecs
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svload/pandas_plugins')
     sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import campaign_alias
     import settings
 else:
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svload.pandas_plugins import campaign_alias
     from django.conf import settings
 
 
@@ -67,7 +70,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, Jun 2022')
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -112,15 +115,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
         if self.__g_sReplaceMonth != None:
             self._printDebug('-> replace aw raw data')
-            self.__deleteCertainMonth()
+            self.__delete_certain_month()
         else:
             self._printDebug('-> register aw raw data')
-        self.__arrangeAwRawDataFile(s_sv_acct_id, s_brand_id, lst_google_ads)
-        self.__registerDb()
-
+        
+        # begin - referring to raw_data_file, validate raw data file without registration
+        lst_non_sv_convention_campaign_title = self.__validate_campaign_code(s_sv_acct_id, s_brand_id, lst_google_ads)
+        if len(lst_non_sv_convention_campaign_title):
+            for s_single_campaign in lst_non_sv_convention_campaign_title:
+                self._printDebug('[' + s_single_campaign + '] should be filled!')
+            self._task_post_proc(self._g_oCallback)
+            return
+        # end - referring to raw_data_file, validate raw data file without registration
+        self.__arrange_gad_raw_data_file(s_sv_acct_id, s_brand_id, lst_google_ads)
+        self.__register_db()
         self._task_post_proc(self._g_oCallback)
 
-    def __deleteCertainMonth(self):
+    def __delete_certain_month(self):
         nYr = int(self.__g_sReplaceMonth[:4])
         nMo = int(self.__g_sReplaceMonth[4:None])
         try:
@@ -141,26 +152,86 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
-    def __getCampaignNameAlias(self, sParentDataPath):
-        dictCampaignNameAliasInfo = {}
-        s_alias_file_path = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
-        if os.path.isfile(s_alias_file_path):
-            with codecs.open(s_alias_file_path, 'r',encoding='utf8') as tsvfile:
-                reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
-                for row in reader:
-                    if nRowCnt > 0:
-                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
-
-                    nRowCnt = nRowCnt + 1
-        return dictCampaignNameAliasInfo
-
-    def __arrangeAwRawDataFile(self, sSvAcctId, sAcctTitle, lstGoogleads):
+    def __validate_campaign_code(self, sSvAcctId, sAcctTitle, lstGoogleads):
+        """ referring to raw_data_file, validate raw data file without registration """
+        lst_non_sv_convention_campaign_title = []
         lstMergedDataFiles = []
         sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
-        # retrieve campaign name alias info
-        dictCampaignNameAlias = self.__getCampaignNameAlias(sParentDataPath)
+        for sGoogleadsCid in lstGoogleads:
+            if self.__g_sReplaceMonth == None:
+                self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
+                sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
+            else:
+                self._printDebug('-> '+ sGoogleadsCid +' is replacing AW data files')
+                sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data', 'closing')
+            
+            # traverse directory and categorize data files
+            lstDataFiles = os.listdir(sDataPath)
+            for nIdx, sDatafileName in enumerate(lstDataFiles):
+                aFileExt = os.path.splitext(sDatafileName)
+                if aFileExt[1] == '':
+                    continue
+                if self.__g_sReplaceMonth == None:
+                    sMode = 'r' # means regular daily
+                else:
+                    sMode = 'c' # means closing monthly
+                lstMergedDataFiles.append(sDatafileName + '|@|' + sGoogleadsCid + '|@|' + sMode)
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
+        lstMergedDataFiles.sort()
+        nIdx = 0
+        nSentinel = len(lstMergedDataFiles)
+        for sDataFileInfo in lstMergedDataFiles:
+            if not self._continue_iteration():
+                break
 
+            aDataFileInfo = sDataFileInfo.split('|@|')
+            sFilename = aDataFileInfo[0]
+            sCid = aDataFileInfo[1]
+            sMode = aDataFileInfo[2]
+            if sMode == 'r':
+                sDataFileFullname = os.path.join(sParentDataPath, sCid, 'data', sFilename)
+            elif sMode == 'c':
+                sDataFileFullname = os.path.join(sParentDataPath, sCid, 'data', 'closing', sFilename)
+            
+            if not os.path.isfile(sDataFileFullname):
+                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+                continue
+            
+            with open(sDataFileFullname, 'r') as tsvfile:
+                reader = csv.reader(tsvfile, delimiter='\t')
+                for row in reader:
+                    lst_campaign_code = row[0].split('_')
+                    if lst_campaign_code[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
+                        continue
+                    dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
+                    if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                            dict_rst['rst_type'] == '':
+                        dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
+                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                                dict_rst['rst_type'] == '':
+                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            else:
+                                lst_non_sv_convention_campaign_title.append(row[0])
+                                continue
+                    if dict_rst['source_code'] not in ['GG', 'YT']:  # if unacceptable googleads campaign name
+                        sCampaignName = row[0]
+                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                        self._printDebug('weird googleads log!')
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            raise Exception('remove')
+                        else:
+                            return
+            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Validate data file:', suffix = 'Complete', length = 50)
+            nIdx += 1
+        del o_campaign_alias
+        return lst_non_sv_convention_campaign_title
+
+    def __arrange_gad_raw_data_file(self, sSvAcctId, sAcctTitle, lstGoogleads):
+        """ referring to raw_data_file, arrange raw data file to register """
+        lstMergedDataFiles = []
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
         for sGoogleadsCid in lstGoogleads:
             if self.__g_sReplaceMonth == None:
                 self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
@@ -181,6 +252,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sMode = 'c' # means closing monthly
                 lstMergedDataFiles.append(sDatafileName + '|@|' + sGoogleadsCid + '|@|' + sMode)
         
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
         lstMergedDataFiles.sort()
         nIdx = 0
         nSentinel = len(lstMergedDataFiles)
@@ -211,11 +283,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if lst_campaign_code[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
                         continue
                     
-                    if len(lst_campaign_code) > 3:  # adwords group name following singleview campaign code
-                        dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
-                    else:  # adwords group name not following singleview campaign convention
+                    dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
+                    if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                            dict_rst['rst_type'] == '':
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
-                    #  dict_rst['brd']
+                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                                dict_rst['rst_type'] == '':
+                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            else:  # if unacceptable googleads campaign name
+                                sCampaignName = row[0]
+                                self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                                self._printDebug('weird googleads log!')
+                                if self._g_bDaemonEnv:  # for running on dbs.py only
+                                    raise Exception('remove')
+                                else:
+                                    return
+
                     if dict_rst['source_code'] in ['GG', 'YT']:
                         sSource = dict_rst['source_code']
                         sRstType = dict_rst['rst_type']
@@ -223,23 +308,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign1st = dict_rst['campaign1st']
                         sCampaign2nd = dict_rst['campaign2nd']
                         sCampaign3rd = dict_rst['campaign3rd']
-                    else:  # lookup alias DB
+                    else:  # if unacceptable googleads campaign name
                         sCampaignName = row[0]
-                        # should log source group name to sv convention translation
-                        if dictCampaignNameAlias.get(sCampaignName, 0):  # returns 0 if sRowId does not exist
-                            sSource = dictCampaignNameAlias[sCampaignName]['source']
-                            sRstType = dictCampaignNameAlias[sCampaignName]['rst_type']
-                            sMedium = dictCampaignNameAlias[sCampaignName]['medium']
-                            sCampaign1st = dictCampaignNameAlias[sCampaignName]['camp1st']
-                            sCampaign2nd = dictCampaignNameAlias[sCampaignName]['camp2nd']
-                            sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                        else:  # if unacceptable googleads campaign name
-                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                            self._printDebug('weird googleads log!')
-                            if self._g_bDaemonEnv:  # for running on dbs.py only
-                                raise Exception('remove')
-                            else:
-                                return
+                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                        self._printDebug('weird googleads log!')
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            raise Exception('remove')
+                        else:
+                            return
                     
                     sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                     sTerm = row[2]
@@ -250,7 +326,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sTerm = None
                     # finally determine branded by term
                     bBrd = 0
-                    dict_brded_rst = self.__g_oSvCampaignParser.decideBrandedByTerm(self.__g_sBrandedTruncPath, sTerm)
+                    dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
                     if dict_brded_rst['b_error'] == True:
                         self._printDebug(dict_brded_rst['s_err_msg'])
                     elif dict_brded_rst['b_brded']:
@@ -280,11 +356,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self.__g_dictAdwRaw[sReportId] = {
                             'imp':nImpression,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
                         }
-            self.__archiveGaDataFile(sSourceDataPath, sFilename)
+            self.__archive_data_file(sSourceDataPath, sFilename)
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
+        del o_campaign_alias
 
-    def __registerDb(self):
+    def __register_db(self):
         nIdx = 0
         nSentinel = len(self.__g_dictAdwRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
@@ -318,10 +395,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __archiveGaDataFile(self, sDataPath, sCurrentFileName):
+    def __archive_data_file(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
-            self._printDebug( 'error: adw source directory does not exist!' )
+            self._printDebug('error: adw source directory does not exist!')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:

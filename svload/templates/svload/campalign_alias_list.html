@@ -75,7 +75,7 @@
                         <thead>
                         <tr>
                             <th>매체명</th>
-                            <th>수집된 비표준 캠페인명</th>
+                            <th>대체할 캠페인명</th>
                             <th>대치할 표준 캠페인명</th>
                             <th>등록일시</th>
                         </tr>
@@ -121,7 +121,7 @@
                     <form method="POST" id='frm_alias_appending_bulk' enctype="multipart/form-data">
                     <input type="hidden" id="act" name="act" value="add_alias_bulk" />
                     {% csrf_token %}
-                        <label for="message">campaign_name	source_tag	rst_type_tag	medium_tag	camp1st	camp2nd	camp3rd	regdate</label>
+                        <label for="message">replaceable_campaign_name \ source_tag \ rst_type_tag \ medium_tag \ camp1st \ camp2nd \ camp3rd \ regdate</label>
                         <textarea id="multiple_campaign_alias" name="multiple_campaign_alias" required="required" class="form-control" rows="10"></textarea>
                         <button type="submit" id='btn_add_alias_bulk' class="btn btn-primary">추가하기</button>
                     </form>
@@ -133,7 +133,7 @@
         <div class="col-md-12 col-sm-12 col-xs-12">
             <div class="x_panel">
                 <div class="x_title">
-                    <h2>비표준 캠페인명 대치 정보 개별 추가하기 <small></small></h2>
+                    <h2>대체할 캠페인명 대치 정보 개별 추가하기 <small></small></h2>
                     <ul class="nav navbar-right panel_toolbox">
                         <li><a class="collapse-link"><i class="fa fa-chevron-down"></i></a>
                         </li>
@@ -157,7 +157,7 @@
                     <input type="hidden" id="act" name="act" value="add_alias_single" />
                     {% csrf_token %}
                         <div class="form-group">
-                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">수집된 비표준 캠페인명</label>
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="">대체할 캠페인명</label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <input type="text" class="form-control col-md-7 col-xs-12" name="media_campaign_title" value="">
                             </div>

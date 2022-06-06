@@ -53,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 1st, Jun 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, Jun 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -92,12 +92,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.fb_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
-        self.__arrangeFbRawDataFile(s_sv_acct_id, s_brand_id)
-        self.__registerDb()
+        self.__arrange_fb_raw_data_file(s_sv_acct_id, s_brand_id)
+        self.__register_db()
 
         self._task_post_proc(self._g_oCallback)
 
-    def __getFxRate(self, sCheckFxCode, sCheckDate):
+    def __get_fx_rate(self, sCheckFxCode, sCheckDate):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         if sCheckFxCode == 'KRW':
             return 1
@@ -129,7 +129,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     return self.__g_dictFxTrendInfo[sFxIdx]
         return
 
-    def __getFxTrend(self, sFxCode):
+    def __get_fx_trend(self, sFxCode):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         if sFxCode == 'KRW':
             return True
@@ -150,7 +150,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return False
         return True
 
-    def __getFxCode(self, s_conf_path_abs):
+    def __get_fx_code(self, s_conf_path_abs):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         sFxCodePath = os.path.join(s_conf_path_abs, 'info_fx.tsv')
         sFxCode = 'error'
@@ -163,7 +163,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
 
-    def __arrangeFbRawDataFile(self, sSvAcctId, sAcctTitle):
+    def __arrange_fb_raw_data_file(self, sSvAcctId, sAcctTitle):
         sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
         # traverse directory and categorize data files
         lstTotalDataset = []
@@ -174,14 +174,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             sDownloadDataPath = os.path.join(sDataPath, sFbBizAid, 'data')
             s_conf_path_abs = os.path.join(sDataPath, sFbBizAid, 'conf')
-            sFxCode = self.__getFxCode(s_conf_path_abs)
+            sFxCode = self.__get_fx_code(s_conf_path_abs)
             self.__g_dictFxCodeByBizAcct[sFbBizAid] = sFxCode
             if sFxCode == 'error':
                 self._printDebug('-> '+ sFbBizAid +' has been stopped')
                 return
 
             if sFxCode != 'KRW':
-                if self.__getFxTrend(sFxCode) == False:
+                if self.__get_fx_trend(sFxCode) == False:
                     self._printDebug('-> '+ sFbBizAid +' has been stopped')
 
             self._printDebug('-> '+ sFbBizAid +' is analyzing FB IG data files')
@@ -194,7 +194,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lstTotalDataset.append(sDatafileTobeHandled)
         
         lstTotalDataset.sort()
-        dictCampaignNameAlias = self.__getCampaignNameAlias(sSvAcctId, sAcctTitle)
+        dictCampaignNameAlias = self.__get_campaign_name_alias(sSvAcctId, sAcctTitle)
         nIdx = 0
         nSentinel = len(lstTotalDataset)
         for sFileInfo in lstTotalDataset:
@@ -204,7 +204,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sDataFileFullname = os.path.join(sTempDataPath, aFileInfo[0])
             aFileDetailInfo = aFileInfo[0].split('_')
             sDatadate = aFileDetailInfo[0]
-            # try:
             if os.path.isfile(sDataFileFullname):
                 with open(sDataFileFullname, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
@@ -256,7 +255,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         if sCurrentFxCode == 'KRW':
                             nCost = float(row[11])
                         else:
-                            nFxRate = self.__getFxRate(sCurrentFxCode, sDatadate)
+                            nFxRate = self.__get_fx_rate(sCurrentFxCode, sDatadate)
                             nCost = float(row[11]) * nFxRate
 
                         try:
@@ -285,15 +284,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 'reach':nReach, 'imp':nImpression, 'u_clk':nUniqueClick, 'clk':nClick,
                                 'cost':nCost, 'conv_cnt':nConvCnt, 'conv_amnt':nConvAmnt
                             }
-                self.__archiveGaDataFile(sTempDataPath, aFileInfo[0])
-            # except FileNotFoundError:
+                self.__archive_data_file(sTempDataPath, aFileInfo[0])
             else:
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
 
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
 
-    def __registerDb(self):
+    def __register_db(self):
         nIdx = 0
         nSentinel = len(self.__g_dictFbRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
@@ -326,7 +324,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __getCampaignNameAlias(self, sSvAcctId, sAcctTitle):
+    def __get_campaign_name_alias(self, sSvAcctId, sAcctTitle):
         sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
         dictCampaignNameAliasInfo = {}
         s_alias_filename = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
@@ -344,7 +342,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #    pass
         return dictCampaignNameAliasInfo
 
-    def __archiveGaDataFile(self, sDataPath, sCurrentFileName):
+    def __archive_data_file(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
             self._printDebug('error: fb data directory does not exist!')

@@ -47,6 +47,7 @@ class SvCampaignParser(sv_object.ISvObject):
     # __g_oLogger = None
     # caution! sv campaign code does not allow NS but allow PNS only, as pure NS could not be designated
     __g_lstSourceInfo = [ # (id, title, tag_name)
+        (0, 'unknown', 'UNKNOWN'),
         (1, 'naver', 'NVR'),
         (1, 'naver', 'NV'),
         (2, 'google', 'GG'),
@@ -64,6 +65,7 @@ class SvCampaignParser(sv_object.ISvObject):
     __g_dictSourceIdTag = None  # {1: 'NV'}
     
     __g_lstSearchRstInfo = [ # (id, title, tag_name)
+        (0, 'unknown', 'UNKNOWN'),
         (1, 'Paid Search', 'PS'),
         (2, 'Paid Natural Search', 'PNS'),
         (3, 'Natural Search', 'NS'),
@@ -75,6 +77,7 @@ class SvCampaignParser(sv_object.ISvObject):
     # __g_dictSearchResultTypeTagTitle = {'PS':'PS', 'paid_search':'PS', 'PNS':'PNS', 'paid_natural_search':'PNS','NS':'NS', 'natural_search':'NS', 'SNS':'SNS', 'sns':'SNS'}
 
     __g_lstMediumInfo = [ # (id, title, tag_name)
+        (0, 'unknown', 'UNKNOWN'),
         (1, 'cpc', 'CPC'),
         (2, 'display', 'DISP'),
         (3, 'cpi', 'CPI'),
@@ -288,21 +291,23 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_source_tag in self.__g_dictSourceTagTitle:
             return self.__g_dictSourceTagTitle[s_source_tag]
         else:
-            raise Exception('stop')
+            # raise Exception('stop')
+            return False  # 'err_source_tag'
 
     def validate_search_rst_tag(self, s_search_rst_type):
         if s_search_rst_type in self.__g_dictSearchResultTypeTagTitle:
             return s_search_rst_type
         else:
-            raise Exception('stop')
+            # raise Exception('stop')
+            return False  # 'err_search_rst_tag'
 
     def get_sv_medium_tag(self, s_sv_medium_code):
         # lst_tag = list(self.__g_dictMediumTagTitle.keys())
         if s_sv_medium_code in self.__g_dictMediumTagTitle:
             return self.__g_dictMediumTagTitle[s_sv_medium_code]
         else:
-            raise Exception('stop')
-            # return 'err_medium'
+            # raise Exception('stop')
+            return False  # 'err_medium_tag'
     
     def parse_campaign_code_fb(self, dictCampaignInfo, dictCampaignNameAlias):
         dictRst = {'source':'unknown','rst_type':'','medium':'','brd':'0','campaign1st':'0','campaign2nd':'0','campaign3rd':'0','detected':False}

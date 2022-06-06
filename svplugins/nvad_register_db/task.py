@@ -24,32 +24,35 @@
 
 # standard library
 import logging
-from datetime import datetime
-from datetime import date
 import os
-import shutil
 import sys
-from collections import OrderedDict
+import shutil
 import csv
 import re
 import fileinput
 import codecs
 import math
+from datetime import datetime
+from datetime import date
+from collections import OrderedDict
 
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svload/pandas_plugins')
     sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import campaign_alias
     import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svload.pandas_plugins import campaign_alias
     from django.conf import settings
 
 
@@ -64,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, Jun 2022')
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -115,12 +118,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
 
+        self.__g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         # alert if last contract info will be expired in 2 days
         self.__check_nv_brspage_contract_last()
 
         if self.__g_sMode == None:
             self._printDebug('-> register nvad raw data')
-            self.__parseNvadDataFile(s_sv_acct_id, s_brand_id, s_cid)
+            b_rst = self.__parse_nvad_data_file(s_sv_acct_id, s_brand_id, s_cid)
+            if not b_rst:
+                self._task_post_proc(self._g_oCallback)
+                return
         elif self.__g_sMode == 'recompile':
             with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.setTablePrefix(self.__g_sTblPrefix)
@@ -133,7 +140,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self.__g_lstDatadateToCompile.append(int(sCompileDate))
 
                 # retrieve manual BRS info if exists
-                lstBrsManualDateRange = self.__retrieveNvBrspageManualInfoPeriod(s_sv_acct_id, s_brand_id, s_cid )
+                lstBrsManualDateRange = self.__retrieve_nv_brspage_manual_info_period(s_cid )
                 for nManualDatadate in lstBrsManualDateRange:
                     self.__g_lstDatadateToCompile.append(nManualDatadate)
 
@@ -150,14 +157,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
         
         # compile registered stat datafile
-        self.__g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         nIdx = 0
         nSentinel = len(self.__g_lstDatadateToCompile)
         for nDate in self.__g_lstDatadateToCompile:
             if not self._continue_iteration():
                 break
 
-            b_rst = self.__compileDailyRecord(s_sv_acct_id, s_brand_id, s_cid, str(nDate))
+            b_rst = self.__compile_daily_record(s_cid, str(nDate))
             if not b_rst:
                 self._printDebug('warning! denying assemble stat data & register!')
                 break
@@ -167,7 +173,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self._task_post_proc(self._g_oCallback)
         
-    def __compileDailyRecord(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
+    def __compile_daily_record(self, cid, sCompileDate):
         try: # validate requsted date
             sCompileDate = datetime.strptime(sCompileDate, '%Y%m%d').strftime('%Y-%m-%d')
         except ValueError:
@@ -353,7 +359,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             
             # register manual BRS info if allowed
             if bBrsInfoFromApiExist == False: # API brs info is primary always!
-                lstNvBrsManualInfoByDate = self.__retrieveNvBrspageManualInfoByDate(sSvAcctId, sAcctTitle, cid, sCompileDate)
+                lstNvBrsManualInfoByDate = self.__retrieve_nv_brspage_manual_info_by_date(cid, sCompileDate)
                 for dictNvBrsManualInfo in lstNvBrsManualInfoByDate:
                     sCampaignId = sCampaignName = sGrpId = sKwId = 'svmanual'
                     sRstType = 'PS'
@@ -453,7 +459,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug(s_campaign_code + '@' + s_compile_date)
         return dict_campaign_info
 
-    def __parseNvadDataFile(self, sSvAcctId, sAcctTitle, cid):
+    def __parse_nvad_data_file(self, sSvAcctId, sAcctTitle, cid):
         self._printDebug('-> '+ cid +' is registering NVAD data files')
         # dictionary for master data file
         dictBizCh = {}
@@ -546,33 +552,42 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 self._printDebug('weird Report Type! - ' + sReportType)
         
+        # begin - referring to raw_data_file, validate raw data file without registration
+        lst_non_sv_convention_campaign_title = self.__analyze_master_ad_group_file(sSvAcctId, sAcctTitle, dictAdgrp)
+        if len(lst_non_sv_convention_campaign_title):
+            for s_single_campaign in lst_non_sv_convention_campaign_title:
+                self._printDebug('[' + s_single_campaign + '] should be filled!')
+            return False
+        # end - referring to raw_data_file, validate raw data file without registration
+
         # retrieve manual BRS info if exists
-        lstBrsManualDateRange = self.__retrieveNvBrspageManualInfoPeriod(sSvAcctId, sAcctTitle, cid)
+        lstBrsManualDateRange = self.__retrieve_nv_brspage_manual_info_period(cid)
         for nManualDatadate in lstBrsManualDateRange:
             self.__g_lstDatadateToCompile.append(nManualDatadate)
         self.__g_lstDatadateToCompile = sorted(set(self.__g_lstDatadateToCompile))
         
         # register master datafile
-        self.__registerMasterCampaignFile(sAcctTitle, dictCamp)
-        self.__registerMasterCampaignBudgetFile(sAcctTitle, dictCampBudget)
-        self.__registerMasterAdGroupFile(sAcctTitle, dictAdgrp)
-        self.__registerMasterAdGroupBudgetFile(sAcctTitle, dictAdgrpBudget)
-        self.__registerMasterKeywordFile(sAcctTitle, dictKw)
-        self.__registerMasterAdFile(sAcctTitle, dictMasterAd)
-        self.__registerMasterAdExtFile(sAcctTitle, dictMasterAdExt)
-        self.__registerMasterQiFile(sAcctTitle, dictQi)
+        self.__register_master_campaign_file(dictCamp)
+        self.__register_master_campaign_budget_file(dictCampBudget)
+        self.__register_master_ad_group_file(sSvAcctId, sAcctTitle, dictAdgrp)
+        self.__register_master_ad_group_budget_file(dictAdgrpBudget)
+        self.__register_master_keyword_file(dictKw)
+        self.__register_master_ad_file(dictMasterAd)
+        self.__register_master_ad_ext_file(dictMasterAdExt)
+        self.__register_master_qi_file(dictQi)
         
         # register stat datafile
-        self.__registerStatAdFile(sAcctTitle, dictStatAd)
-        self.__registerStatAdDetailFile(sAcctTitle, dictAdDetail)
-        self.__registerStatAdConvFile(sAcctTitle, dictAdConversion)
-        self.__registerStatAdConvDetailFile(sAcctTitle, dictAdConversionDetail)
-        self.__registerStatAdExtFile(sAcctTitle, dictAdExtension)
-        self.__registerStatAdExtConvFile(sAcctTitle, dictAdExtensionConversion)
-        self.__registerStatNpayConvFile(sAcctTitle, dictNpayConversion)
-        self.__registerStatExpKeywordFile(sAcctTitle, dictExpkeyword)
+        self.__register_stat_ad_file(dictStatAd)
+        self.__register_stat_ad_detail_file(dictAdDetail)
+        self.__register_stat_ad_conv_file(dictAdConversion)
+        self.__register_stat_ad_conv_detail_file(dictAdConversionDetail)
+        self.__register_stat_ad_ext_file(dictAdExtension)
+        self.__register_stat_ad_ext_conv_file(dictAdExtensionConversion)
+        self.__register_stat_npay_conv_file(dictNpayConversion)
+        self.__register_stat_exp_keyword_file(dictExpkeyword)
+        return True
 
-    def __retrieveNvBrspageManualInfoPeriod(self, sSvAcctId, sAcctTitle, cid):
+    def __retrieve_nv_brspage_manual_info_period(self, cid):
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
@@ -603,7 +618,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     nRowCnt = nRowCnt + 1
         return set(lstLogPeriod)
 
-    def __retrieveNvBrspageManualInfoByDate(self, sSvAcctId, sAcctTitle, cid, sCompileDate):
+    def __retrieve_nv_brspage_manual_info_by_date(self, cid, sCompileDate):
         lstNvBrsManualInfo = []
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
@@ -633,7 +648,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         nRowCnt = nRowCnt + 1
         return lstNvBrsManualInfo
 
-    def __registerMasterQiFile(self, sAcctTitle, dictMasterData):
+    def __register_master_qi_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -664,7 +679,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master qi file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerMasterAdExtFile(self, sAcctTitle, dictMasterData):
+    def __register_master_ad_ext_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -711,7 +726,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master ad ext file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerMasterAdFile(self, sAcctTitle, dictMasterData):
+    def __register_master_ad_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -744,7 +759,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master ad file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerMasterKeywordFile(self, sAcctTitle, dictMasterData):
+    def __register_master_keyword_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -777,7 +792,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master keyword file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerMasterAdGroupBudgetFile(self, sAcctTitle, dictMasterData):
+    def __register_master_ad_group_budget_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -810,18 +825,47 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp budget file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerMasterAdGroupFile(self, sAcctTitle, dictMasterData):
-        # read adgrp alias info
-        sAdgrpAliasInfoFilePath = os.path.join(self.__g_sNvadPathAbs, 'alias_info_adgrp.tsv')
-        dictAdgrpAlias = {}
-        if os.path.isfile(sAdgrpAliasInfoFilePath):
-            with codecs.open(sAdgrpAliasInfoFilePath, 'r',encoding='utf8') as tsvfile:
-                reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
-                for row in reader:
-                    if nRowCnt > 0:
-                        dictAdgrpAlias[row[0]] = row[1]
-                    nRowCnt = nRowCnt + 1
+    def __analyze_master_ad_group_file(self, sSvAcctId, sAcctTitle, dictMasterData):
+        """ referring to raw_data_file, validate raw data file without registration """
+        lst_non_sv_convention_campaign_title = []
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
+        # sort master datafile dictionary by date-order
+        dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
+        nIdx = 0
+        nSentinel = len(dictMasterDataSorted)
+        for sDate in dictMasterDataSorted:
+            sCurrentFileName = dictMasterDataSorted[sDate]
+            sDataFileFullpathname = os.path.join(self.__g_sNvadDataPathAbs, sCurrentFileName)
+            if os.path.isfile(sDataFileFullpathname):
+                with open(sDataFileFullpathname, 'r') as tsvfile:
+                    reader = csv.reader(tsvfile, delimiter='\t')
+                    for row in reader:
+                        dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[3])
+                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                                dict_rst['rst_type'] == '':
+                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
+                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            else:
+                                lst_non_sv_convention_campaign_title.append(row[3])
+                                continue
+                        if dict_rst['source_code'] != 'NV':  # if unacceptable NVAD group name
+                            sCampaignName = row[3]
+                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullpathname)
+                            self._printDebug('weird nvad log!')
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                raise Exception('remove')
+                            else:
+                                return
+            else:
+                self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate master adgrp file:', suffix = 'Complete', length = 50)
+            nIdx += 1
+        del o_campaign_alias
+        return lst_non_sv_convention_campaign_title
+
+    def __register_master_ad_group_file(self, sSvAcctId, sAcctTitle, dictMasterData):
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -837,12 +881,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     with open(sDataFileFullpathname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
-                            try:
-                                row[3] = dictAdgrpAlias[row[3]]
-                            except KeyError:
-                                pass
+                            # read adgrp alias info
+                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
+                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            else:
+                                continue
 
-                            if row[3].startswith('NV_PS_'): # singleview standard case
+                            if dict_rst['source_code'] == 'NV' and dict_rst['rst_type'] == 'PS':  # singleview standard case
                                 # correct NV_PS_CPC_CONCENTRATION_00_00_#0002 type campaign name
                                 aCampaignCode = row[3].split('_')
                                 nLastPart = len(aCampaignCode ) - 1
@@ -868,16 +914,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             else:
                                 row[15] = '0000-00-00 00:00:00'
 
-                            oSvMysql.executeQuery('insertMasterAdGroup', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10]
-                                , row[11], row[12], row[13], row[14], row[15])
+                            oSvMysql.executeQuery('insertMasterAdGroup', row[0], row[1], row[2], row[3], row[4], row[5], 
+                                row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
                 
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp file:', suffix = 'Complete', length = 50)
                 nIdx += 1
+        del o_campaign_alias
 
-    def __registerMasterCampaignFile(self, sAcctTitle, dictMasterData):
+    def __register_master_campaign_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -921,7 +968,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master campaign file:', suffix = 'Complete', length = 50)
                 nIdx += 1
         
-    def __registerMasterCampaignBudgetFile(self, sAcctTitle, dictMasterData):
+    def __register_master_campaign_budget_file(self, dictMasterData):
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -956,7 +1003,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master campaign budget file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatNpayConvFile(self, sAcctTitle, dictStatData):
+    def __register_stat_npay_conv_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -988,7 +1035,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat npay conv file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdExtConvFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_ext_conv_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1020,7 +1067,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad ext conv file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdExtFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_ext_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1052,7 +1099,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad ext file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdConvDetailFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_conv_detail_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1084,7 +1131,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad conv detail file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdConvFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_conv_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1116,7 +1163,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad conv file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdDetailFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_detail_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1148,7 +1195,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad detail file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatAdFile(self, sAcctTitle, dictStatData):
+    def __register_stat_ad_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))		
         nIdx = 0
@@ -1180,7 +1227,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __registerStatExpKeywordFile(self, sAcctTitle, dictStatData):
+    def __register_stat_exp_keyword_file(self, dictStatData):
         # sort master datafile dictionary by date-order
         dictStatDataSorted = OrderedDict(sorted(dictStatData.items()))
         nIdx = 0
