@@ -459,7 +459,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug(s_campaign_code + '@' + s_compile_date)
         return dict_campaign_info
 
-    def __parse_nvad_data_file(self, sSvAcctId, sAcctTitle, cid):
+    def __parse_nvad_data_file(self, sSvAcctId, s_brand_id, cid):
         self._printDebug('-> '+ cid +' is registering NVAD data files')
         # dictionary for master data file
         dictBizCh = {}
@@ -553,7 +553,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('weird Report Type! - ' + sReportType)
         
         # begin - referring to raw_data_file, validate raw data file without registration
-        lst_non_sv_convention_campaign_title = self.__analyze_master_ad_group_file(sSvAcctId, sAcctTitle, dictAdgrp)
+        lst_non_sv_convention_campaign_title = self.__analyze_master_ad_group_file(sSvAcctId, s_brand_id, dictAdgrp)
         if len(lst_non_sv_convention_campaign_title):
             for s_single_campaign in lst_non_sv_convention_campaign_title:
                 self._printDebug('[' + s_single_campaign + '] should be filled!')
@@ -825,10 +825,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp budget file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __analyze_master_ad_group_file(self, sSvAcctId, sAcctTitle, dictMasterData):
+    def __analyze_master_ad_group_file(self, sSvAcctId, s_brand_id, dictMasterData):
         """ referring to raw_data_file, validate raw data file without registration """
         lst_non_sv_convention_campaign_title = []
-        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, s_brand_id)
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
         nIdx = 0
@@ -843,9 +843,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[3])
                         if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
                                 dict_rst['rst_type'] == '':
-                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
-                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
+                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaign_alias_rst['dict_ret']
                             else:
                                 lst_non_sv_convention_campaign_title.append(row[3])
                                 continue
@@ -882,9 +882,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             # read adgrp alias info
-                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
-                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
+                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaign_alias_rst['dict_ret']
                             else:
                                 continue
 

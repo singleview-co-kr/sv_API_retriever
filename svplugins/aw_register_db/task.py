@@ -152,11 +152,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
-    def __validate_campaign_code(self, sSvAcctId, sAcctTitle, lstGoogleads):
+    def __validate_campaign_code(self, sSvAcctId, s_brand_id, lstGoogleads):
         """ referring to raw_data_file, validate raw data file without registration """
         lst_non_sv_convention_campaign_title = []
         lstMergedDataFiles = []
-        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'adwords')
         for sGoogleadsCid in lstGoogleads:
             if self.__g_sReplaceMonth == None:
                 self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
@@ -176,7 +176,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     sMode = 'c' # means closing monthly
                 lstMergedDataFiles.append(sDatafileName + '|@|' + sGoogleadsCid + '|@|' + sMode)
-        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, s_brand_id)
         lstMergedDataFiles.sort()
         nIdx = 0
         nSentinel = len(lstMergedDataFiles)
@@ -209,9 +209,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
                         if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
                                 dict_rst['rst_type'] == '':
-                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
-                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaign_alias_rst['dict_ret']
                             else:
                                 lst_non_sv_convention_campaign_title.append(row[0])
                                 continue
@@ -289,9 +289,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
                         if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
                                 dict_rst['rst_type'] == '':
-                            dict_campaing_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
-                            if dict_campaing_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaing_alias_rst['dict_ret']
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dict_rst = dict_campaign_alias_rst['dict_ret']
                             else:  # if unacceptable googleads campaign name
                                 sCampaignName = row[0]
                                 self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)

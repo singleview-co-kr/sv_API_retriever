@@ -183,6 +183,13 @@ class SvCampaignParser(sv_object.ISvObject):
         except KeyError:
             return 'err_ua'
 
+    def get_source_tag(self, s_source_tag):
+        if s_source_tag in self.__g_dictSourceTagTitle:
+            return self.__g_dictSourceTagTitle[s_source_tag]
+        else:
+            # raise Exception('stop')
+            return False  # 'err_source_tag'
+
     def get_source_id_title_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictSourceIdTitle.items()}
@@ -198,6 +205,13 @@ class SvCampaignParser(sv_object.ISvObject):
             return {v: k for k, v in self.__g_dictSourceIdTag.items()}
         return self.__g_dictSourceIdTag
 
+    def validate_search_rst_tag(self, s_search_rst_type):
+        if s_search_rst_type in self.__g_dictSearchResultTypeTagTitle:
+            return s_search_rst_type
+        else:
+            # raise Exception('stop')
+            return False  # 'err_search_rst_tag'
+
     def get_search_rst_type_id_title_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictSearchRstIdTitle.items()}
@@ -208,6 +222,14 @@ class SvCampaignParser(sv_object.ISvObject):
             return {v: k for k, v in self.__g_dictSearchRstIdTag.items()}
         return self.__g_dictSearchRstIdTag
     
+    def get_sv_medium_tag(self, s_sv_medium_code):
+        # lst_tag = list(self.__g_dictMediumTagTitle.keys())
+        if s_sv_medium_code in self.__g_dictMediumTagTitle:
+            return self.__g_dictMediumTagTitle[s_sv_medium_code]
+        else:
+            # raise Exception('stop')
+            return False  # 'err_medium_tag'
+            
     def get_medium_type_id_title_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictMediumIdTitle.items()}
@@ -286,30 +308,8 @@ class SvCampaignParser(sv_object.ISvObject):
         else:
             raise Exception('stop')
             # return 'err_service_type'
-
-    def get_source_tag(self, s_source_tag):
-        if s_source_tag in self.__g_dictSourceTagTitle:
-            return self.__g_dictSourceTagTitle[s_source_tag]
-        else:
-            # raise Exception('stop')
-            return False  # 'err_source_tag'
-
-    def validate_search_rst_tag(self, s_search_rst_type):
-        if s_search_rst_type in self.__g_dictSearchResultTypeTagTitle:
-            return s_search_rst_type
-        else:
-            # raise Exception('stop')
-            return False  # 'err_search_rst_tag'
-
-    def get_sv_medium_tag(self, s_sv_medium_code):
-        # lst_tag = list(self.__g_dictMediumTagTitle.keys())
-        if s_sv_medium_code in self.__g_dictMediumTagTitle:
-            return self.__g_dictMediumTagTitle[s_sv_medium_code]
-        else:
-            # raise Exception('stop')
-            return False  # 'err_medium_tag'
     
-    def parse_campaign_code_fb(self, dictCampaignInfo, dictCampaignNameAlias):
+    def parse_campaign_code_fb(self, dictCampaignInfo)  #, dictCampaignNameAlias):
         dictRst = {'source':'unknown','rst_type':'','medium':'','brd':'0','campaign1st':'0','campaign2nd':'0','campaign3rd':'0','detected':False}
         if dictCampaignInfo['url_tags'] == 'n/a': # facebook inlink ad or outlink ad without UTM params
             sAdName = dictCampaignInfo['ad_name']
@@ -329,23 +329,24 @@ class SvCampaignParser(sv_object.ISvObject):
                 dictRst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle['CPI']
                 dictRst['campaign1st'] = sNonSvCampaignCode
                 dictRst['detected'] = True
-            else:
-                try: # this case sometimes means facebook 3rd-party outlink ad
-                    sCampaignName = sAdName
-                    dictCampaignNameAlias[sCampaignName]
-                    dictRst['source'] =  self.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
-                    dictRst['brd'] = '0'
-                    dictRst['rst_type'] = dictCampaignNameAlias[sCampaignName]['rst_type']
-                    dictRst['medium'] = dictCampaignNameAlias[sCampaignName ]['medium'].lower()
-                    dictRst['campaign1st'] = dictCampaignNameAlias[sCampaignName]['camp1st']
-                    dictRst['campaign2nd'] = dictCampaignNameAlias[sCampaignName]['camp2nd']
-                    dictRst['campaign3rd'] = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                    dictRst['detected'] = True
-                except KeyError: # if facebook inlink ad with unknown campaign name
-                    dictRst['source'] = self.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
-                    dictRst['brd'] = '1'
-                    dictRst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
-                    dictRst['campaign1st'] = sAdName
+            else:  # this case sometimes means facebook 3rd-party outlink ad
+                pass
+                # try: # this case sometimes means facebook 3rd-party outlink ad
+                #     sCampaignName = sAdName
+                #     dictCampaignNameAlias[sCampaignName]
+                #     dictRst['source'] =  self.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                #     dictRst['brd'] = '0'
+                #     dictRst['rst_type'] = dictCampaignNameAlias[sCampaignName]['rst_type']
+                #     dictRst['medium'] = dictCampaignNameAlias[sCampaignName ]['medium'].lower()
+                #     dictRst['campaign1st'] = dictCampaignNameAlias[sCampaignName]['camp1st']
+                #     dictRst['campaign2nd'] = dictCampaignNameAlias[sCampaignName]['camp2nd']
+                #     dictRst['campaign3rd'] = dictCampaignNameAlias[sCampaignName]['camp3rd']
+                #     dictRst['detected'] = True
+                # except KeyError: # if facebook inlink ad with unknown campaign name
+                #     dictRst['source'] = self.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                #     dictRst['brd'] = '1'
+                #     dictRst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
+                #     dictRst['campaign1st'] = sAdName
         else: # facebook outlink ad
             dictTempRst = self.__analyze_sv_campaign_code(dictCampaignInfo['campaign_code'])
             sSourceAbbreviation = dictTempRst['sv_code'][0]

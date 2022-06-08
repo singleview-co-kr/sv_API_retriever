@@ -34,17 +34,20 @@ import codecs
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svload/pandas_plugins')
     sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
     import sv_object
     import sv_plugin
+    import campaign_alias
     import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svload.pandas_plugins import campaign_alias
     from django.conf import settings
 
 
@@ -163,8 +166,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
 
-    def __arrange_fb_raw_data_file(self, sSvAcctId, sAcctTitle):
-        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
+    def __arrange_fb_raw_data_file(self, sSvAcctId, s_brand_id):
+        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'fb_biz')
         # traverse directory and categorize data files
         lstTotalDataset = []
         lstFbBizAid = os.listdir(sDataPath)
@@ -194,7 +197,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lstTotalDataset.append(sDatafileTobeHandled)
         
         lstTotalDataset.sort()
-        dictCampaignNameAlias = self.__get_campaign_name_alias(sSvAcctId, sAcctTitle)
+        dictCampaignNameAlias = self.__get_campaign_name_alias(sSvAcctId, s_brand_id)
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, s_brand_id)
+
         nIdx = 0
         nSentinel = len(lstTotalDataset)
         for sFileInfo in lstTotalDataset:
@@ -232,13 +237,36 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         
                         dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo, dictCampaignNameAlias)
                         sUa = self.__g_oSvCampaignParser.get_ua(row[6])
-                        if dictCode['source'] == 'unknown':  # for debugging
-                            self._printDebug(row)
+                        # if dictCode['source'] == 'unknown':  # for debugging
+                        #     self._printDebug(row)
 
                         if dictCode['detected'] == False:  # means bot finally does not find any standard info clearly
                             self._printDebug('ad creative without singleview standard url_tags nor alias_info found!')
-                            self._printDebug(row)
-                            self._printDebug(dictCode)
+                            # self._printDebug(row)
+                            # self._printDebug(dictCode)
+                            sCampaignName = dictCampaignInfo['ad_name']
+
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(sCampaignName)
+                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
+                                dictCode = dict_campaign_alias_rst['dict_ret']
+                            else:
+                                continue
+
+                            try: # this case sometimes means facebook 3rd-party outlink ad
+                                dictCampaignNameAlias[sCampaignName]
+                                dictCode['source'] =  self.__g_oSvCampaignParser.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                                dictCode['brd'] = '0'
+                                dictCode['rst_type'] = dictCampaignNameAlias[sCampaignName]['rst_type']
+                                dictCode['medium'] = dictCampaignNameAlias[sCampaignName ]['medium'].lower()
+                                dictCode['campaign1st'] = dictCampaignNameAlias[sCampaignName]['camp1st']
+                                dictCode['campaign2nd'] = dictCampaignNameAlias[sCampaignName]['camp2nd']
+                                dictCode['campaign3rd'] = dictCampaignNameAlias[sCampaignName]['camp3rd']
+                                dictCode['detected'] = True
+                            except KeyError: # if facebook inlink ad with unknown campaign name
+                                dictCode['source'] = self.__g_oSvCampaignParser.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                                dictCode['brd'] = '1'
+                                dictCode['medium'] = self.__g_oSvCampaignParser.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
+                                dictCode['campaign1st'] = sCampaignName
                         
                         sReportId = sDatadate+'|@|'+sFbBusinessAcctId+'|@|'+sUa+'|@|'+dictCode['source']+'|@|'+dictCode['rst_type']+'|@|'+ dictCode['medium']+'|@|'+\
                             dictCode['brd']+'|@|'+\
@@ -290,6 +318,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
+        del o_campaign_alias
 
     def __register_db(self):
         nIdx = 0
@@ -324,8 +353,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __get_campaign_name_alias(self, sSvAcctId, sAcctTitle):
-        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz')
+    def __get_campaign_name_alias(self, sSvAcctId, s_brand_id):
+        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'fb_biz')
         dictCampaignNameAliasInfo = {}
         s_alias_filename = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
         # try:
