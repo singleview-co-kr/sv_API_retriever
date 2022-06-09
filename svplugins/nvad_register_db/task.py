@@ -553,10 +553,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('weird Report Type! - ' + sReportType)
         
         # begin - referring to raw_data_file, validate raw data file without registration
-        lst_non_sv_convention_campaign_title = self.__analyze_master_ad_group_file(sSvAcctId, s_brand_id, dictAdgrp)
+        lst_non_sv_convention_campaign_title = self.__validate_master_ad_group_file(sSvAcctId, s_brand_id, dictAdgrp)
         if len(lst_non_sv_convention_campaign_title):
             for s_single_campaign in lst_non_sv_convention_campaign_title:
                 self._printDebug('[' + s_single_campaign + '] should be filled!')
+            self._task_post_proc(self._g_oCallback)
             return False
         # end - referring to raw_data_file, validate raw data file without registration
 
@@ -569,7 +570,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # register master datafile
         self.__register_master_campaign_file(dictCamp)
         self.__register_master_campaign_budget_file(dictCampBudget)
-        self.__register_master_ad_group_file(sSvAcctId, sAcctTitle, dictAdgrp)
+        self.__register_master_ad_group_file(sSvAcctId, s_brand_id, dictAdgrp)
         self.__register_master_ad_group_budget_file(dictAdgrpBudget)
         self.__register_master_keyword_file(dictKw)
         self.__register_master_ad_file(dictMasterAd)
@@ -825,8 +826,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp budget file:', suffix = 'Complete', length = 50)
                 nIdx += 1
 
-    def __analyze_master_ad_group_file(self, sSvAcctId, s_brand_id, dictMasterData):
+    def __validate_master_ad_group_file(self, sSvAcctId, s_brand_id, dictMasterData):
         """ referring to raw_data_file, validate raw data file without registration """
+        # should correct NV_PS_CPC_CONCENTRATION_00_00_#0002 type campaign name
         lst_non_sv_convention_campaign_title = []
         o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, s_brand_id)
         # sort master datafile dictionary by date-order
@@ -841,12 +843,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for row in reader:
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[3])
-                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
-                                dict_rst['rst_type'] == '':
+                        if not dict_rst['detected']:
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
-                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaign_alias_rst['dict_ret']
-                            else:
+                            dict_rst = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
+                            if not dict_rst['detected']:  
                                 lst_non_sv_convention_campaign_title.append(row[3])
                                 continue
                         if dict_rst['source_code'] != 'NV':  # if unacceptable NVAD group name
@@ -865,6 +865,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return lst_non_sv_convention_campaign_title
 
     def __register_master_ad_group_file(self, sSvAcctId, sAcctTitle, dictMasterData):
+        """ referring to raw_data_file, register raw data file """
         o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, sAcctTitle)
         # sort master datafile dictionary by date-order
         dictMasterDataSorted = OrderedDict(sorted(dictMasterData.items()))
@@ -882,28 +883,31 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             # read adgrp alias info
-                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
-                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaign_alias_rst['dict_ret']
-                            else:
-                                continue
+                            dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[3])
+                            if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
+                                    dict_rst['rst_type'] == '':
+                                dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[3])
+                                dict_rst = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
 
-                            if dict_rst['source_code'] == 'NV' and dict_rst['rst_type'] == 'PS':  # singleview standard case
+                            if dict_rst['detected']:  # singleview standard case
+                                row[3] = dict_rst['source_code'] + '_' + dict_rst['rst_type'] + '_' + \
+                                            dict_rst['medium_code'] + '_' + dict_rst['campaign1st'] + '_' + \
+                                            dict_rst['campaign2nd'] + '_' + dict_rst['campaign3rd']
                                 # correct NV_PS_CPC_CONCENTRATION_00_00_#0002 type campaign name
-                                aCampaignCode = row[3].split('_')
-                                nLastPart = len(aCampaignCode ) - 1
-                                sCorrectedCampaignCode = ''
-                                nCnt = 0
-                                if '#' in aCampaignCode[nLastPart]:
-                                    self._printDebug('correct weird campaign name from NAVER AD API server ')
-                                    del aCampaignCode[-1]  # remove last part that naver errornously added
+                                # aCampaignCode = row[3].split('_')
+                                # nLastPart = len(aCampaignCode ) - 1
+                                # sCorrectedCampaignCode = ''
+                                # nCnt = 0
+                                # if '#' in aCampaignCode[nLastPart]:
+                                #     self._printDebug('correct weird campaign name from NAVER AD API server ')
+                                #     del aCampaignCode[-1]  # remove last part that naver errornously added
 
-                                    for sCampaignPart in aCampaignCode:
-                                        sCorrectedCampaignCode += sCampaignPart
-                                        if nCnt < nLastPart - 1:
-                                            sCorrectedCampaignCode += '_'
-                                            nCnt += 1
-                                    row[3] = sCorrectedCampaignCode
+                                #     for sCampaignPart in aCampaignCode:
+                                #         sCorrectedCampaignCode += sCampaignPart
+                                #         if nCnt < nLastPart - 1:
+                                #             sCorrectedCampaignCode += '_'
+                                #             nCnt += 1
+                                #     row[3] = sCorrectedCampaignCode
                             
                             if len(row[14]) > 0:
                                 row[14] = datetime.strptime( row[14], "%Y-%m-%dT%H:%M:%SZ")

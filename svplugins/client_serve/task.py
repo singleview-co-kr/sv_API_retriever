@@ -198,6 +198,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
+                self._task_post_proc(self._g_oCallback)
                 return
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)

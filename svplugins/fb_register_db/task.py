@@ -56,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 6th, Jun 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 9th, Jun 2022')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -95,9 +95,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.fb_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
+        
+        # begin - referring to raw_data_file, validate raw data file without registration
+        lst_non_sv_convention_campaign_title = self.__validate_fb_raw_data_file(s_sv_acct_id, s_brand_id)
+        if len(lst_non_sv_convention_campaign_title):
+            for s_single_campaign in lst_non_sv_convention_campaign_title:
+                self._printDebug('[' + s_single_campaign + '] should be filled!')
+            self._task_post_proc(self._g_oCallback)
+            return False
+        # end - referring to raw_data_file, validate raw data file without registration
+
         self.__arrange_fb_raw_data_file(s_sv_acct_id, s_brand_id)
         self.__register_db()
-
         self._task_post_proc(self._g_oCallback)
 
     def __get_fx_rate(self, sCheckFxCode, sCheckDate):
@@ -166,7 +175,94 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
 
+    def __validate_fb_raw_data_file(self, s_sv_acct_id, s_brand_id):
+        """ referring to raw_data_file, validate raw data file without registration """
+        lst_non_sv_convention_campaign_title = []
+        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'fb_biz')
+        # traverse directory and categorize data files
+        lstTotalDataset = []
+        lstFbBizAid = os.listdir(sDataPath)
+        for sFbBizAid in lstFbBizAid:
+            if sFbBizAid == 'alias_info_campaign.tsv':
+                continue
+
+            sDownloadDataPath = os.path.join(sDataPath, sFbBizAid, 'data')
+            # s_conf_path_abs = os.path.join(sDataPath, sFbBizAid, 'conf')
+            # sFxCode = self.__get_fx_code(s_conf_path_abs)
+            # self.__g_dictFxCodeByBizAcct[sFbBizAid] = sFxCode
+            # if sFxCode == 'error':
+            #     self._printDebug('-> '+ sFbBizAid +' has been stopped')
+            #     return
+
+            # if sFxCode != 'KRW':
+            #     if self.__get_fx_trend(sFxCode) == False:
+            #         self._printDebug('-> '+ sFbBizAid +' has been stopped')
+
+            self._printDebug('-> '+ sFbBizAid +' is analyzing FB IG data files')
+            lstDataFiles = os.listdir(sDownloadDataPath)
+            for sFilename in lstDataFiles:
+                aFileExt = os.path.splitext(sFilename)
+                if aFileExt[1] == '':
+                    continue
+                sDatafileTobeHandled = sFilename + '|@|' + sFbBizAid
+                lstTotalDataset.append(sDatafileTobeHandled)
+        
+        lstTotalDataset.sort()
+        # dictCampaignNameAlias = self.__get_campaign_name_alias(s_sv_acct_id, s_brand_id)
+        o_campaign_alias = campaign_alias.CampaignAliasInfo(s_sv_acct_id, s_brand_id)
+
+        nIdx = 0
+        nSentinel = len(lstTotalDataset)
+        for sFileInfo in lstTotalDataset:
+            aFileInfo = sFileInfo.split('|@|')
+            sFbBusinessAcctId = aFileInfo[1] 
+            sTempDataPath = os.path.join(sDataPath, sFbBusinessAcctId, 'data')
+            sDataFileFullname = os.path.join(sTempDataPath, aFileInfo[0])
+            aFileDetailInfo = aFileInfo[0].split('_')
+            # sDatadate = aFileDetailInfo[0]
+            if os.path.isfile(sDataFileFullname):
+                with open(sDataFileFullname, 'r') as tsvfile:
+                    reader = csv.reader(tsvfile, delimiter='\t')
+                    for row in reader:
+                        # row[0]: 'ad_id'
+                        # row[1]: 'configured_status'
+                        # row[2]: 'creative_id'
+                        # row[3]: 'ad_name'
+                        # row[4]: 'link'
+                        # row[5]: 'url_tags'
+                        # row[6]: 'device_platform'
+                        # row[7]: 'reach'
+                        # row[8]: 'impressions'
+                        # row[9]: 'clicks'
+                        # row[10]: 'unique_clicks
+                        # row[11]: 'spend'
+                        # row[12]: nConversionValue
+                        # row[13]: nConversionCount
+                        dictCampaignInfo = {'url_tags':row[5], 'ad_name':row[3], 'campaign_code':''}
+                        lstUtmParams = row[5].split('&')
+                        for sUtmParam in lstUtmParams:
+                            if sUtmParam.find('utm_campaign=') > -1:
+                                aUtmCampaignCode = sUtmParam.split('=')
+                                dictCampaignInfo['campaign_code'] = aUtmCampaignCode[1]
+                                continue
+                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)  #, dictCampaignNameAlias)
+                        if dictCode['detected'] == False:  # means bot finally does not find any standard info clearly
+                            self._printDebug('ad creative without singleview standard url_tags nor alias_info found!')
+                            sCampaignName = dictCampaignInfo['campaign_code']
+                            dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(sCampaignName)
+                            dictCode = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
+                            if dictCode['detected'] == False:
+                                lst_non_sv_convention_campaign_title.append(sCampaignName)
+            else:
+                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+
+            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate data file:', suffix = 'Complete', length = 50)
+            nIdx += 1
+        del o_campaign_alias
+        return lst_non_sv_convention_campaign_title
+
     def __arrange_fb_raw_data_file(self, sSvAcctId, s_brand_id):
+        """ referring to raw_data_file, register raw data file """
         sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'fb_biz')
         # traverse directory and categorize data files
         lstTotalDataset = []
@@ -197,9 +293,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lstTotalDataset.append(sDatafileTobeHandled)
         
         lstTotalDataset.sort()
-        dictCampaignNameAlias = self.__get_campaign_name_alias(sSvAcctId, s_brand_id)
         o_campaign_alias = campaign_alias.CampaignAliasInfo(sSvAcctId, s_brand_id)
-
         nIdx = 0
         nSentinel = len(lstTotalDataset)
         for sFileInfo in lstTotalDataset:
@@ -235,50 +329,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dictCampaignInfo['campaign_code'] = aUtmCampaignCode[1]
                                 continue
                         
-                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo, dictCampaignNameAlias)
+                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)  #, dictCampaignNameAlias)
                         sUa = self.__g_oSvCampaignParser.get_ua(row[6])
-                        # if dictCode['source'] == 'unknown':  # for debugging
-                        #     self._printDebug(row)
-
                         if dictCode['detected'] == False:  # means bot finally does not find any standard info clearly
                             self._printDebug('ad creative without singleview standard url_tags nor alias_info found!')
-                            # self._printDebug(row)
-                            # self._printDebug(dictCode)
-                            sCampaignName = dictCampaignInfo['ad_name']
-
+                            sCampaignName = dictCampaignInfo['campaign_code']
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(sCampaignName)
-                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dictCode = dict_campaign_alias_rst['dict_ret']
-                            else:
-                                continue
-
-                            try: # this case sometimes means facebook 3rd-party outlink ad
-                                dictCampaignNameAlias[sCampaignName]
-                                dictCode['source'] =  self.__g_oSvCampaignParser.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
-                                dictCode['brd'] = '0'
-                                dictCode['rst_type'] = dictCampaignNameAlias[sCampaignName]['rst_type']
-                                dictCode['medium'] = dictCampaignNameAlias[sCampaignName ]['medium'].lower()
-                                dictCode['campaign1st'] = dictCampaignNameAlias[sCampaignName]['camp1st']
-                                dictCode['campaign2nd'] = dictCampaignNameAlias[sCampaignName]['camp2nd']
-                                dictCode['campaign3rd'] = dictCampaignNameAlias[sCampaignName]['camp3rd']
-                                dictCode['detected'] = True
-                            except KeyError: # if facebook inlink ad with unknown campaign name
+                            dictCode = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
+                            if dictCode['detected'] == False:
                                 dictCode['source'] = self.__g_oSvCampaignParser.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
-                                dictCode['brd'] = '1'
+                                dictCode['brd'] = 1
                                 dictCode['medium'] = self.__g_oSvCampaignParser.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
                                 dictCode['campaign1st'] = sCampaignName
-                        
-                        sReportId = sDatadate+'|@|'+sFbBusinessAcctId+'|@|'+sUa+'|@|'+dictCode['source']+'|@|'+dictCode['rst_type']+'|@|'+ dictCode['medium']+'|@|'+\
-                            dictCode['brd']+'|@|'+\
-                            dictCode['campaign1st']+'|@|'+\
-                            dictCode['campaign2nd']+'|@|'+\
-                            dictCode['campaign3rd']
-                    
+                  
+                        sReportId = sDatadate+'|@|' + sFbBusinessAcctId+'|@|' + sUa + '|@|'+dictCode['source']+'|@|' + \
+                                    dictCode['rst_type'] + '|@|'+ dictCode['medium'] + '|@|' + str(dictCode['brd']) + '|@|'+\
+                                    dictCode['campaign1st']+'|@|'+ dictCode['campaign2nd']+'|@|'+ dictCode['campaign3rd']
                         nReach = int(row[7])
                         nImpression = int(row[8])
                         nClick = int(row[9])
                         nUniqueClick = int(row[10])
-                        
                         sCurrentFxCode = self.__g_dictFxCodeByBizAcct[sFbBusinessAcctId]
                         if sCurrentFxCode == 'KRW':
                             nCost = float(row[11])
@@ -352,24 +422,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
-
-    def __get_campaign_name_alias(self, sSvAcctId, s_brand_id):
-        sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'fb_biz')
-        dictCampaignNameAliasInfo = {}
-        s_alias_filename = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
-        # try:
-        if os.path.isfile(s_alias_filename):
-            with codecs.open(s_alias_filename, 'r',encoding='utf8') as tsvfile:
-                reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
-                for row in reader:
-                    if nRowCnt > 0:
-                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 
-                            'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6]}
-                    nRowCnt += 1
-        # except FileNotFoundError:
-        #    pass
-        return dictCampaignNameAliasInfo
 
     def __archive_data_file(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath

@@ -102,6 +102,11 @@ class CampaignAliasInfo:
         :return:
         """
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
+        # dict should be streamlined with svcommon.sv_campaign_parser
+        dict_rst['dict_ret'] = {'source': 'unknown', 'source_code': '', 'rst_type': '',
+                                'medium': '', 'medium_code': '', 'brd': 0,
+                                'campaign1st': '00', 'campaign2nd': '00', 'campaign3rd': '00',
+                                'detected': False}
         lst_alias_detail = self.__g_oSvDb.executeQuery('getCampaignAliasDetailByMediaCampaign', 
                                                         s_media_campaign_title)
         if len(lst_alias_detail) == 0:  # add new
@@ -116,12 +121,15 @@ class CampaignAliasInfo:
                     lst_alias_detail[0]['search_rst_id'] and \
                     lst_alias_detail[0]['medium_id']:
                 dict_sv_convention = self.__construct_sv_campaign_convention(lst_alias_detail[0])
-                dict_rst['dict_ret'] = {'source_code': dict_sv_convention['s_source_tag'],
-                                        'rst_type': dict_sv_convention['s_search_rst_id_tag'],
-                                        'medium_code': dict_sv_convention['s_medium_id_tag'],
-                                        'campaign1st': dict_sv_convention['s_sv_lvl_1'],
-                                        'campaign2nd': dict_sv_convention['s_sv_lvl_2'],
-                                        'campaign3rd': dict_sv_convention['s_sv_lvl_3']}
+                dict_rst['dict_ret']['source'] = dict_sv_convention['s_source_title']
+                dict_rst['dict_ret']['source_code'] = dict_sv_convention['s_source_tag']
+                dict_rst['dict_ret']['rst_type'] = dict_sv_convention['s_search_rst_id_tag']
+                dict_rst['dict_ret']['medium'] = dict_sv_convention['s_medium_title']
+                dict_rst['dict_ret']['medium_code'] = dict_sv_convention['s_medium_id_tag']
+                dict_rst['dict_ret']['campaign1st'] = dict_sv_convention['s_sv_lvl_1']
+                dict_rst['dict_ret']['campaign2nd'] = dict_sv_convention['s_sv_lvl_2']
+                dict_rst['dict_ret']['campaign3rd'] = dict_sv_convention['s_sv_lvl_3']
+                dict_rst['dict_ret']['detected'] = True
             else:
                 dict_rst['s_msg'] = 'new_appending'
         return dict_rst
@@ -289,15 +297,18 @@ class CampaignAliasInfo:
         return dict_rst
 
     def __construct_sv_campaign_convention(self, dict_single_alias):
+        s_source_title = self.__g_dictSourceIdTitle[dict_single_alias['source_id']]
         s_source_tag = self.__get_source_tag_by_id(dict_single_alias['source_id'])
         s_search_rst_id_tag = self.__get_search_rst_tag_by_id(dict_single_alias['search_rst_id'])
+        s_medium_title = self.__g_dictMediumTypeIdTitle[dict_single_alias['medium_id']]
         s_medium_id_tag = self.__get_medium_tag_by_id(dict_single_alias['medium_id'])
         s_sv_lvl_1 = dict_single_alias['sv_lvl_1'] if dict_single_alias['sv_lvl_1'] else 'None'
         s_sv_lvl_2 = dict_single_alias['sv_lvl_2'] if dict_single_alias['sv_lvl_2'] else 'None'
         s_sv_lvl_3 = dict_single_alias['sv_lvl_3'] if dict_single_alias['sv_lvl_3'] else 'None'
-        return {'s_source_tag': s_source_tag, 's_search_rst_id_tag': s_search_rst_id_tag, 
-                's_medium_id_tag': s_medium_id_tag, 's_sv_lvl_1': s_sv_lvl_1, 
-                's_sv_lvl_2': s_sv_lvl_2, 's_sv_lvl_3': s_sv_lvl_3,}
+        return {'s_source_title': s_source_title, 's_source_tag': s_source_tag, 
+                's_search_rst_id_tag': s_search_rst_id_tag, 
+                's_medium_title': s_medium_title, 's_medium_id_tag': s_medium_id_tag, 
+                's_sv_lvl_1': s_sv_lvl_1, 's_sv_lvl_2': s_sv_lvl_2, 's_sv_lvl_3': s_sv_lvl_3}
 
     def __get_source_tag_by_id(self, n_source_id):
         return self.__g_dictSourceIdTag[n_source_id]

@@ -204,15 +204,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if lst_campaign_code[0] in self.__g_lstIgnoreText:  # ignore TSV file header and tail
                         continue
                     dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
-                    if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
-                            dict_rst['rst_type'] == '':
+                    if not dict_rst['detected']:
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
-                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
-                                dict_rst['rst_type'] == '':
+                        if not dict_rst['detected']:
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
-                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaign_alias_rst['dict_ret']
-                            else:
+                            dict_rst = dict_campaign_alias_rst['dict_ret']
+                            if not dict_rst['detected']:  # retrieve campaign name alias info
                                 lst_non_sv_convention_campaign_title.append(row[0])
                                 continue
                     if dict_rst['source_code'] not in ['GG', 'YT']:  # if unacceptable googleads campaign name
@@ -284,15 +281,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         continue
                     
                     dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[0])
-                    if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
-                            dict_rst['rst_type'] == '':
+                    if not dict_rst['detected']:
                         dict_rst = self.__g_oSvCampaignParser.parse_campaign_code(row[1])
-                        if dict_rst['source'] == 'unknown' and dict_rst['medium'] == '' and \
-                                dict_rst['rst_type'] == '':
+                        if not dict_rst['detected']:
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
-                            if dict_campaign_alias_rst['dict_ret']:  # retrieve campaign name alias info
-                                dict_rst = dict_campaign_alias_rst['dict_ret']
-                            else:  # if unacceptable googleads campaign name
+                            dict_rst = dict_campaign_alias_rst['dict_ret']
+                            if not dict_rst['detected']:  # if unacceptable googleads campaign name
                                 sCampaignName = row[0]
                                 self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
                                 self._printDebug('weird googleads log!')
