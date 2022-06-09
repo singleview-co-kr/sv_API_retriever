@@ -113,7 +113,6 @@ class SvCampaignParser(sv_object.ISvObject):
     ]
     __g_dictPnsContractType = None  # {1:'파블', 2:'체험단', 3:'상위노출', 4:'인플루언서', 5:'카페활동', 6:'연관검색어'}
     __g_dictPnsContractTypeNamed = None  # {'파블':'REF', '체험단':'REF', '상위노출':'REF', '인플루언서':'REF', '카페활동':'REF', '연관검색어':'RELATED', '지식인활동':'REF'}
-    # __g_dictPnsServiceType = {'파블':'BL', '체험단':'BL', '상위노출':'BL', '인플루언서':'IGIF', '카페활동':'CF', '연관검색어':'RELATED', '기자단':'BL','지식인활동':'KIN'}
     
     __g_lstLatestSvCampaignPrefix = [
         'NV_PS_CPC_',
@@ -133,7 +132,7 @@ class SvCampaignParser(sv_object.ISvObject):
         'MBO_PS_CPC_',  # 모비온
         'SMR_PS_DISP_'  # SMR; 포탈에 개시되는 SMR 광고; 항상 DISP
         ]
-    __g_lstObsoleteSvCampaignPrefix = ['NVR_BRAND_SEARCH_MOB','NV_PS_BRSEARCH_MOB','NVR_BRAND_SEARCH_PC','NV_PS_BRSEARCH_PC','NV_PS_','NV_NS_','NVR_NS_','FB_NS_','DAUM_PS_']
+    # __g_lstObsoleteSvCampaignPrefix = ['NVR_BRAND_SEARCH_MOB','NV_PS_BRSEARCH_MOB','NVR_BRAND_SEARCH_PC','NV_PS_BRSEARCH_PC','NV_PS_','NV_NS_','NVR_NS_','FB_NS_','DAUM_PS_']
     __g_lstBrdedTag = ['_BRS_','_BR_']
     __g_lstRmkTag = ['_RMK_','_GDNRMK_']
     __g_lstGaUselessTerm = ['(not set)','(not provided)','(automatic matching)', 'undetermined', '(remarketing/content targeting)', '(user vertical targeting)']
@@ -187,8 +186,7 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_source_tag in self.__g_dictSourceTagTitle:
             return self.__g_dictSourceTagTitle[s_source_tag]
         else:
-            # raise Exception('stop')
-            return False  # 'err_source_tag'
+            return False
 
     def get_source_id_title_dict(self, b_inverted=False):
         if b_inverted:
@@ -209,8 +207,7 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_search_rst_type in self.__g_dictSearchResultTypeTagTitle:
             return s_search_rst_type
         else:
-            # raise Exception('stop')
-            return False  # 'err_search_rst_tag'
+            return False
 
     def get_search_rst_type_id_title_dict(self, b_inverted=False):
         if b_inverted:
@@ -223,12 +220,10 @@ class SvCampaignParser(sv_object.ISvObject):
         return self.__g_dictSearchRstIdTag
     
     def get_sv_medium_tag(self, s_sv_medium_code):
-        # lst_tag = list(self.__g_dictMediumTagTitle.keys())
         if s_sv_medium_code in self.__g_dictMediumTagTitle:
             return self.__g_dictMediumTagTitle[s_sv_medium_code]
         else:
-            # raise Exception('stop')
-            return False  # 'err_medium_tag'
+            return False
             
     def get_medium_type_id_title_dict(self, b_inverted=False):
         if b_inverted:
@@ -302,38 +297,34 @@ class SvCampaignParser(sv_object.ISvObject):
         return dict_rst
 
     def get_sv_pns_contract_type_named_tag(self, s_sv_service_type):
-        # lst_type = list(self.__g_dictPnsContractTypeNamed.keys())
         if s_sv_service_type in self.__g_dictPnsContractTypeNamed:
             return self.__g_dictPnsContractTypeNamed[s_sv_service_type]
         else:
             raise Exception('stop')
-            # return 'err_service_type'
     
-    def parse_campaign_code_fb(self, dict_camp_info):  #, dictCampaignNameAlias):
-        # dictRst = {'source':'unknown','rst_type':'','medium':'','brd':'0','campaign1st':'0','campaign2nd':'0','campaign3rd':'0','detected':False}
+    def parse_campaign_code_fb(self, dict_camp_info):
         dict_rst = {'source':'unknown', 'source_code': '', 'rst_type':'',
                     'medium':'', 'medium_code': '', 'brd': 0,
                     'campaign1st':'00','campaign2nd':'00','campaign3rd':'00',
                     'detected': False}
         if dict_camp_info['url_tags'] == 'n/a': # facebook inlink ad or outlink ad without UTM params
             sAdName = dict_camp_info['ad_name']
-            #self._printDebug('weird Fb business log!')
-            dict_rst['rst_type'] = self.validate_search_rst_tag('SNS')  # self.__g_dictSearchResultTypeTagTitle['SNS']
+            dict_rst['rst_type'] = self.validate_search_rst_tag('SNS')
             if sAdName.find('게시물: ') > -1:
                 sNonSvCampaignCode = sAdName.replace('게시물: ', '').replace('"','').strip()
-                dict_rst['source'] = self.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                dict_rst['source'] = self.get_source_tag('FB')
                 dict_rst['source_code'] = 'FB'
                 dict_rst['brd'] = 1
-                dict_rst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle['CPI']
+                dict_rst['medium'] = self.get_sv_medium_tag('CPI')
                 dict_rst['medium_code'] = 'CPI'
                 dict_rst['campaign1st'] = sNonSvCampaignCode
                 dict_rst['detected'] = True
             elif sAdName.find('INSTAGRAM POST: ') > -1:
-                dict_rst['source'] = self.get_source_tag('IG')  #self.__g_dictSourceTagTitle['IG']
+                dict_rst['source'] = self.get_source_tag('IG')
                 dict_rst['source_code'] = 'IG'
                 sNonSvCampaignCode = sAdName.replace('Instagram Post: ', '').replace('"','').strip()
                 dict_rst['brd'] = 1
-                dict_rst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle['CPI']
+                dict_rst['medium'] = self.get_sv_medium_tag('CPI')
                 dict_rst['medium_code'] = 'CPI'
                 dict_rst['campaign1st'] = sNonSvCampaignCode
                 dict_rst['detected'] = True
@@ -362,9 +353,9 @@ class SvCampaignParser(sv_object.ISvObject):
                     lstCampaignCode[2] in ['CPC', 'DISP', 'CPI']:
                 dict_rst['source'] = self.get_source_tag(lstCampaignCode[0])
                 dict_rst['source_code'] = lstCampaignCode[0]
-                dict_rst['rst_type'] = self.validate_search_rst_tag(lstCampaignCode[1])  # self.__g_dictSearchResultTypeTagTitle[lstCampaignCode[1]]
+                dict_rst['rst_type'] = self.validate_search_rst_tag(lstCampaignCode[1])
                 dict_rst['brd'] = dictTempRst['brd']
-                dict_rst['medium'] = self.get_sv_medium_tag(lstCampaignCode[2])  # self.__g_dictMediumTagTitle[lstCampaignCode[2]]
+                dict_rst['medium'] = self.get_sv_medium_tag(lstCampaignCode[2])
                 dict_rst['medium_code'] = lstCampaignCode[2]
                 dict_rst['campaign1st'] = lstCampaignCode[3]
                 dict_rst['detected'] = True
@@ -374,8 +365,8 @@ class SvCampaignParser(sv_object.ISvObject):
                 except IndexError:
                     pass
             elif lstCampaignCode[0] == '{{AD.NAME}}' or lstCampaignCode[0] == '{{ADSET.NAME}}' or lstCampaignCode[0] == '{{CAMPAIGN.NAME}}':
-                dict_rst['rst_type'] = self.validate_search_rst_tag('PS')  # self.__g_dictSearchResultTypeTagTitle['PS']
-                dict_rst['medium'] = self.get_sv_medium_tag('CPC')  # self.__g_dictMediumTagTitle['CPC']
+                dict_rst['rst_type'] = self.validate_search_rst_tag('PS')
+                dict_rst['medium'] = self.get_sv_medium_tag('CPC')
                 dict_rst['campaign1st'] = dict_camp_info['ad_name']
                 dict_rst['detected'] = True
         return dict_rst
@@ -408,7 +399,6 @@ class SvCampaignParser(sv_object.ISvObject):
                 del list_campaign_code[0]
                 n_elem_cnt = len(list_campaign_code)
                 list_campaign_code[n_elem_cnt - 1] = list_campaign_code[n_elem_cnt - 1] + '_OLD'
-
             # set source tag
             dict_rst['source'] = self.get_source_tag(list_campaign_code[0])
             dict_rst['source_code'] = list_campaign_code[0]

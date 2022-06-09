@@ -1138,13 +1138,27 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
             o_campaign_alias_info.update_alias(request)
             del o_campaign_alias_info
             o_redirect = redirect('svload:campaign_alias_list', sv_brand_id=n_brand_id)
+        elif s_act == 'inquiry_alias':
+            s_period_from = request.POST.get('alias_period_from')
+            s_period_to = request.POST.get('alias_period_to')
+            o_redirect = redirect('svload:campaign_alias_list_period',
+                                  sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
         return o_redirect
 
     def __alias_list(self, request, *args, **kwargs):
+        if 'period_from' in kwargs:
+            s_period_from = kwargs['period_from']
+        else:
+            s_period_from = None
+        if 'period_to' in kwargs:
+            s_period_to = kwargs['period_to']
+        else:
+            s_period_to = None
+
         n_acct_id = self.__g_dictBrandInfo['dict_ret']['n_acct_id']
         n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
         o_campaign_alias_info = CampaignAliasInfo(n_acct_id, n_brand_id)
-        dict_alias_info = o_campaign_alias_info.get_list()
+        dict_alias_info = o_campaign_alias_info.get_list_by_period(s_period_from, s_period_to)
         dict_source_type = o_campaign_alias_info.get_source_type_dict()
         dict_search_rst_type = o_campaign_alias_info.get_search_rst_type_id_title_dict()
         dict_medium_type = o_campaign_alias_info.get_medium_type_id_title_dict()
@@ -1154,6 +1168,7 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
                       {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'dict_alias_period': dict_alias_info['dict_alias_period'],
                        'dict_source_type': dict_source_type,
                        'dict_search_rst_type': dict_search_rst_type,
                        'dict_medium_type': dict_medium_type,

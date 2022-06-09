@@ -1,5 +1,6 @@
 import sys
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 if __name__ == 'campaign_alias': # for calling from svplugins.aw_register_db.task
     sys.path.append('../../svcommon')
@@ -74,12 +75,40 @@ class CampaignAliasInfo:
     def get_medium_type_id_title_dict(self):
         return self.__g_dictMediumTypeIdTitle
     
-    def get_list(self):
+    def get_list_by_period(self, s_period_from, s_period_to):
         """
         data for campaign alias list screen
+        :param s_period_from:
+        :param s_period_to:
         :return:
         """
-        lst_alias_rst = self.__g_oSvDb.executeQuery('getCampaignAliasList')
+        lst_alias_earliest = self.__g_oSvDb.executeQuery('getCampaignAliasEarliest')
+        if 'err_code' in lst_alias_earliest[0]:  # if table not exists
+            dict_alias_period = {'s_earliest_alias': '',
+                                    's_latest_alias': '',
+                                    's_earliest_req': '',
+                                    's_latest_req': ''}
+            return {'dict_alias_period': dict_alias_period, 'lst_alias_rst': []}
+
+        lst_alias_latest = self.__g_oSvDb.executeQuery('getCampaignAliasLatest')
+        if lst_alias_earliest[0]['min_date'] is None or lst_alias_latest[0]['max_date'] is None:
+            dt_latest_alias = datetime.today()
+            dt_earliest_alias = dt_latest_alias - relativedelta(months=6)
+            dt_earliest_alias = dt_earliest_alias.replace(day=1)
+        else:
+            dt_earliest_alias = lst_alias_earliest[0]['min_date']
+            dt_latest_alias = lst_alias_latest[0]['max_date']
+        del lst_alias_earliest, lst_alias_latest
+
+        if s_period_from is not None and s_period_to is not None:
+            dt_earliest_req = datetime.strptime(s_period_from, '%Y%m%d')
+            dt_latest_req = datetime.strptime(s_period_to, '%Y%m%d')
+        else:
+            dt_latest_req = dt_latest_alias
+            dt_earliest_req = dt_latest_req - relativedelta(months=6)
+            dt_earliest_req = dt_earliest_req.replace(day=1)
+
+        lst_alias_rst = self.__g_oSvDb.executeQuery('getCampaignAliasListByPeriod', dt_earliest_req, dt_latest_req) #self.__g_oSvDb.executeQuery('getCampaignAliasList')
         for dict_single_alias in lst_alias_rst:
             dict_single_alias['source_name'] = self.__g_dictSourceIdTitle[dict_single_alias['source_id']]
             dict_sv_convention = self.__construct_sv_campaign_convention(dict_single_alias)
@@ -92,7 +121,13 @@ class CampaignAliasInfo:
             dict_single_alias['sv_conventional_alias'] = s_sv_convention
             del dict_single_alias['source_id']
             del dict_sv_convention
-        return {'lst_alias_rst': lst_alias_rst}
+        
+        dict_alias_period = {'s_earliest_alias': dt_earliest_alias.strftime("%Y%m%d"),
+                              's_latest_alias': dt_latest_alias.strftime("%Y%m%d"),
+                              's_earliest_req': dt_earliest_req.strftime("%Y%m%d"),
+                              's_latest_req': dt_latest_req.strftime("%Y%m%d")}
+        del dt_earliest_alias, dt_latest_alias
+        return {'dict_alias_period': dict_alias_period, 'lst_alias_rst': lst_alias_rst}
 
     def get_detail_by_media_campaign_name(self, s_media_campaign_title):
         """

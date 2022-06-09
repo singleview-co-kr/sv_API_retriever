@@ -236,6 +236,12 @@
 
 <!-- ion_range -->
 <script>
+jQuery(document).ready(function() {
+    jQuery('#datatable-responsive').DataTable({
+        "order": [[ 1, "desc" ]]
+    });
+});
+
 // https://velog.io/@dojunggeun/JavaScript-Moment.js%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%98%EC%97%AC-Date-Time-%EA%B4%80%EB%A6%AC%ED%95%98%EA%B8%B0
 jQuery(function() {
   jQuery("#range_alias_period").ionRangeSlider({
@@ -271,6 +277,28 @@ jQuery("#btn_alias_enquiry").click(function (e) {
 });
 </script>
 <!-- /ion_range -->
+
+<!-- Datatables-->
+<link href="/static/skins/default/js/datatables/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/buttons.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/fixedHeader.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/responsive.bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/static/skins/default/js/datatables/scroller.bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+<script src="/static/skins/default/js/datatables/jquery.dataTables.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.bootstrap.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.buttons.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/jszip.min.js"></script>
+<script src="/static/skins/default/js/datatables/pdfmake.min.js"></script>
+<script src="/static/skins/default/js/datatables/vfs_fonts.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.html5.min.js"></script>
+<script src="/static/skins/default/js/datatables/buttons.print.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.fixedHeader.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.keyTable.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.responsive.min.js"></script>
+<script src="/static/skins/default/js/datatables/responsive.bootstrap.min.js"></script>
+<script src="/static/skins/default/js/datatables/dataTables.scroller.min.js"></script>
 
 <script type="text/javascript">
 jQuery("#btn_add_alias_bulk").click(function(){

@@ -94,8 +94,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.fb_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-
-        
         # begin - referring to raw_data_file, validate raw data file without registration
         lst_non_sv_convention_campaign_title = self.__validate_fb_raw_data_file(s_sv_acct_id, s_brand_id)
         if len(lst_non_sv_convention_campaign_title):
@@ -104,7 +102,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._task_post_proc(self._g_oCallback)
             return False
         # end - referring to raw_data_file, validate raw data file without registration
-
         self.__arrange_fb_raw_data_file(s_sv_acct_id, s_brand_id)
         self.__register_db()
         self._task_post_proc(self._g_oCallback)
@@ -113,7 +110,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         if sCheckFxCode == 'KRW':
             return 1
-        
         dtCheckDate = datetime.strptime(sCheckDate, '%Y%m%d').date()
         for sFxIdx in self.__g_dictFxTrendInfo:
             aFxPeriodInfo = sFxIdx.split('_')
@@ -145,9 +141,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         if sFxCode == 'KRW':
             return True
-        
         sCurrencyTrendPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, 'info_fx_' + sFxCode + '.tsv')
-        # try:
         if os.path.isfile(sCurrencyTrendPath):
             with open(sCurrencyTrendPath, 'r') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
@@ -156,7 +150,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if nRowCnt > 0: 
                         self.__g_dictFxTrendInfo[sFxCode + '_' + row[0]] = int(row[1].replace(',',''))
                     nRowCnt = nRowCnt + 1
-        # except FileNotFoundError:
         else:
             self._printDebug('file ' + sCurrencyTrendPath + ' does not exist')
             return False
@@ -166,11 +159,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://developers.facebook.com/docs/marketing-api/currencies/
         sFxCodePath = os.path.join(s_conf_path_abs, 'info_fx.tsv')
         sFxCode = 'error'
-        # try:
         if os.path.isfile(sFxCodePath):
             with open(sFxCodePath, 'r') as f:
                 sFxCode = f.readline().strip().upper()
-        #except FileNotFoundError:
         else:
             self._printDebug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
@@ -194,11 +185,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     continue
                 sDatafileTobeHandled = sFilename + '|@|' + sFbBizAid
                 lstTotalDataset.append(sDatafileTobeHandled)
-        
         lstTotalDataset.sort()
-        # dictCampaignNameAlias = self.__get_campaign_name_alias(s_sv_acct_id, s_brand_id)
         o_campaign_alias = campaign_alias.CampaignAliasInfo(s_sv_acct_id, s_brand_id)
-
         nIdx = 0
         nSentinel = len(lstTotalDataset)
         for sFileInfo in lstTotalDataset:
@@ -206,8 +194,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sFbBusinessAcctId = aFileInfo[1] 
             sTempDataPath = os.path.join(sDataPath, sFbBusinessAcctId, 'data')
             sDataFileFullname = os.path.join(sTempDataPath, aFileInfo[0])
-            aFileDetailInfo = aFileInfo[0].split('_')
-            # sDatadate = aFileDetailInfo[0]
             if os.path.isfile(sDataFileFullname):
                 with open(sDataFileFullname, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
@@ -233,17 +219,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 aUtmCampaignCode = sUtmParam.split('=')
                                 dictCampaignInfo['campaign_code'] = aUtmCampaignCode[1]
                                 continue
-                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)  #, dictCampaignNameAlias)
+                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)
                         if dictCode['detected'] == False:  # means bot finally does not find any standard info clearly
-                            self._printDebug('ad creative without singleview standard url_tags nor alias_info found!')
-                            sCampaignName = dictCampaignInfo['campaign_code']
+                            # ad creative without singleview standard url_tags nor alias_info found!
+                            sCampaignName = dictCampaignInfo['ad_name']
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(sCampaignName)
                             dictCode = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
                             if dictCode['detected'] == False:
                                 lst_non_sv_convention_campaign_title.append(sCampaignName)
             else:
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate data file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
@@ -258,7 +243,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for sFbBizAid in lstFbBizAid:
             if sFbBizAid == 'alias_info_campaign.tsv':
                 continue
-
             sDownloadDataPath = os.path.join(sDataPath, sFbBizAid, 'data')
             s_conf_path_abs = os.path.join(sDataPath, sFbBizAid, 'conf')
             sFxCode = self.__get_fx_code(s_conf_path_abs)
@@ -303,17 +287,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dictCampaignInfo['campaign_code'] = aUtmCampaignCode[1]
                                 continue
                         
-                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)  #, dictCampaignNameAlias)
+                        dictCode = self.__g_oSvCampaignParser.parse_campaign_code_fb(dictCampaignInfo)
                         sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                         if dictCode['detected'] == False:  # means bot finally does not find any standard info clearly
-                            self._printDebug('ad creative without singleview standard url_tags nor alias_info found!')
-                            sCampaignName = dictCampaignInfo['campaign_code']
+                            sCampaignName = dictCampaignInfo['ad_name']
                             dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(sCampaignName)
                             dictCode = dict_campaign_alias_rst['dict_ret']  # retrieve campaign name alias info
                             if dictCode['detected'] == False:
-                                dictCode['source'] = self.__g_oSvCampaignParser.get_source_tag('FB')  #self.__g_dictSourceTagTitle['FB']
+                                dictCode['source'] = self.__g_oSvCampaignParser.get_source_tag('FB')
                                 dictCode['brd'] = 1
-                                dictCode['medium'] = self.__g_oSvCampaignParser.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
+                                dictCode['medium'] = self.__g_oSvCampaignParser.get_sv_medium_tag('CPI')
                                 dictCode['campaign1st'] = sCampaignName
                   
                         sReportId = sDatadate+'|@|' + sFbBusinessAcctId+'|@|' + sUa + '|@|'+dictCode['source']+'|@|' + \
@@ -343,7 +326,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             nConvAmnt = 0
                     
                         if self.__g_dictFbRaw.get(sReportId, 0):  # returns 0 if sRowId does not exist
-                            # self.__g_dictFbRaw[sReportId]
                             self.__g_dictFbRaw[sReportId]['reach'] += nReach
                             self.__g_dictFbRaw[sReportId]['imp'] += nImpression
                             self.__g_dictFbRaw[sReportId]['clk'] += nClick
@@ -359,7 +341,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__archive_data_file(sTempDataPath, aFileInfo[0])
             else:
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
@@ -374,7 +355,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for sReportId, dict_single_raw in self.__g_dictFbRaw.items():
                 if not self._continue_iteration():
                     break
-
                 aReportType = sReportId.split('|@|')
                 sDataDate = datetime.strptime(aReportType[0], "%Y%m%d")
                 sFbBizAcctId = aReportType[1]

@@ -23,5 +23,6 @@ urlpatterns = [
     path('pns_contract_update/<int:sv_brand_id>/<int:contract_id>/', views.PnsContractView.as_view(), name='pns_contract_update'),
     path('brded_term/<int:sv_brand_id>/', views.BrdedTermView.as_view(), name='brded_term_list'),
     path('campaign_alias/<int:sv_brand_id>/', views.CampaignAliasView.as_view(), name='campaign_alias_list'),
+    path('campaign_alias/<int:sv_brand_id>/<str:period_from>/<str:period_to>/', views.CampaignAliasView.as_view(), name='campaign_alias_list_period'),
     path('campaign_alias_update/<int:sv_brand_id>/<int:alias_id>/', views.CampaignAliasView.as_view(), name='campaign_alias_update'),
 ]
