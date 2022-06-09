@@ -70,7 +70,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 30th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 9th, Jun 2022')
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -1222,7 +1222,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     aIdx = sIdx.split('_')
                     nRegdatePos = len(aIdx) - 2
                     nUaPos = len(aIdx) - 1
-                    sCamp1st = self.__g_oSvCampaignParser.get_sv_pns_contract_type_named_tag(aIdx[1])
+                    try:
+                        sCamp1st = self.__g_oSvCampaignParser.get_sv_pns_contract_type_named_tag(aIdx[-4])
+                    except Exception:
+                        print(sIdx)
+                        raise Exception('stop')
                     if sCamp1st == 'RELATED':
                         sTerm = aIdx[0]
                     sCamp2nd = aIdx[nRegdatePos]
@@ -1301,10 +1305,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         }
                         n_pns_info_idx += 1
                     else: # for the latest & systematic situation
-                        if s_nickname is '-':
-                            s_row_id = s_term+'_'+s_contract_type+'_'+s_regdate+'_'+s_ua
-                        else:
-                            s_row_id = s_term+'_'+s_contract_type+'_'+s_nickname+'_'+s_regdate+'_'+s_ua
+                        # if s_nickname is '-':
+                        #     s_row_id = s_term+'_'+s_contract_type+'_'+s_regdate+'_'+s_ua
+                        # else:
+                        s_row_id = s_term+'_'+s_contract_type+'_'+s_nickname+'_'+s_regdate+'_'+s_ua
                         dict_pns_info[s_row_id] = {
                             'media_raw_cost':f_daily_media_raw_cost, 'media_agency_cost':f_daily_agency_cost, 'vat':f_vat
                         }

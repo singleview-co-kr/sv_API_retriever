@@ -159,10 +159,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'adwords')
         for sGoogleadsCid in lstGoogleads:
             if self.__g_sReplaceMonth == None:
-                self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
+                self._printDebug('-> '+ sGoogleadsCid +' is validating AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
             else:
-                self._printDebug('-> '+ sGoogleadsCid +' is replacing AW data files')
+                self._printDebug('-> '+ sGoogleadsCid +' is validating AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data', 'closing')
             
             # traverse directory and categorize data files
@@ -223,7 +223,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Validate data file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
-        return lst_non_sv_convention_campaign_title
+        return list(set(lst_non_sv_convention_campaign_title))  # unique list
 
     def __arrange_gad_raw_data_file(self, sSvAcctId, sAcctTitle, lstGoogleads):
         """ referring to raw_data_file, arrange raw data file to register """

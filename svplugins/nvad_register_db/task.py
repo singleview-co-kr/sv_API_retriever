@@ -862,7 +862,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate master adgrp file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
-        return lst_non_sv_convention_campaign_title
+        return list(set(lst_non_sv_convention_campaign_title))  # unique list
 
     def __register_master_ad_group_file(self, sSvAcctId, sAcctTitle, dictMasterData):
         """ referring to raw_data_file, register raw data file """

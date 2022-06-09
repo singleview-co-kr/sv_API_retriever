@@ -185,20 +185,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for sFbBizAid in lstFbBizAid:
             if sFbBizAid == 'alias_info_campaign.tsv':
                 continue
-
             sDownloadDataPath = os.path.join(sDataPath, sFbBizAid, 'data')
-            # s_conf_path_abs = os.path.join(sDataPath, sFbBizAid, 'conf')
-            # sFxCode = self.__get_fx_code(s_conf_path_abs)
-            # self.__g_dictFxCodeByBizAcct[sFbBizAid] = sFxCode
-            # if sFxCode == 'error':
-            #     self._printDebug('-> '+ sFbBizAid +' has been stopped')
-            #     return
-
-            # if sFxCode != 'KRW':
-            #     if self.__get_fx_trend(sFxCode) == False:
-            #         self._printDebug('-> '+ sFbBizAid +' has been stopped')
-
-            self._printDebug('-> '+ sFbBizAid +' is analyzing FB IG data files')
+            self._printDebug('-> '+ sFbBizAid +' is validating FB IG data files')
             lstDataFiles = os.listdir(sDownloadDataPath)
             for sFilename in lstDataFiles:
                 aFileExt = os.path.splitext(sFilename)
@@ -259,7 +247,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate data file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
-        return lst_non_sv_convention_campaign_title
+        return list(set(lst_non_sv_convention_campaign_title))  # unique list
 
     def __arrange_fb_raw_data_file(self, sSvAcctId, s_brand_id):
         """ referring to raw_data_file, register raw data file """
@@ -307,20 +295,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 with open(sDataFileFullname, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for row in reader:
-                        # row[0]: 'ad_id'
-                        # row[1]: 'configured_status'
-                        # row[2]: 'creative_id'
-                        # row[3]: 'ad_name'
-                        # row[4]: 'link'
-                        # row[5]: 'url_tags'
-                        # row[6]: 'device_platform'
-                        # row[7]: 'reach'
-                        # row[8]: 'impressions'
-                        # row[9]: 'clicks'
-                        # row[10]: 'unique_clicks
-                        # row[11]: 'spend'
-                        # row[12]: nConversionValue
-                        # row[13]: nConversionCount
                         dictCampaignInfo = {'url_tags':row[5], 'ad_name':row[3], 'campaign_code':''}
                         lstUtmParams = row[5].split('&')
                         for sUtmParam in lstUtmParams:
