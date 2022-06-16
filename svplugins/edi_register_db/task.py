@@ -62,7 +62,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 16th, May 2022')
         self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None,
                                   'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -218,6 +218,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
         self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
+        if self._g_dictParam['new_sku_id'] is None:
+            self._printDebug('error! new_sku_id is empty')
+            return
         self.__oEdiExtractor.add_new_sku_info(self._g_dictParam['new_sku_id'])
 
     def __prepare_EDI_file(self, dict_rst):
@@ -265,6 +268,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__': # for console debugging
     # python task.py config_loc=1/1 sv_file_id=3 mode=lookup
     # python task.py config_loc=1/1 sv_file_id=3 mode=register_sku new_sku_id=8806006500375,8806006500399
+    # edi_register_db sv_file_id=# mode=register_sku new_sku_id=  means register all detected SKU with deny flag
     # python task.py config_loc=1/1 sv_file_id=3 mode=register_db
     nCliParams = len(sys.argv)
     if nCliParams > 2:
