@@ -112,15 +112,22 @@ class Budget:
                                                            'dt_period_end': dt_period_end,
                                                            'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc,
                                                            'b_campaign_level': False}
-
             if dict_single_budget['memo'].startswith(dict_acct_info['camp_prefix']):
                 dict_budget_to_display[s_source_medium]['b_campaign_level'] = True
-                if 'dict_campaign' not in dict_budget_to_display[s_source_medium].keys():  # add dict_campaign attr
-                    dict_budget_to_display[s_source_medium]['dict_campaign'] = {}
-                dict_budget_to_display[s_source_medium]['dict_campaign'][dict_single_budget['memo']] = \
-                    {'dt_period_start': dt_period_start, 'dt_period_end': dt_period_end,
-                     'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc}
-
+                if 'dict_campaign' not in dict_budget_to_display[s_source_medium].keys():
+                    dict_budget_to_display[s_source_medium]['dict_campaign'] = {}  # append dict_campaign attr
+                s_campaign_title = dict_single_budget['memo']
+                if s_campaign_title not in dict_budget_to_display[s_source_medium]['dict_campaign'].keys():  # register new dict_campaign attr
+                    dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = {}
+                    dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = \
+                        {'dt_period_start': dt_period_start, 'dt_period_end': dt_period_end,
+                         'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc}
+                else:  # add additional dict_campaign attr
+                    if dt_period_start < dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_start']:
+                        dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_start'] = dt_period_start
+                    if dt_period_end > dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_end']:
+                        dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_end'] = dt_period_end
+                    dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['n_budget_tgt_amnt_inc_vat'] += n_target_amnt_inc_vat_alloc
         # end - calculate period allocated budget list
         return dict_budget_to_display
 
