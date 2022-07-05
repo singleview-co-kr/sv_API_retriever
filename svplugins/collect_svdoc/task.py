@@ -151,8 +151,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 
 if __name__ == '__main__': # for console debugging
-    # CLI example -> python3.7 task.py config_loc=1/1 target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
-    # collect_svdoc target_host_url=https://testserver.co.kr/modules/svestudio/wcl.php
+    # CLI example -> python3.7 task.py config_loc=1/1
+    # collect_svdoc mode=retrieve
+    # collect_svdoc mode=analyze_new
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor

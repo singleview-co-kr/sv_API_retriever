@@ -394,6 +394,7 @@ class SvHypermartGeoInfo():
         {'id': 297, 'hypermart_name': 'Emart', 'branch_code': '8215', 'name': '몰리스STF위례점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '학암동', 'latitude': '37.4801236', 'longitude': '127.148382'},
         {'id': 298, 'hypermart_name': 'Emart', 'branch_code': '1177', 'name': '쓱고우논현점', 'branch_type': 'Offline', 'do_name': '서울', 'si_name': '서울특별시', 'gu_gun': '강남구', 'dong_myun_ri': '논현동', 'latitude': '37.5078828', 'longitude': '127.023324'},
         {'id': 298, 'hypermart_name': 'Emart', 'branch_code': '8218', 'name': '몰리스네이버스토어', 'branch_type': 'Online', 'do_name': '온라인', 'si_name': '온라인', 'gu_gun': '온라인', 'dong_myun_ri': '온라인', 'latitude': None, 'longitude': None},
+        {'id': 299, 'hypermart_name': 'Emart', 'branch_code': '7300', 'name': '베이비서클STF하남점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '신장동', 'latitude': '37.5454092', 'longitude': '127.223737'},
     ]
 
     def __init__(self):

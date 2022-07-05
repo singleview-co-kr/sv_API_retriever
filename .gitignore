@@ -12,6 +12,7 @@ storage/
 log/
 changeLog_dbs.txt
 changeLog.txt
+static_temp/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
