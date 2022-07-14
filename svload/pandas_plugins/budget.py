@@ -151,6 +151,7 @@ class Budget:
         :param s_period_to:
         :return:
         """
+        dt_today = date.today()
         lst_budget_earliest = self.__g_oSvDb.executeQuery('getBudgetEarliest')
         lst_budget_latest = self.__g_oSvDb.executeQuery('getBudgetLatest')
         if lst_budget_earliest[0]['min_date'] is None or lst_budget_latest[0]['max_date'] is None:
@@ -182,14 +183,27 @@ class Budget:
         n_tgt_budget_inc_vat = 0
         n_act_spent_inc_vat = 0
         for dict_budget in lst_rst:
+            b_gross_cost_inc_vat_proc = False
             n_gross_cost_inc_vat = 0
             n_acct_id = dict_budget['acct_id']
             dict_acct_info = self.__g_dictBudgetType[n_acct_id]
             if dict_acct_info['title'] == 'NVR_BRS' or dict_acct_info['title'] == 'ETC':
-                if dict_budget['date_begin'] <= date.today():  # if budget begin date is past than today
+                if dict_budget['date_begin'] <= dt_today:  # if budget begin date is past than today
                     n_gross_cost_inc_vat = dict_budget['target_amnt_inc_vat']
-            else:
+                    b_gross_cost_inc_vat_proc = True
+            elif dict_acct_info['title'] == 'NVR_SEO':
+                if dict_budget['date_begin'] > dt_today:  # if budget begin date is future than today
+                    b_gross_cost_inc_vat_proc = True
+                elif dict_budget['date_begin'] <= dt_today and dict_budget['date_end'] >= dt_today:  # if budget period is between today
+                    n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])    
+                    b_gross_cost_inc_vat_proc = True
+                elif dict_budget['date_end'] < dt_today:  # if budget end date is past than today
+                    n_gross_cost_inc_vat = dict_budget['target_amnt_inc_vat']
+                    b_gross_cost_inc_vat_proc = True
+
+            if not b_gross_cost_inc_vat_proc:
                 n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])
+            
             s_alloc_yr_mo = str(dict_budget['alloc_yr']) + '{:02d}'.format(dict_budget['alloc_mo'])
             # begin - build account level table info
             dict_tmp = {'id': dict_budget['id'], 'title': dict_acct_info['title'],
