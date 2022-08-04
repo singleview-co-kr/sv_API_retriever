@@ -4,7 +4,7 @@ CREATE TABLE `fb_compiled_daily_log` (
   `ua` char(1) NOT NULL,
   `source` char(9) NOT NULL,
   `rst_type` varchar(5) NOT NULL,
-  `media` varchar(5) NOT NULL,
+  `media` varchar(10) NOT NULL,
   `brd` TINYINT NOT NULL DEFAULT 0,
   `campaign_1st` varchar(100) NOT NULL,
   `campaign_2nd` varchar(25) DEFAULT NULL,

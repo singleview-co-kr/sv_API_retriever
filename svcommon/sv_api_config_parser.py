@@ -89,43 +89,49 @@ class SvApiConfigParser(sv_object.ISvObject):
 
         dict_nvr_ad_acct = {}
         lst_googleads_acct = []
+        lst_fb_biz_aid = []
         lst_nvr_master_rpt = [] 
         lst_nvr_stat_rpt = []
         dict_other_ads_api_info = {}
         self.__g_oConfig.read(self.__g_sApiConfigFile)
-        for sSectionTitle in self.__g_oConfig:
-            if sSectionTitle == 'naver_searchad':
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if sValueTitle == 'api_key' or sValueTitle == 'secret_key' or sValueTitle == 'manager_login_id' or \
-                     sValueTitle == 'customer_id':
-                        dict_nvr_ad_acct[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
-            elif sSectionTitle == 'nvr_master_report':
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if self.__g_oConfig[sSectionTitle][sValueTitle] == '1':
-                        lst_nvr_master_rpt.append(sValueTitle)
-            elif sSectionTitle == 'nvr_stat_report':
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if self.__g_oConfig[sSectionTitle][sValueTitle] == '1':
-                        lst_nvr_stat_rpt.append(sValueTitle)
-            elif sSectionTitle == 'google_ads':
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if self.__g_oConfig[sSectionTitle][sValueTitle].lower() == 'on':
-                        lst_googleads_acct.append(sValueTitle)
+        for s_section_title in self.__g_oConfig:
+            if s_section_title == 'naver_searchad':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if s_value_title == 'api_key' or s_value_title == 'secret_key' or s_value_title == 'manager_login_id' or \
+                     s_value_title == 'customer_id':
+                        dict_nvr_ad_acct[s_value_title] = self.__g_oConfig[s_section_title][s_value_title]
+            elif s_section_title == 'nvr_master_report':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if self.__g_oConfig[s_section_title][s_value_title] == '1':
+                        lst_nvr_master_rpt.append(s_value_title)
+            elif s_section_title == 'nvr_stat_report':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if self.__g_oConfig[s_section_title][s_value_title] == '1':
+                        lst_nvr_stat_rpt.append(s_value_title)
+            elif s_section_title == 'google_ads':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if self.__g_oConfig[s_section_title][s_value_title].lower() == 'on':
+                        lst_googleads_acct.append(s_value_title)
                     dict_other_ads_api_info['adw_cid'] = lst_googleads_acct
-            elif sSectionTitle == 'google_analytics':
+            elif s_section_title == 'facebook_business':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if self.__g_oConfig[s_section_title][s_value_title].lower() == 'on':
+                        lst_fb_biz_aid.append(s_value_title)
+                    dict_other_ads_api_info['fb_biz_aid'] = lst_fb_biz_aid
+            elif s_section_title == 'google_analytics':
                 dict_temp = {'s_version': None, 's_property_or_view_id':None, 'lst_access_level': []}
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    if sValueTitle == 'version':
-                        s_version = self.__g_oConfig[sSectionTitle][sValueTitle]
-                        dict_temp['s_version'] = self.__g_oConfig[sSectionTitle][sValueTitle]
-                    elif sValueTitle == 'property_or_view_id':
-                        dict_temp['s_property_or_view_id'] = self.__g_oConfig[sSectionTitle][sValueTitle]
-                    elif self.__g_oConfig[sSectionTitle][sValueTitle].lower() == 'on':
-                        dict_temp['lst_access_level'].append(sValueTitle)
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if s_value_title == 'version':
+                        s_version = self.__g_oConfig[s_section_title][s_value_title]
+                        dict_temp['s_version'] = self.__g_oConfig[s_section_title][s_value_title]
+                    elif s_value_title == 'property_or_view_id':
+                        dict_temp['s_property_or_view_id'] = self.__g_oConfig[s_section_title][s_value_title]
+                    elif self.__g_oConfig[s_section_title][s_value_title].lower() == 'on':
+                        dict_temp['lst_access_level'].append(s_value_title)
                     dict_other_ads_api_info['google_analytics'] = dict_temp
-            elif sSectionTitle == 'others':
-                for sValueTitle in self.__g_oConfig[sSectionTitle]:
-                    dict_other_ads_api_info[sValueTitle] = self.__g_oConfig[sSectionTitle][sValueTitle]
+            elif s_section_title == 'others':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    dict_other_ads_api_info[s_value_title] = self.__g_oConfig[s_section_title][s_value_title]
         dict_nvr_ad_acct['nvr_master_report'] = lst_nvr_master_rpt
         dict_nvr_ad_acct['nvr_stat_report'] = lst_nvr_stat_rpt
         

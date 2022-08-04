@@ -58,7 +58,8 @@ class SvCampaignParser(sv_object.ISvObject):
         (7, 'daum', 'DAUM'),
         (8, 'targeting', 'TG'),
         (9, 'mobon', 'MBO'),
-        (10, 'smr', 'SMR')
+        (10, 'smr', 'SMR'),
+        (11, 'facebook', 'FBIG')  # facebook PNS is mainly for instagram but API depends on facebook
     ]
     __g_dictSourceIdTitle = None  # {1:'naver'}
     __g_dictSourceTagTitle = None  # {'NV': 'naver'}

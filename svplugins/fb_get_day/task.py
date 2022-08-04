@@ -63,7 +63,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 5th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 3rd, Aug 2022')
 
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -82,7 +82,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if b_available:
             self.__g_oConfig.read(s_fb_biz_config_file)
         
-        self.__g_sFbBizAid = None
+        self.__g_sCurrentFbBizAid = None
         self.__g_sAdAccountId = None
         self.__g_lstFields = None
         self.__g_sDownloadPath = None
@@ -116,19 +116,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         s_sv_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
-        # s_fb_biz_aid = dict_acct_info['fb_biz_aid']
-        self.__g_sFbBizAid = dict_acct_info['fb_biz_aid']
-        # if s_fb_biz_aid == '':
-        if self.__g_sFbBizAid == '':
+        lst_fb_biz_aid = dict_acct_info['fb_biz_aid']
+        if len(lst_fb_biz_aid) == 0:
             self._printDebug('stop -> no business account id')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
-
-        self._printDebug('fb_get_day plugin launched with acct id ' + self.__g_sFbBizAid)
         try:
-            self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id)
+            for s_fb_biz_aid in lst_fb_biz_aid:
+                self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
+                self.__g_sCurrentFbBizAid = s_fb_biz_aid
+                self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id)
+                self.__g_sCurrentFbBizAid = None
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
@@ -140,11 +140,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('fb_get_day plugin finished')
         self._task_post_proc(self._g_oCallback)
 
-    def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle):  #, sFbBizAid):
-        self.__g_sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz', self.__g_sFbBizAid, 'data')
+    def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle):
+        self.__g_sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 
+            'fb_biz', self.__g_sCurrentFbBizAid, 'data')
         if os.path.isdir(self.__g_sDownloadPath) == False:
             os.makedirs(self.__g_sDownloadPath)
-        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'fb_biz', self.__g_sFbBizAid, 'conf')
+        s_conf_path_abs = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 
+            'fb_biz', self.__g_sCurrentFbBizAid, 'conf')
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 
@@ -183,7 +185,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('toggle period compress mode')
                 b_period_compress_toggle = True
         
-        self.__g_sAdAccountId = 'act_' + self.__g_sFbBizAid
+        self.__g_sAdAccountId = 'act_' + self.__g_sCurrentFbBizAid
         FacebookAdsApi.init(access_token=self.__g_oConfig['COMMON']['ACCESS_TOKEN'], api_version=self.__g_sFbApiVersion)
         self.__g_lstAd = []
         oAccount = AdAccount(self.__g_sAdAccountId) #'your-adaccount-id'
@@ -308,7 +310,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_datadate_begin = lst_compressed_date[0].strftime('%Y-%m-%d')
         s_datadate_end = lst_compressed_date[1].strftime('%Y-%m-%d')
         s_datadate_to_log = lst_compressed_date[1].strftime('%Y%m%d')
-        self._printDebug( '--> '+ self.__g_sFbBizAid +' will retrieve report from ' + s_datadate_begin + ' to ' + s_datadate_end)
+        self._printDebug( '--> '+ self.__g_sCurrentFbBizAid +' will retrieve report from ' + s_datadate_begin + ' to ' + s_datadate_end)
         params = {
             'level': 'ad',
             #'filtering': [],
@@ -386,96 +388,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except Exception as e:
             self._printDebug('unknown exception occured')
             self._printDebug(e)
-
-    # def __get_period_daily(self, sFbBizAid, sAdAccountId, lst_fields, sDownloadPath, lstAd, sLatestFilepath, dictDateQueue):
-    #     while self._continue_iteration(): # loop for each report date
-    #         try:
-    #             dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
-    #         except ValueError:
-    #             break
-                
-    #         sDataDate = dtRetrieval.strftime('%Y-%m-%d')
-    #         sDataDateToLog = dtRetrieval.strftime('%Y%m%d')
-
-    #         self._printDebug( '--> '+ sFbBizAid +' will retrieve general report on ' + sDataDate)
-
-    #         params = {
-    #             'level': 'ad',
-    #             #'filtering': [],
-    #             'breakdowns': ['device_platform',],  #['gender','age'],
-    #             'time_range': {'since':sDataDate,'until':sDataDate}, # 'date_preset': Insights.Preset.yesterday,
-    #         }
-    #         oInsights = AdAccount(sAdAccountId).get_insights(
-    #             fields=lst_fields,
-    #             params=params,
-    #         )
-    #         try:
-    #             if len(oInsights) > 0:
-    #                 sTsvFilename = sDataDateToLog + '_general.tsv'
-    #                 with open(sDownloadPath+'/'+sTsvFilename, 'w', encoding='utf-8') as out:
-    #                     for dictInsight in oInsights:
-    #                         nConversionValue = 0  
-    #                         nConversionCount = 0
-    #                         try:
-    #                             for dictActionVals in dictInsight['action_values']:
-    #                                 if dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_purchase' or dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_view_content':
-    #                                     nConversionValue = dictActionVals['value']
-                                
-    #                             for dictActionVals in dictInsight['actions']:
-    #                                 if dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_purchase' or dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_view_content':
-    #                                     nConversionCount = dictActionVals['value']
-    #                         except KeyError:
-    #                             pass
-
-    #                         sAdIdFromInsight = dictInsight['ad_id']
-    #                         for dictAd in lstAd:
-    #                             if dictAd['id'] == sAdIdFromInsight:
-    #                                 if 'unique_clicks' in dictInsight:
-    #                                     nUniqueClicks = dictInsight['unique_clicks']
-    #                                 else:
-    #                                     nUniqueClicks = 0
-
-    #                                 if 'spend' in dictInsight:
-    #                                     nSpend = dictInsight['spend']
-    #                                 else:
-    #                                     nSpend = 0
-
-    #                                 if 'reach' in dictInsight:
-    #                                     n_reach = dictInsight['reach']
-    #                                 else:
-    #                                     n_reach = 0
-
-    #                                 if 'impressions' in dictInsight:
-    #                                     n_impressions = dictInsight['impressions']
-    #                                 else:
-    #                                     n_impressions = 0
-
-    #                                 if 'clicks' in dictInsight:
-    #                                     n_clicks = dictInsight['clicks']
-    #                                 else:
-    #                                     n_clicks = 0
-
-    #                                 # write data stream to file.
-    #                                 sRow = dictAd['id'] + '\t' + dictAd['configured_status'] + '\t' + dictAd['creative_id'] + '\t' + dictAd['name'] + '\t' + dictAd['link'] + '\t' + dictAd['url_tags'] + '\t' + \
-    #                                         dictInsight['device_platform'] + '\t' + str(n_reach) + '\t' + str(n_impressions) + '\t' + str(n_clicks) + '\t' + \
-    #                                         str(nUniqueClicks) + '\t' + str(nSpend) + '\t' + str(nConversionValue) + '\t' + str(nConversionCount) + '\n'
-    #                                 out.write(sRow)
-    #                             continue
-    #             else:
-    #                 self._printDebug('WARNING! no data detected!\nstop querying if you do not spend.\nfb api does not like free querying\nthey might block API access temporarily.')
-                
-    #             try:
-    #                 f = open(sLatestFilepath, 'w')
-    #                 f.write(sDataDateToLog)
-    #                 f.close()
-    #             except PermissionError:
-    #                 break
-                    
-    #             dictDateQueue[dtRetrieval] = 1
-    #             time.sleep(2)
-    #         except Exception as e:
-    #             self._printDebug('unknown exception occured')
-    #             self._printDebug(e)
 
 
 if __name__ == '__main__': # for console debugging and execution
