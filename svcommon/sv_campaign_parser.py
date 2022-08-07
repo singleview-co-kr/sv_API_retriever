@@ -126,8 +126,11 @@ class SvCampaignParser(sv_object.ISvObject):
         'DAUM_PS_CPC_',
         'KKO_PS_CPC_',
         'FB_PS_CPC_',
+        'FB_PS_DISP_',
         'FBIG_PS_CPC_',
+        'FBIG_PS_DISP_',
         'IG_PS_CPC_',  # instagram designated
+        'IG_PS_DISP_',  # instagram designated
         'FB_PNS_REF',
         'TG_PS_CPC_',  # 타게팅게이츠
         'MBO_PS_CPC_',  # 모비온
