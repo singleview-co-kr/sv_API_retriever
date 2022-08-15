@@ -16,6 +16,9 @@ import os.path  # do not import os
 # https://simpleisbetterthancomplex.com/2015/11/26/package-of-the-week-python-decouple.html
 from decouple import config, Csv  # https://pypi.org/project/python-decouple/
 
+# to override django.contrib.admin.AdminSite.get_app_list
+from django.contrib import admin
+
 import pymysql  # added for nginx
 pymysql.install_as_MySQLdb()  # added for nginx
 
@@ -168,3 +171,30 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # LOGIN_URL = '/accounts/login' # keep default
 # LOGOUT_REDIRECT_URL = '' # keep default
 LOGIN_REDIRECT_URL = '/'
+
+# set admin apps & models ordering list
+# https://stackoverflow.com/questions/398163/ordering-admin-modeladmin-objects
+ADMIN_ORDERING = [
+    ('svacct', [
+        'Account',
+        'Brand',
+        'DataSource',
+        'DataSourceDetail',
+    ]),
+    ('svauth', [
+        'User',
+    ]),
+    ('svdaemon', [
+        'Job',
+    ]),
+]
+# create an admin apps & models ordering function
+def get_app_list_4_admin(self, request):
+    dict_app = self._build_app_dict(request)
+    for s_app_name, lst_model in ADMIN_ORDERING:
+        dict_single_app = dict_app[s_app_name]
+        dict_single_app['models'].sort(key=lambda x: lst_model.index(x['object_name']))
+        yield dict_single_app
+
+# replace get_app_list() function
+admin.AdminSite.get_app_list = get_app_list_4_admin

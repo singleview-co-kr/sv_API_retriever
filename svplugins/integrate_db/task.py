@@ -49,6 +49,7 @@ if __name__ == '__main__': # for console debugging
     sys.path.append('../../svdjango')
     import sv_mysql
     import sv_campaign_parser
+    import sv_agency_info
     import sv_object
     import sv_plugin
     import contract
@@ -56,6 +57,7 @@ if __name__ == '__main__': # for console debugging
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
+    from svcommon import sv_agency_info
     from svcommon import sv_object
     from svcommon import sv_plugin
     from svload.pandas_plugins import contract
@@ -70,29 +72,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 9th, Jun 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 15th, Aug 2022')
         self._g_dictParam.update({'yyyymm':None, 'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
-        self.__g_sMode = None
-        self.__g_bFbProcess = False
-        self.__g_bGoogleAdsProcess = False
-        self.__g_sDataPath = None
-        self.__g_sRetrieveMonth = None
-        self.__g_dictNvadMergedDailyLog = None
-        self.__g_dictAdwMergedDailyLog = None
-        self.__g_dictKkoMergedDailyLog = None
-        self.__g_dictYtMergedDailyLog = None
-        self.__g_dictFbMergedDailyLog = None
-        self.__g_dictOtherMergedDailyLog = None
-        self.__g_dictPnsSource = None
-        self.__g_dictPnsContract = None        
-
-    def __del__(self):
-        """ never place self._task_post_proc() here 
-            __del__() is not executed if try except occurred """
+        self.__g_sSvAcctId = None
+        self.__g_sBrandId = None
         self.__g_sMode = None
         self.__g_bFbProcess = False
         self.__g_bGoogleAdsProcess = False
@@ -106,6 +93,27 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictOtherMergedDailyLog = None
         self.__g_dictPnsSource = None
         self.__g_dictPnsContract = None
+        self.__g_oAgencyInfo = None
+
+    def __del__(self):
+        """ never place self._task_post_proc() here 
+            __del__() is not executed if try except occurred """
+        self.__g_sSvAcctId = None
+        self.__g_sBrandId = None
+        self.__g_sMode = None
+        self.__g_bFbProcess = False
+        self.__g_bGoogleAdsProcess = False
+        self.__g_sDataPath = None
+        self.__g_sRetrieveMonth = None
+        self.__g_dictNvadMergedDailyLog = None
+        self.__g_dictAdwMergedDailyLog = None
+        self.__g_dictKkoMergedDailyLog = None
+        self.__g_dictYtMergedDailyLog = None
+        self.__g_dictFbMergedDailyLog = None
+        self.__g_dictOtherMergedDailyLog = None
+        self.__g_dictPnsSource = None
+        self.__g_dictPnsContract = None
+        self.__g_oAgencyInfo = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -121,18 +129,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 raise Exception('remove')
             else:
                 return
-        s_sv_acct_id = dict_acct_info['sv_account_id']
-        s_brand_id = dict_acct_info['brand_id']
-        dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
+        self.__g_sSvAcctId = dict_acct_info['sv_account_id']
+        self.__g_sBrandId = dict_acct_info['brand_id']
+        # s_sv_acct_id = dict_acct_info['sv_account_id']
+        # s_brand_id = dict_acct_info['brand_id']
+        # dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        s_cid = dict_nvr_ad_acct['customer_id']
-        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id)
+        # s_cid = dict_nvr_ad_acct['customer_id']
+        self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, self.__g_sSvAcctId, self.__g_sBrandId)
 
         with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-        
+
         if self.__g_sMode == 'clear':
             self.__truncateCompiledTable()
             self._task_post_proc(self._g_oCallback)
@@ -140,6 +150,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sRetrieveMonth != None:
             dictDateRange = self.__deleteCertainMonth()
         else:
+            self.__g_oAgencyInfo = sv_agency_info.SvAgencyInfo()
             dictDateRange = self.__getTouchDateRange()
         
         if dictDateRange['start_date'] is None and dictDateRange['end_date'] is None:
@@ -238,9 +249,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             pass
         for sCid in lstDirectory:
             # check naver_ad agency_info.tsv
-            dictCostRst = self.__redefineCost('naver_ad', sCid, 100)  # 100 is dummy to check agency_info.tsv file
-            if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+            b_rst = self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'naver_ad', sCid)
+            if not b_rst:
                 return dictRst
+
+#            dictCostRst = self.__redefineCost('naver_ad', sCid, 100)  # 100 is dummy to check agency_info.tsv file
+#            if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+#                return dictRst
             file = open(os.path.join(self.__g_sDataPath, 'naver_ad', sCid, 'conf', 'AD.latest'), 'r') 
             sLatestDate = file.read()
             dtLatest = datetime.date(int(sLatestDate[:4]), int(sLatestDate[4:6]), int(sLatestDate[6:8]))
@@ -261,9 +276,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 pass
             for sCid in lstDirectory:
                 # check adwords agency_info.tsv
-                dictCostRst = self.__redefineCost('adwords', sCid, 100)  # 100 is dummy to check agency_info.tsv file
-                if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+                b_rst = self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', sCid)
+                if not b_rst:
                     return dictRst
+                    
+#                dictCostRst = self.__redefineCost('adwords', sCid, 100)  # 100 is dummy to check agency_info.tsv file
+#                if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+#                    return dictRst
                 file = open(os.path.join(self.__g_sDataPath, 'adwords', sCid, 'conf', 'general.latest'), 'r') 
                 sLatestDate = file.read()
                 dtLatest = datetime.date(int(sLatestDate[:4]), int(sLatestDate[4:6]), int(sLatestDate[6:8]))
@@ -282,9 +301,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if sCid == 'alias_info_campaign.tsv':
                     continue
                 # check agency_info.tsv
-                dictCostRst = self.__redefineCost('fb_biz', sCid, 100)  # 100 is dummy to check agency_info.tsv file
-                if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+                b_rst = self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'fb_biz', sCid)
+                if not b_rst:
                     return dictRst
+                    
+#                dictCostRst = self.__redefineCost('fb_biz', sCid, 100)  # 100 is dummy to check agency_info.tsv file
+#                if dictCostRst['cost'] == 0 and dictCostRst['agency_fee'] == 0 and dictCostRst['vat'] == 0:
+#                    return dictRst
                 try:
                     file = open(os.path.join(self.__g_sDataPath, 'fb_biz', sCid, 'conf', 'general.latest'), 'r')
                     sLatestDate = file.read()
@@ -441,7 +464,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 nRecCnt = len(lstFbLogDaily)
                 if nRecCnt == 1:
                     dictFbLogDailyLogSrl.pop(lstFbLogDaily[0]['log_srl'])
-                    dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
+                    ################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'fb_biz', lstFbLogDaily[0]['biz_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', lstFbLogDaily[0]['biz_id'], sTouchingDate, lstFbLogDaily[0]['cost'])
+                    # dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
+                    #if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+                    #    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+                    #    dictCostRstTmp['vat'] != dictCostRst['vat']:
+                    #    print('')
+                    #    print('fb_biz', lstFbLogDaily[0]['biz_id'])
+                    #    self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'], True)
+                    #    print(dictCostRst)
+                    #    self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', lstFbLogDaily[0]['biz_id'], sTouchingDate, lstFbLogDaily[0]['cost'], True)
+                    #    print(dictCostRstTmp)
+                    #    print('')
+                    #################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                         str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
                         lstFbLogDaily[0]['imp'],lstFbLogDaily[0]['click'], lstFbLogDaily[0]['conv_cnt'], lstFbLogDaily[0]['conv_amnt'], 
@@ -458,7 +495,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             elif nRecCnt == 1:
                 try: # if designated log exists
                     dictFbLogDailyLogSrl.pop(lstFbLogDaily[0]['log_srl'])
-                    dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
+                    #######################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'fb_biz', lstFbLogDaily[0]['biz_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', lstFbLogDaily[0]['biz_id'], sTouchingDate, lstFbLogDaily[0]['cost'])
+                    # dictCostRst = self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'])
+                    # if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+                    #    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+                    #    dictCostRstTmp['vat'] != dictCostRst['vat']:
+                    #    print('')
+                    #    print('fb_biz', lstFbLogDaily[0]['biz_id'])
+                    #    self.__redefineCost('fb_biz', lstFbLogDaily[0]['biz_id'], lstFbLogDaily[0]['cost'], True)
+                    #    print(dictCostRst)
+                    #    self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', lstFbLogDaily[0]['biz_id'], sTouchingDate, lstFbLogDaily[0]['cost'], True)
+                    #    print(dictCostRstTmp)
+                    #    print('')
+                    #######################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa,sTerm, sSource, sRstType, sMedia,sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                         str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
                         str(dictCostRst['vat']), lstFbLogDaily[0]['imp'], lstFbLogDaily[0]['click'],
@@ -481,7 +532,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # proc residual - fb api sends log but GA does not detect
         if len(dictFbLogDailyLogSrl):
             for s_remaing_log, dict_remaing_row in dictFbLogDailyLogSrl.items():
-                dictCostRst = self.__redefineCost('fb_biz', dict_remaing_row['biz_id'], dict_remaing_row['cost'])
+                #######################################
+                self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'fb_biz', dict_remaing_row['biz_id'])
+                dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', dict_remaing_row['biz_id'], sTouchingDate, dict_remaing_row['cost'])
+#                dictCostRst = self.__redefineCost('fb_biz', dict_remaing_row['biz_id'], dict_remaing_row['cost'])
+#                if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                    dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                    print('')
+#                    print('fb_biz', dict_remaing_row['biz_id'])
+#                    self.__redefineCost('fb_biz', dict_remaing_row['biz_id'], dict_remaing_row['cost'], True)
+#                    print(dictCostRst)
+#                    self.__g_oAgencyInfo.redefine_agency_cost('fb_biz', dict_remaing_row['biz_id'], sTouchingDate, dict_remaing_row['cost'], True)
+#                    print(dictCostRstTmp)
+#                    print('')
+                #######################################
                 sUa = dict_remaing_row['ua']
                 sSource = dict_remaing_row['source']
                 sRstType = dict_remaing_row['rst_type']
@@ -604,7 +669,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     for lstAdwLogSingle in lstAdwLogDailyTemp:
                         dictAdwLogDailyLogSrl.pop(lstAdwLogSingle['log_srl'])
                 finally:
-                    dictCostRst = self.__redefineCost('adwords', lstAdwLogDaily[0]['customer_id'], lstAdwLogDaily[0]['cost'])
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', lstAdwLogDaily[0]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('adwords', lstAdwLogDaily[0]['customer_id'], sTouchingDate, lstAdwLogDaily[0]['cost'])
+#                    dictCostRst = self.__redefineCost('adwords', lstAdwLogDaily[0]['customer_id'], lstAdwLogDaily[0]['cost'])
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        if lstAdwLogDaily[0]['customer_id'] != '435-221-6456':
+#                            print('')
+#                            print('adwords', lstAdwLogDaily[0]['customer_id'])
+#                            self.__redefineCost('adwords', lstAdwLogDaily[0]['customer_id'], lstAdwLogDaily[0]['cost'], True)
+#                            print(dictCostRst)
+#                            self.__g_oAgencyInfo.redefine_agency_cost('adwords', lstAdwLogDaily[0]['customer_id'], sTouchingDate, lstAdwLogDaily[0]['cost'], True)
+#                            print(dictCostRstTmp)
+#                            print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog',	sUa,sTerm, 'google', sRstType, sMedia,
                         sBrd,sCamp1st,sCamp2nd,sCamp3rd,
                         str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
@@ -623,8 +703,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictImpression = {'M_1':0, 'M_0':0, 'P_1':0, 'P_0':0} # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         for nLogSrl in dictAdwLogDailyLogSrl:
             if dictAdwLogDailyLogSrl[nLogSrl]['cost'] > 0:
-                dictCostRst = self.__redefineCost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], 
-                    dictAdwLogDailyLogSrl[nLogSrl]['cost'])
+                #####################################
+                self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'])
+                dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], sTouchingDate, dictAdwLogDailyLogSrl[nLogSrl]['cost'])
+#                dictCostRst = self.__redefineCost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], 
+#                    dictAdwLogDailyLogSrl[nLogSrl]['cost'])
+#                if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                    dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                    if dictAdwLogDailyLogSrl[nLogSrl]['customer_id'] != '435-221-6456':
+#                        print('')
+#                        print('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'])
+#                        self.__redefineCost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], dictAdwLogDailyLogSrl[nLogSrl]['cost'], True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('adwords', dictAdwLogDailyLogSrl[nLogSrl]['customer_id'], sTouchingDate, dictAdwLogDailyLogSrl[nLogSrl]['cost'], True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                #####################################
                 oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dictAdwLogDailyLogSrl[nLogSrl]['ua'],
                     dictAdwLogDailyLogSrl[nLogSrl]['term'], 'google', dictAdwLogDailyLogSrl[nLogSrl]['rst_type'],
                     dictAdwLogDailyLogSrl[nLogSrl]['media'],dictAdwLogDailyLogSrl[nLogSrl]['brd'],
@@ -748,7 +843,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         lstYtLogDaily[0]['cost'] = 0
                         # 비슷한 캠페인 명칭에 이미 비용이 할당되었기 때문에 0비용으로 처리함 ex) YT_PS_DISP_JOX[빈칸]_INDOOR_DISINFECT  vs YT_PS_DISP_JOX_INDOOR_DISINFECT
                 finally:
-                    dictCostRst = self.__redefineCost('adwords', lstYtLogDaily[0]['customer_id'], lstYtLogDaily[0]['cost'])
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', lstYtLogDaily[0]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('adwords', lstYtLogDaily[0]['customer_id'], sTouchingDate, lstYtLogDaily[0]['cost'])
+#                    dictCostRst = self.__redefineCost('adwords', lstYtLogDaily[0]['customer_id'], lstYtLogDaily[0]['cost'])
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        if lstYtLogDaily[0]['customer_id'] != '435-221-6456':
+#                            print('')
+#                            print('adwords', lstYtLogDaily[0]['customer_id'])
+#                            self.__redefineCost('adwords', lstYtLogDaily[0]['customer_id'], lstYtLogDaily[0]['cost'], True)
+#                            print(dictCostRst)
+#                            self.__g_oAgencyInfo.redefine_agency_cost('adwords', lstYtLogDaily[0]['customer_id'], sTouchingDate, lstYtLogDaily[0]['cost'], True)
+#                            print(dictCostRstTmp)
+#                            print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa, sTerm, 'youtube', sRstType, sMedia,
                         sBrd, sCamp1st, sCamp2nd, sCamp3rd,
                         str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
@@ -801,7 +911,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             fAgencyFee = 0.0
             fVat = 0.0
             if dict_single_arranged_log['cost'] > 0: # but assume that youtube does not provide free impression
-                dictCostRst = self.__redefineCost('adwords', sCid, dict_single_arranged_log['cost'])
+                #####################################
+                self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', sCid)
+                dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('adwords', sCid, sTouchingDate, dict_single_arranged_log['cost'])
+#                dictCostRst = self.__redefineCost('adwords', sCid, dict_single_arranged_log['cost'])
+#                if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                    dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                    if sCid != '435-221-6456':
+#                        print('')
+#                        print('adwords', sCid)
+#                        self.__redefineCost('adwords', sCid, dict_single_arranged_log['cost'], True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('adwords', sCid, sTouchingDate, dict_single_arranged_log['cost'], True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                #####################################
                 fCost = dictCostRst['cost']
                 fAgencyFee = dictCostRst['agency_fee']
                 fVat = dictCostRst['vat']
@@ -879,8 +1004,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:  # GA log exists with KKO PS data
                 try:  # if designated log already created
                     dictKkoLogDailyLogSrl[sMergedLog]
-                    dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'],
-                        dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'], sTouchingDate, dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
+#                    dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'],
+#                        dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'])
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        print('')
+#                        print('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'])
+#                        self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'], dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'], True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('kakao', dictKkoLogDailyLogSrl[sMergedLog]['customer_id'], sTouchingDate, dictKkoLogDailyLogSrl[sMergedLog]['cost_inc_vat'], True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa, sTerm, 'kakao', sRstType, 
                         sMedia, sBrd, sCamp1st, sCamp2nd, sCamp3rd,
                         str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), 
@@ -912,7 +1051,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCamp3rd = aRowId[7]
             sTerm = aRowId[8]
             if dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'] > 0:
-                dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'])	
+                #####################################
+                self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'])
+                dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], sTouchingDate, dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'])
+#                dictCostRst = self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'])	
+#                if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                    dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                    print('')
+#                    print('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'])
+#                    self.__redefineCost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'], True)	
+#                    print(dictCostRst)
+#                    self.__g_oAgencyInfo.redefine_agency_cost('kakao', dictKkoLogDailyLogSrl[sDailyLogId]['customer_id'], sTouchingDate, dictKkoLogDailyLogSrl[sDailyLogId]['cost_inc_vat'], True)
+#                    print(dictCostRstTmp)
+#                    print('')
+                #####################################
                 oSvMysql.executeQuery('insertCompiledGaMediaDailyLog',	sUa, sTerm, sSource, sRstType, sMedia, sBrd,
                     sCamp1st, sCamp2nd, sCamp3rd,
                     str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']), dictKkoLogDailyLogSrl[sDailyLogId]['imp'], dictKkoLogDailyLogSrl[sDailyLogId]['click'],
@@ -987,7 +1140,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dictNvadLogDailyLogSrl.pop(nLogSrl)
                             break
                 finally:
-                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], lstNvadLogDaily[0]['cost'])
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'naver_ad', lstNvadLogDaily[0]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, lstNvadLogDaily[0]['cost'])
+#                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], lstNvadLogDaily[0]['cost'])
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        print('')
+#                        print('naver_ad', lstNvadLogDaily[0]['customer_id'])
+#                        self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], lstNvadLogDaily[0]['cost'], True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, lstNvadLogDaily[0]['cost'], True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
                         sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']), str(dictCostRst['vat']),
                         lstNvadLogDaily[0]['imp'], lstNvadLogDaily[0]['click'], lstNvadLogDaily[0]['conv_cnt'],
@@ -1004,7 +1171,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictTempBrsLog['click'] = dictTempBrsLog['click'] + dictDuplicatedNvrBrsLog['click']
                         dictTempBrsLog['conv_cnt'] = dictTempBrsLog['conv_cnt'] + dictDuplicatedNvrBrsLog['conv_cnt']
                         dictTempBrsLog['conv_amnt'] = dictTempBrsLog['conv_amnt'] + dictDuplicatedNvrBrsLog['conv_amnt']
-                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], dictTempBrsLog['cost'])
+                    
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'naver_ad', lstNvadLogDaily[0]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, dictTempBrsLog['cost'])
+#                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], dictTempBrsLog['cost'])
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        print('')
+#                        print('naver_ad', lstNvadLogDaily[0]['customer_id'])
+#                        self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], dictTempBrsLog['cost'], True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, dictTempBrsLog['cost'], True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
                         sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']), 
                         str(dictCostRst['vat']), dictTempBrsLog['imp'], dictTempBrsLog['click'],
@@ -1032,7 +1214,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         nConvAmnt = nConvAmnt + dictSingleNvadLog['conv_amnt']
                         dictNvadLogDailyLogSrl.pop(dictSingleNvadLog['log_srl'])
                     
-                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], nCost)
+                    #####################################
+                    self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'naver_ad', lstNvadLogDaily[0]['customer_id'])
+                    dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, nCost)
+#                    dictCostRst = self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], nCost)
+#                    if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                        dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                        dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                        print('')
+#                        print('naver_ad', lstNvadLogDaily[0]['customer_id'])
+#                        self.__redefineCost('naver_ad', lstNvadLogDaily[0]['customer_id'], nCost, True)
+#                        print(dictCostRst)
+#                        self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', lstNvadLogDaily[0]['customer_id'], sTouchingDate, nCost, True)
+#                        print(dictCostRstTmp)
+#                        print('')
+                    #####################################
                     oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', sUa, sTerm, 'naver', sRstType, sMedia, sBrd,
                         sCamp1st, sCamp2nd, sCamp3rd, str(dictCostRst['cost']), str(dictCostRst['agency_fee']),
                         str(dictCostRst['vat']), nImp, nClick, nConvCnt, nConvAmnt, 
@@ -1043,8 +1239,22 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictImpression = {'M_1':0, 'M_0':0, 'P_1':0, 'P_0':0} # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         for nLogSrl in dictNvadLogDailyLogSrl: # regist residual; means NVAD data without GA log 
             if dictNvadLogDailyLogSrl[nLogSrl]['cost'] > 0 or dictNvadLogDailyLogSrl[nLogSrl]['campaign_1st'] == 'BRS':
-                dictCostRst = self.__redefineCost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], 
-                    dictNvadLogDailyLogSrl[nLogSrl]['cost'])
+                #####################################
+                self.__g_oAgencyInfo.load_agency_info_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'])
+                dictCostRst = self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], sTouchingDate, dictNvadLogDailyLogSrl[nLogSrl]['cost'])
+#                dictCostRst = self.__redefineCost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], 
+#                    dictNvadLogDailyLogSrl[nLogSrl]['cost'])
+#                if dictCostRstTmp['cost'] != dictCostRst['cost'] or \
+#                    dictCostRstTmp['agency_fee'] != dictCostRst['agency_fee'] or \
+#                    dictCostRstTmp['vat'] != dictCostRst['vat']:
+#                    print('')
+#                    print('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'])
+#                    self.__redefineCost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], dictNvadLogDailyLogSrl[nLogSrl]['cost'], True)
+#                    print(dictCostRst)
+#                    self.__g_oAgencyInfo.redefine_agency_cost('naver_ad', dictNvadLogDailyLogSrl[nLogSrl]['customer_id'], sTouchingDate, dictNvadLogDailyLogSrl[nLogSrl]['cost'], True)
+#                    print(dictCostRstTmp)
+#                    print('')
+                #####################################
                 oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dictNvadLogDailyLogSrl[nLogSrl]['ua'], 
                     dictNvadLogDailyLogSrl[nLogSrl]['term'], 'naver', dictNvadLogDailyLogSrl[nLogSrl]['rst_type'],
                     dictNvadLogDailyLogSrl[nLogSrl]['media'], dictNvadLogDailyLogSrl[nLogSrl]['brd'],
@@ -1305,9 +1515,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         }
                         n_pns_info_idx += 1
                     else: # for the latest & systematic situation
-                        # if s_nickname is '-':
-                        #     s_row_id = s_term+'_'+s_contract_type+'_'+s_regdate+'_'+s_ua
-                        # else:
                         s_row_id = s_term+'_'+s_contract_type+'_'+s_nickname+'_'+s_regdate+'_'+s_ua
                         dict_pns_info[s_row_id] = {
                             'media_raw_cost':f_daily_media_raw_cost, 'media_agency_cost':f_daily_agency_cost, 'vat':f_vat
@@ -1315,96 +1522,100 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del o_reg_ex
         return dict_pns_info
 
-    def __redefineCost(self, sMedia, sCustomerId, nCost):
-        dictRst = {'cost':0, 'agency_fee':0, 'vat':0}
-        if nCost > 0:
-            sBeginDate = '20010101' # define default ancient begin date
-            sEndDate = datetime.datetime.today().strftime('%Y%m%d')
-            fRate = 0.0
-            sAgencyInfoFilePath = os.path.join(self.__g_sDataPath, sMedia, str(sCustomerId), 'conf', 'agency_info.tsv')
-            try:
-                with open(sAgencyInfoFilePath, 'r') as tsvfile:
-                    reader = csv.reader(tsvfile, delimiter='\t')
-                    for row in reader:
-                        pass # read last line only
-            except FileNotFoundError:
-                self._printDebug('failure -> ' + sAgencyInfoFilePath + ' does not exist')
-                return dictRst  # raise Exception('stop')
-                
-            aPeriod = row[0].split('-')
-            if len(aPeriod[0]) > 0:
-                try: # validate requsted date
-                    sBeginDate = datetime.datetime.strptime(aPeriod[0], '%Y%m%d').strftime('%Y%m%d')
-                except ValueError:
-                    self._printDebug('start date:' + aPeriod[0] + ' is invalid date string')
-
-            if len(aPeriod[1]) > 0:
-                try: # validate requsted date
-                    sEndDate = datetime.datetime.strptime(aPeriod[1], '%Y%m%d').strftime('%Y%m%d')
-                except ValueError:
-                    self._printDebug('end date:' + aPeriod[0] + ' is invalid date string')
-
-            dtBegin = datetime.datetime.strptime(sBeginDate, '%Y%m%d').date()
-            dtEnd = datetime.datetime.strptime(sEndDate, '%Y%m%d').date()
-            dtNow = datetime.date.today()
-            if dtNow < dtBegin:
-                self._printDebug('invalid ' + sMedia + ' agency begin date')
-                raise Exception('stop')
-            
-            if dtNow > dtEnd:
-                self._printDebug('invalid ' + sMedia + ' agency begin date')
-                raise Exception('stop')
-
-            oRegEx = re.compile(r"\d+%$") # pattern ex) 2% 23%
-            m = oRegEx.search(row[2]) # match() vs search()
-            if m: # if valid percent string
-                nPercent = row[2].replace('%','')
-                fRate = int(nPercent)/100
-            else: # if invalid percent string
-                self._printDebug('invalid percent string ' + row[2])
-                raise Exception('stop')
-            
-            nFinalCost = 0
-            nAgencyCost = 0
-            if row[3] == 'back':
-                nFinalCost =int((1 - fRate) * nCost)
-                nAgencyCost = int(fRate * nCost)
-
-                # validate naver ad cost division
-                nTempCost = nFinalCost + nAgencyCost
-                if nCost > nTempCost:
-                    nResidual = nCost - nTempCost
-                    nFinalCost = nFinalCost + nResidual
-                elif nCost < nTempCost:
-                    nResidual = nTempCost - nCost
-                    nFinalCost = nFinalCost + nResidual
-            elif row[3] == 'markup':
-                nFinalCost = nCost
-                nAgencyCost = fRate * nCost
-            elif row[3] == 'direct':
-                nFinalCost = nCost
-            else:
-                self._printDebug('invalid margin type ' + row[3])
-                raise Exception('stop')
-
-            if sMedia == 'naver_ad':
-                if nCost != nFinalCost + nAgencyCost:
-                    self._printDebug(nCost)
-                    self._printDebug(nFinalCost)
-                    self._printDebug(nAgencyCost)
-
-            # if dictSourceToRetrieve[sMedia] == 'kakao': # csv download based data
-            if sMedia == 'kakao': # csv download based data
-                nVatFromFinalCost = int(nFinalCost * 0.1)
-                nVatFromnAgencyCost = int(nAgencyCost * 0.1)
-                dictRst['cost'] = nFinalCost - nVatFromFinalCost
-                dictRst['agency_fee'] = nAgencyCost - nVatFromnAgencyCost
-                dictRst['vat'] = nVatFromFinalCost + nVatFromnAgencyCost
-            else:
-                dictRst['cost'] = nFinalCost
-                dictRst['agency_fee'] = nAgencyCost
-                dictRst['vat'] = (nFinalCost + nAgencyCost ) * 0.1
-        return dictRst
+#    def __redefineCost(self, sMedia, sCustomerId, nCost, b_debug=False):
+#        dictRst = {'cost':0, 'agency_fee':0, 'vat':0}
+#        if nCost > 0:
+#            sBeginDate = '20010101' # define default ancient begin date
+#            sEndDate = datetime.datetime.today().strftime('%Y%m%d')
+#            fRate = 0.0
+#            sAgencyInfoFilePath = os.path.join(self.__g_sDataPath, sMedia, str(sCustomerId), 'conf', 'agency_info.tsv')
+#            try:
+#                with open(sAgencyInfoFilePath, 'r') as tsvfile:
+#                    reader = csv.reader(tsvfile, delimiter='\t')
+#                    for row in reader:
+#                        pass # read last line only
+#            except FileNotFoundError:
+#                self._printDebug('failure -> ' + sAgencyInfoFilePath + ' does not exist')
+#                return dictRst  # raise Exception('stop')
+#                
+#            aPeriod = row[0].split('-')
+#            if len(aPeriod[0]) > 0:
+#                try: # validate requsted date
+#                    sBeginDate = datetime.datetime.strptime(aPeriod[0], '%Y%m%d').strftime('%Y%m%d')
+#                except ValueError:
+#                    self._printDebug('start date:' + aPeriod[0] + ' is invalid date string')
+#
+#            if len(aPeriod[1]) > 0:
+#                try: # validate requsted date
+#                    sEndDate = datetime.datetime.strptime(aPeriod[1], '%Y%m%d').strftime('%Y%m%d')
+#                except ValueError:
+#                    self._printDebug('end date:' + aPeriod[0] + ' is invalid date string')
+#
+#            dtBegin = datetime.datetime.strptime(sBeginDate, '%Y%m%d').date()
+#            dtEnd = datetime.datetime.strptime(sEndDate, '%Y%m%d').date()
+#            dtNow = datetime.date.today()
+#            if dtNow < dtBegin:
+#                self._printDebug('invalid ' + sMedia + ' agency begin date')
+#                raise Exception('stop')
+#            
+#            if dtNow > dtEnd:
+#                self._printDebug('invalid ' + sMedia + ' agency begin date')
+#                raise Exception('stop')
+#
+#            oRegEx = re.compile(r"\d+%$") # pattern ex) 2% 23%
+#            m = oRegEx.search(row[2]) # match() vs search()
+#            if m: # if valid percent string
+#                nPercent = row[2].replace('%','')
+#                fRate = int(nPercent)/100
+#            else: # if invalid percent string
+#                self._printDebug('invalid percent string ' + row[2])
+#                raise Exception('stop')
+#            
+#            nFinalCost = 0
+#            nAgencyCost = 0
+#            if row[3] == 'back':
+#                nFinalCost =int((1 - fRate) * nCost)
+#                nAgencyCost = int(fRate * nCost)
+#
+#                # validate naver ad cost division
+#                nTempCost = nFinalCost + nAgencyCost
+#                if nCost > nTempCost:
+#                    nResidual = nCost - nTempCost
+#                    nFinalCost = nFinalCost + nResidual
+#                elif nCost < nTempCost:
+#                    nResidual = nTempCost - nCost
+#                    nFinalCost = nFinalCost + nResidual
+#            elif row[3] == 'markup':
+#                nFinalCost = nCost
+#                nAgencyCost = fRate * nCost
+#            elif row[3] == 'direct':
+#                nFinalCost = nCost
+#            else:
+#                self._printDebug('invalid margin type ' + row[3])
+#                raise Exception('stop')
+#
+#            if sMedia == 'naver_ad':
+#                if nCost != nFinalCost + nAgencyCost:
+#                    self._printDebug(nCost)
+#                    self._printDebug(nFinalCost)
+#                    self._printDebug(nAgencyCost)
+#
+#            # if dictSourceToRetrieve[sMedia] == 'kakao': # csv download based data
+#            if sMedia == 'kakao': # csv download based data
+#                nVatFromFinalCost = int(nFinalCost * 0.1)
+#                nVatFromnAgencyCost = int(nAgencyCost * 0.1)
+#                dictRst['cost'] = nFinalCost - nVatFromFinalCost
+#                dictRst['agency_fee'] = nAgencyCost - nVatFromnAgencyCost
+#                dictRst['vat'] = nVatFromFinalCost + nVatFromnAgencyCost
+#            else:
+#                dictRst['cost'] = nFinalCost
+#                dictRst['agency_fee'] = nAgencyCost
+#                dictRst['vat'] = (nFinalCost + nAgencyCost ) * 0.1
+#        
+#        if b_debug:
+#            self._printDebug('no_touching_date ' + str(fRate) + ' ' + row[3])
+#
+#        return dictRst
 
 
 if __name__ == '__main__': # for console debugging

@@ -29,10 +29,13 @@ class DataSourceDetailForm(forms.ModelForm):
         s_brand_pk = str(o_data_source_detail.sv_data_source.sv_brand.pk)
         s_data_source = str(o_data_source_detail.sv_data_source)
         s_data_source_id = str(o_data_source_detail.s_data_source_serial)
-        s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
         o_sv_agency_info = sv_agency_info.SvAgencyInfo()
-        o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
+        # s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
+        # o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
+        o_sv_agency_info.load_agency_info_by_source_id(s_acct_pk, s_brand_pk, s_data_source, s_data_source_id)
+
         dict_agency_info = o_sv_agency_info.get_latest_agency_info_dict()
+        del o_sv_agency_info
 
         lst_tup_type = []
         for s_type in lst_type:
@@ -52,19 +55,21 @@ class DataSourceDetailForm(forms.ModelForm):
         s_brand_pk = str(o_data_source_detail.sv_data_source.sv_brand.pk)
         s_data_source = str(o_data_source_detail.sv_data_source)
         s_data_source_id = str(o_data_source_detail.s_data_source_serial)
-        s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
         del o_data_source_detail
 
-        s_agency_name = self.cleaned_data.get('s_agency_name', None)
-        s_begin_date = self.cleaned_data.get('s_begin_date', None) # + '-'
-        n_fee_percent = self.cleaned_data.get('n_fee_percent', None) # + '%'
-        s_fee_type = self.cleaned_data.get('s_fee_type', None)
-
         o_sv_agency_info = sv_agency_info.SvAgencyInfo()
-        o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
-        b_rst = o_sv_agency_info.set_agency_info([s_begin_date, s_agency_name, n_fee_percent, s_fee_type])
+        o_sv_agency_info.load_agency_info_by_source_id(s_acct_pk, s_brand_pk, s_data_source, s_data_source_id)
+        # s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
+        # o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
 
+        s_agency_name = self.cleaned_data.get('s_agency_name', None)
+        s_begin_date = self.cleaned_data.get('s_begin_date', None)
+        n_fee_percent = self.cleaned_data.get('n_fee_percent', None)
+        s_fee_type = self.cleaned_data.get('s_fee_type', None)
+        
+        b_rst = o_sv_agency_info.set_agency_info(s_begin_date, s_agency_name, n_fee_percent, s_fee_type)
         del o_sv_agency_info
+
         return super(DataSourceDetailForm, self).save(commit=commit)
 
     class Meta:

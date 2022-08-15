@@ -16,8 +16,29 @@ from .models import DataSourceType
 from .models import DataSourceDetail
 from .forms import DataSourceDetailForm
 
+from django.template.response import TemplateResponse
+from django.urls import path
+
 
 # Register your models here.
+class MyModelAdmin(admin.ModelAdmin):
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path('my_view/', self.my_view),
+        ]
+        return my_urls + urls
+
+    def my_view(self, request):
+        # ...
+        context = dict(
+           # Include common variables for rendering the admin template.
+           self.admin_site.each_context(request),
+           # Anything else you want in the context...
+           key='value',
+        )
+        return TemplateResponse(request, "sometemplate.html", context)
+
 class BrandInline(admin.TabularInline):
     model = Brand
     extra = 2
@@ -262,10 +283,12 @@ class DataSourceDetailAdmin(admin.ModelAdmin):
         s_brand_pk = str(obj.sv_data_source.sv_brand.pk)
         s_data_source = str(obj.sv_data_source)
         s_data_source_id = str(obj.s_data_source_serial)
-        s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
 
         o_sv_agency_info = sv_agency_info.SvAgencyInfo()
-        o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
+        # s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
+        # o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
+        o_sv_agency_info.load_agency_info_by_source_id(s_acct_pk, s_brand_pk, s_data_source, s_data_source_id)
+
         dict_agency_info = o_sv_agency_info.get_latest_agency_info_dict()
         if dict_agency_info['s_agency_name'] != '' and dict_agency_info['s_fee_type'] != '':
             form.base_fields['s_agency_name'].initial = dict_agency_info['s_agency_name']
