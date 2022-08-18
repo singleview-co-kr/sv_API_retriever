@@ -221,15 +221,6 @@ class DataSourceAdmin(admin.ModelAdmin):
                                     os.makedirs(s_data_source_id_abs_path)
                                     os.makedirs(os.path.join(s_data_source_id_abs_path, 'conf'))  # make conf folder
                                     os.makedirs(os.path.join(s_data_source_id_abs_path, 'data'))  # make data folder
-
-                                # # register an agency info
-                                # s_agency_info = "{today}-\tsingleview\t15%\tmarkup".format(today=str(datetime.today().strftime('%Y%m%d')))
-                                # try:
-                                #     with open(os.path.join(s_data_source_id_abs_path, 'conf', 'agency_info.tsv'), "w") as o_file:
-                                #         o_file.write(s_agency_info)
-                                # except PermissionError:
-                                #     pass
-                                
                                 # proc source - fb biz 
                                 if form1.cleaned_data['sv_data_source'].n_data_source == DataSourceType.FB_BIZ:
                                     try:
@@ -278,17 +269,12 @@ class DataSourceDetailAdmin(admin.ModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         # https://stackoverflow.com/questions/6164773/django-adminform-field-default-value
         form = super(DataSourceDetailAdmin, self).get_form(request, obj, **kwargs)
-
         s_acct_pk = str(obj.sv_data_source.sv_brand.sv_acct.pk)
         s_brand_pk = str(obj.sv_data_source.sv_brand.pk)
         s_data_source = str(obj.sv_data_source)
         s_data_source_id = str(obj.s_data_source_serial)
-
         o_sv_agency_info = sv_agency_info.SvAgencyInfo()
-        # s_agency_info_abs_path = os.path.join(settings.SV_STORAGE_ROOT, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id, 'conf', 'agency_info.tsv')
-        # o_sv_agency_info.load_agency_info_file(s_agency_info_abs_path)
         o_sv_agency_info.load_agency_info_by_source_id(s_acct_pk, s_brand_pk, s_data_source, s_data_source_id)
-
         dict_agency_info = o_sv_agency_info.get_latest_agency_info_dict()
         if dict_agency_info['s_agency_name'] != '' and dict_agency_info['s_fee_type'] != '':
             form.base_fields['s_agency_name'].initial = dict_agency_info['s_agency_name']

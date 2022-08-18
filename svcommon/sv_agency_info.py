@@ -88,7 +88,6 @@ class SvAgencyInfo(sv_object.ISvObject):
                 return False
             self.__lstAgencyInfo = lst_temp
             self.__dictAgencyInfo[s_cur_agency_info_id] = lst_temp
-        # print(self.__dictAgencyInfo)
         return True
 
     def get_agency_fee_type(self):
@@ -140,7 +139,6 @@ class SvAgencyInfo(sv_object.ISvObject):
 
         s_touching_date = datetime.strptime(s_touching_date, '%Y-%m-%d').strftime('%Y%m%d')
         s_begin_date = self.__g_sBirthOfUniverse  # define default ancient begin date
-        # s_today = datetime.today().strftime('%Y%m%d')
         # s_agency_name = None
         f_fee_rate = 0.0
         s_fee_type = None
@@ -172,14 +170,11 @@ class SvAgencyInfo(sv_object.ISvObject):
                 else: # if invalid percent string
                     self._printDebug('invalid percent string ' + lst_single_period[2])
                     raise Exception('stop')
-                
-                # f_fee_rate = int(lst_single_period[2].rstrip('%'))
                 s_fee_type = lst_single_period[3]
                 break
-        
         # warn and ignore an agency fee if no belonged period
         if f_fee_rate == 0.0 and s_fee_type is None:
-            self._printDebug(s_cur_agency_info_id + ' has no agency fee info at ' + s_touching_date)
+            self._printDebug(s_cur_agency_info_id + ' has no agency fee info on ' + s_touching_date)
             s_fee_type = self.__g_sAgencyFeeTypeMarkup
 
         n_final_cost = 0
@@ -219,8 +214,6 @@ class SvAgencyInfo(sv_object.ISvObject):
             dict_rst['agency_fee'] = n_agency_cost
             dict_rst['vat'] = (n_final_cost + n_agency_cost) * 0.1
         
-        
         if b_debug:
             self._printDebug(s_touching_date + ' ' + str(f_fee_rate) + ' ' + s_fee_type)
-
         return dict_rst
