@@ -1,0 +1,208 @@
+{% extends 'layout_dashboard.html' %}
+
+{% block content %}
+<div class="" role="main">
+  <div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+      <div class="x_panel">
+        <div class="x_title">
+          <h2>{{s_brand_name}} 브랜드 API 정보 설정 <small></small></h2>
+          <ul class="nav navbar-right panel_toolbox">
+            <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+              <ul class="dropdown-menu" role="menu">
+                <li><a href="#">Settings 1</a>
+                </li>
+                <li><a href="#">Settings 2</a>
+                </li>
+              </ul>
+            </li>
+            <li><a class="close-link"><i class="fa fa-close"></i></a>
+            </li>
+          </ul>
+          <div class="clearfix"></div>
+        </div>
+        <div class="x_content">
+          <br />
+          <form method="POST" id='frm_brd_api_info_update' enctype="multipart/form-data" data-parsley-validate class="form-horizontal form-label-left">
+          <input type="hidden" id="act" name="act" value="update_brd_api_info" />
+          <input type="hidden" id="n_sv_brand_id" name="n_sv_brand_id" value="{{n_sv_brand_id}}" />
+          {% csrf_token %}
+
+            <div class="form-group">
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">네이버 광고 API<br>
+                <small class="text-navy">사용자 계정</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="manager_login_id" name="nvr_manager_login_id" value="{{o_config.naver_searchad.manager_login_id}}">
+              </div>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" readonly="readonly" placeholder="customer_id" value="{{s_nvr_customer_id}}">
+              </div>
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">api_key</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="api_key" name="nvr_api_key" value="{{o_config.naver_searchad.api_key}}">
+              </div>
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">secret_key</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="secret_key" name="nvr_secret_key" value="{{o_config.naver_searchad.secret_key}}">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">네이버 광고 보고서
+                <br>
+                <small class="text-navy">master_report</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_BusinessChannel" value="1" {% if o_config.nvr_master_report.BusinessChannel == '1' %} checked {% else %}{% endif %}> BusinessChannel</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_Campaign" value="1" {% if o_config.nvr_master_report.Campaign == '1' %} checked {% else %}{% endif %}> Campaign</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_CampaignBudget" value="1" {% if o_config.nvr_master_report.CampaignBudget == '1' %} checked {% else %}{% endif %}> CampaignBudget</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_Adgroup" value="1" {% if o_config.nvr_master_report.Adgroup == '1' %} checked {% else %}{% endif %}> Adgroup</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AdgroupBudget" value="1" {% if o_config.nvr_master_report.AdgroupBudget == '1' %} checked {% else %}{% endif %}> AdgroupBudget</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_Keyword" value="1" {% if o_config.nvr_master_report.Keyword == '1' %} checked {% else %}{% endif %}> Keyword</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_Ad" value="1" {% if o_config.nvr_master_report.Ad == '1' %} checked {% else %}{% endif %}> Ad</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AdExtension" value="1" {% if o_config.nvr_master_report.AdExtension == '1' %} checked {% else %}{% endif %}> AdExtension</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_Qi" value="1" {% if o_config.nvr_master_report.Qi == '1' %} checked {% else %}{% endif %}> Qi</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">네이버 광고 보고서
+                <br>
+                <small class="text-navy">stat_report</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AD" value="1" {% if o_config.nvr_stat_report.AD == '1' %} checked {% else %}{% endif %}> AD</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AD_DETAIL" value="1" {% if o_config.nvr_stat_report.AD_DETAIL == '1' %} checked {% else %}{% endif %}> AD_DETAIL</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AD_CONVERSION" value="1" {% if o_config.nvr_stat_report.AD_CONVERSION == '1' %} checked {% else %}{% endif %}> AD_CONVERSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_AD_CONVERSION_DETAIL" value="1" {% if o_config.nvr_stat_report.AD_CONVERSION_DETAIL == '1' %} checked {% else %}{% endif %}> AD_CONVERSION_DETAIL</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_ADEXTENSION" value="1" {% if o_config.nvr_stat_report.ADEXTENSION == '1' %} checked {% else %}{% endif %}> ADEXTENSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_ADEXTENSION_CONVERSION" value="1" {% if o_config.nvr_stat_report.ADEXTENSION_CONVERSION == '1' %} checked {% else %}{% endif %}> ADEXTENSION_CONVERSION</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_EXPKEYWORD" value="1" {% if o_config.nvr_stat_report.EXPKEYWORD == '1' %} checked {% else %}{% endif %}> EXPKEYWORD</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="nvr_NAVERPAY_CONVERSION" value="1" {% if o_config.nvr_stat_report.NAVERPAY_CONVERSION == '1' %} checked {% else %}{% endif %}> NAVERPAY_CONVERSION</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">구글 애널리틱스 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <div class="col-md-9 col-sm-9 col-xs-12">
+                  <input type="text" class="form-control" readonly="readonly" placeholder="property_or_view_id" name="ga_property_or_view_id" value="{{s_ga_property_or_view_id}}">
+                </div>
+                <div class="form-group">
+                  <div class="col-md-9 col-sm-9 col-xs-12">
+                    <select name="ga_version" class="form-control">
+                      <option value="">Choose version</option>
+                      <option value="ua" {% if o_config.google_analytics.version == 'ua' %} selected {% else %}{% endif %}>Universal Analytics(old version)</option>
+                      <option value="ga4" {% if o_config.google_analytics.version == 'ga4' %} selected {% else %}{% endif %}>Google Analytics(new version)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="ga_homepage" value="1" checked disabled> homepage</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="ga_internal_search" value="1" {% if o_config.google_analytics.internal_search == 'on' %} checked {% else %}{% endif %}> internal_search</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="ga_catalog" value="1" {% if o_config.google_analytics.catalog == 'on' %} checked {% else %}{% endif %}> catalog</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" name="ga_payment" value="1" {% if o_config.google_analytics.payment == 'on' %} checked {% else %}{% endif %}> payment</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">구글 애즈 광고 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                {% for s_google_ads_id, s_value in dict_query_google_ads.items %}
+                <div class="checkbox">
+                  <label><input type="checkbox" name="gads_{{s_google_ads_id}}" value="1" {% if s_value == 'on' %} checked {% else %}{% endif %}> {{s_google_ads_id}}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">페북 비즈니스 광고 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                {% for s_fb_biz_id, s_value in dict_query_fb_biz.items %}
+                <div class="checkbox">
+                  <label><input type="checkbox" name="fb_biz_{{s_fb_biz_id}}" value="1" {% if s_value == 'on' %} checked {% else %}{% endif %}> {{s_fb_biz_id}}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-md-3 col-sm-3 col-xs-12 control-label">카카오모멘트 광고 보고서</label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                {% for s_kakao_moment_aid, s_value in dict_query_kko_moment.items %}
+                <div class="checkbox">
+                  <label><input type="checkbox" name="kko_{{s_kakao_moment_aid}}" value="1" {% if s_value == 'on' %} checked {% else %}{% endif %}> {{s_kakao_moment_aid}}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="control-label col-md-3 col-sm-3 col-xs-12">암호화 RSETful API<br>
+                <small class="text-navy">사용자 계정</small>
+              </label>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="sv_secret_key">
+              </div>
+              <div class="col-md-9 col-sm-9 col-xs-12">
+                <input type="text" class="form-control" placeholder="sv_iv">
+              </div>
+            </div>
+
+            <div class="ln_solid"></div>
+            <div class="form-group">
+              <div class="col-md-9 col-sm-9 col-xs-12 col-md-offset-3">
+                <button type="submit" class="btn btn-success">Submit</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
