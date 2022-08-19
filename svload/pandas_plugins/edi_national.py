@@ -1,3 +1,4 @@
+import pandas as pd
 from datetime import date
 from .edi_tools import EdiRanker, EdiSampler
 
@@ -75,7 +76,7 @@ class Performance:
 
     def load_df(self, df_edi_raw):
         if len(df_edi_raw.index) == 0:
-            raise Exception('invalid data frame')
+            return  # raise Exception('invalid data frame')
 
         self.__g_dfPeriodDataRaw = df_edi_raw
         o_monthly_rank_branch = EdiRanker()
@@ -147,8 +148,9 @@ class Performance:
 
         # construct final data to display
         for s_period, df_rank in dict_final.items():
-            lst_gross_amnt.append(df_rank['amnt'].sum())
-            lst_gross_qty.append(df_rank['qty'].sum())
+            if df_rank is not None:  # for an initial stage; no table
+                lst_gross_amnt.append(df_rank['amnt'].sum())
+                lst_gross_qty.append(df_rank['qty'].sum())
 
         lst_gross_amnt_ratio.append(0)  # 2ly는 변화율 계산 불가능
         for n in range(1, len(lst_gross_amnt)):
@@ -174,12 +176,14 @@ class Performance:
 
     def retrieve_branch_rank_in_period(self):
         b_refer_lm_rank = False  # refer to lm rank if tm is empty
-        if self.__g_dictPeriodBranchRankDf['tm']['qty'].sum() == 0 and self.__g_dictPeriodBranchRankDf['tm'][
-            'amnt'].sum() == 0:
-            b_refer_lm_rank = True
-            lst_amnt_rank_branch_id = self.__g_dictPeriodBranchRankDf['lm'].index.tolist()
+        if self.__g_dictPeriodBranchRankDf['tm'] is None:  # for an initial stage; no table
+            lst_amnt_rank_branch_id = []
         else:
-            lst_amnt_rank_branch_id = self.__g_dictPeriodBranchRankDf['tm'].index.tolist()
+            if self.__g_dictPeriodBranchRankDf['tm']['qty'].sum() == 0 and self.__g_dictPeriodBranchRankDf['tm']['amnt'].sum() == 0:
+                b_refer_lm_rank = True
+                lst_amnt_rank_branch_id = self.__g_dictPeriodBranchRankDf['lm'].index.tolist()
+            else:
+                lst_amnt_rank_branch_id = self.__g_dictPeriodBranchRankDf['tm'].index.tolist()
         lst_branch_data_table = []
 
         # begin - apply branch filter
@@ -222,11 +226,13 @@ class Performance:
         """
         lst_bar_color = ['#D6E2DF', '#A4C8C1', '#6CBDAC', '#079476']
         # refer to lm rank if tm is empty
-        if self.__g_dictPeriodSkuRankDf['tm']['qty'].sum() == 0 and self.__g_dictPeriodSkuRankDf['tm'][
-            'amnt'].sum() == 0:
-            lst_amnt_rank_sku_id = self.__g_dictPeriodSkuRankDf['lm'].index.tolist()
+        if self.__g_dictPeriodSkuRankDf['tm'] is None:  # for an initial stage; no table
+            lst_amnt_rank_sku_id = []
         else:
-            lst_amnt_rank_sku_id = self.__g_dictPeriodSkuRankDf['tm'].index.tolist()
+            if self.__g_dictPeriodSkuRankDf['tm']['qty'].sum() == 0 and self.__g_dictPeriodSkuRankDf['tm']['amnt'].sum() == 0:
+                lst_amnt_rank_sku_id = self.__g_dictPeriodSkuRankDf['lm'].index.tolist()
+            else:
+                lst_amnt_rank_sku_id = self.__g_dictPeriodSkuRankDf['tm'].index.tolist()
 
         lst_sku_name = []
         lst_2ly_sku_by_tm_amnt = []
@@ -265,8 +271,21 @@ class Performance:
         :return:
         """
         # refer to lm rank if tm is empty
-        if self.__g_dictPeriodSkuRankDf['tm']['qty'].sum() == 0 and \
-                self.__g_dictPeriodSkuRankDf['tm']['amnt'].sum() == 0:
+        if self.__g_dictPeriodSkuRankDf['tm'] is None:  # for an initial stage; no table
+            dict_sku = {'hypermart_name': 'hypermart_name',
+                        'item_name': 'item_name',
+                        's_detected_date': date.today().strftime("%Y-%m-%d"),
+                        'rank': 1,
+                        'qty': 1, 'amnt': 1,
+                        'shr_qty': 100,
+                        'shr_amnt': 100,
+                        'lst_monthly_amnt': [1,1],
+                        'lst_monthly_qty': [1,1]}
+            dict_top_n = {1: dict_sku}
+            n_sku_dashboard_div_height_px = 90 + len(dict_top_n) * 53  # div px height for table
+            return dict_top_n, n_sku_dashboard_div_height_px
+
+        if self.__g_dictPeriodSkuRankDf['tm']['qty'].sum() == 0 and self.__g_dictPeriodSkuRankDf['tm']['amnt'].sum() == 0:
             df_to_refer = self.__g_dictPeriodSkuRankDf['lm']
         else:
             df_to_refer = self.__g_dictPeriodSkuRankDf['tm']

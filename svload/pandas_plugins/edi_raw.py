@@ -73,11 +73,15 @@ class EdiRaw:
     def set_sku_dict(self, dict_sku):
         # execute this method just after set_branch_info
         if len(dict_sku) == 0:
-            dict_single_branch = list(self.__g_dictEdiBranchId.values())[0]
-            s_mart_name = dict_single_branch['hypermart_name']
-            n_mart_id = dict_single_branch['hypermart_id']
+            if self.__g_dictEdiBranchId is not None:
+                dict_single_branch = list(self.__g_dictEdiBranchId.values())[0]
+                s_mart_name = dict_single_branch['hypermart_name']
+                n_mart_id = dict_single_branch['hypermart_id']
+                del dict_single_branch
+            else:
+                s_mart_name = 'hypermart_name'
+                n_mart_id = 'hypermart_id'
             self.__g_dictEdiSku = {1: {'hypermart_name': s_mart_name, 'selected': '', 'mart_id': n_mart_id, 'name': 'none', 'first_detect_logdate': date.today()}}
-            del dict_single_branch
         else:
             self.__g_dictEdiSku = dict_sku
         # self.__g_dfEdiSku = pd.DataFrame(dict_sku).transpose()
@@ -129,6 +133,8 @@ class EdiRaw:
         lst_extract_hypermart_type = []
         for n_hypermart_id in dict_hypermart_type:  # .keys():
             lst_raw_data = self.__g_oSvDb.executeQuery('getEdiSkuCountByMartId', n_hypermart_id)
+            if 'err_code' in lst_raw_data.pop().keys():  # for an initial stage; no table
+                lst_raw_data = []
             if len(lst_raw_data):
                 if lst_raw_data[0]['count(*)'] > 0:
                     lst_extract_hypermart_type.append(n_hypermart_id)
@@ -184,7 +190,8 @@ class EdiRaw:
         else:
             df_period_data_raw = pd.DataFrame(national_raw_data)
         # ensure logdate field to datetime format
-        df_period_data_raw['logdate'] = pd.to_datetime(df_period_data_raw['logdate'])
+        if not df_period_data_raw.empty:  # for an initial stage; no table
+            df_period_data_raw['logdate'] = pd.to_datetime(df_period_data_raw['logdate'])
         return df_period_data_raw
 
     def load_branch(self, o_db):

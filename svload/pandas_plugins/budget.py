@@ -62,10 +62,16 @@ class Budget:
         # begin - construct budget list
         dict_budget = {}
         lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
+        if 'err_code' in lst_budget_forward_rst.pop().keys():  # for an initial stage; no table
+            lst_budget_forward_rst = []
+        # print(lst_budget_forward_rst)
         for dict_row in lst_budget_forward_rst:
             dict_budget[dict_row['id']] = dict_row
         del lst_budget_forward_rst
+
         lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
+        if 'err_code' in lst_budget_backward_rst.pop().keys():  # for an initial stage; no table
+            lst_budget_backward_rst = []
         for dict_row in lst_budget_backward_rst:
             dict_budget[dict_row['id']] = dict_row
         del lst_budget_backward_rst
