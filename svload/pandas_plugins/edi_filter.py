@@ -181,7 +181,7 @@ class EdiFilter:
             lst_selected_sku_for_ui = [int(item) for item in lst_selected_sku]  # SKU 일련번호를 문자열에서 정수로 변경
 
         lst_sku_rst = o_sv_db.executeQuery('getEdiSkuInfoByAccept', 1)
-        if 'err_code' in lst_sku_rst.pop().keys():  # for an initial stage; no table
+        if lst_sku_rst and 'err_code' in lst_sku_rst.pop().keys():  # for an initial stage; no table
             lst_sku_rst = []
         lst_selected_sku = []
         # 좁은 범위의 필터부터 살펴봄
