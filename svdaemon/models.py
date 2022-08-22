@@ -24,16 +24,15 @@ def get_active_plugins():
     # https://stackoverflow.com/questions/6001986/dynamic-choices-field-in-django-models
     # https://stackoverflow.com/questions/1325673/how-to-add-property-to-a-class-dynamically
     s_svplugins_root = os.path.join(settings.BASE_DIR, 'svplugins')
+    lst_svplugins_dirs = []
+    # scan effective directories
     if os.path.isdir(s_svplugins_root):
-        lst_svplugins = [f.name for f in os.scandir(s_svplugins_root) if f.is_dir() and f.name != '_blank']
-    else:
-        lst_svplugins = []
-    # lst_temp = [
-    #     {'plan_id': 1, 'unique_name': '34'},
-    #     {'plan_id': 2, 'unique_name': '56'}
-    # ]
+        lst_svplugins_dirs = [f for f in os.scandir(s_svplugins_root) if f.is_dir() and f.name != '_blank']
+    # sort directories platform-independently; linux arbitrarily vs. windows alphabetically
+    # a difference of sorting can make meaningless migrations file and disturbs git tracking
+    lst_svplugins_dirs.sort(key=lambda f: f.name)
+    lst_svplugins = [f.name for f in lst_svplugins_dirs]
     lst_svplugin_choices = [
-        # (p["plan_id"], str(p["plan_id"]) + " - " + p["unique_name"])
         (s_plugin, s_plugin) for s_plugin in lst_svplugins
     ]
     return lst_svplugin_choices
