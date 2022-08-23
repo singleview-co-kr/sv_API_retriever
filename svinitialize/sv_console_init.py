@@ -1,7 +1,6 @@
 import os
 import sys
 import random
-from pathlib import Path
 
 
 class svInitialize():
@@ -16,8 +15,6 @@ class svInitialize():
         self.argv = argv or sys.argv[:]
         
         self.__g_sRootPath = os.getcwd()
-        # print (os.path.realpath(__file__))#파일
-        # print (os.path.dirname(os.path.realpath(__file__)))
         self.__g_sEnvPath = os.path.join(self.__g_sRootPath, self.__g_sEnvFileName)
 
         if not os.path.isfile(self.__g_sEnvPath):
@@ -52,8 +49,6 @@ class svInitialize():
         except ImportError:
             sys.stdout.write('run "pip install -r requirements.txt"\n')
             return 'stop'
-
-        # Path(os.path.join(self.__g_sRootPath, 'conf')).mkdir(parents=True, exist_ok=True)
 
         # enquire configuration info
         s_allowed_host_csv = str(input("csv formatted allowed domain name for django running\n('localhost' and server IP are not necessary): "))

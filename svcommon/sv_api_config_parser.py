@@ -29,7 +29,7 @@ import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 
 # 3rd party library
-from decouple import config 
+from decouple import config
 
 # singleview config
 if __name__ == 'svcommon.sv_api_config_parser' : # for websocket running
@@ -44,23 +44,17 @@ elif __name__ == 'sv_api_config_parser': # for plugin console debugging
 class SvApiConfigParser(sv_object.ISvObject):
     __g_oConfig = None
     __g_sAbsolutePath = None
-    __g_sConfigLoc = None
     __g_sApiConfigFile = None
     __g_lstAcctInfo = []
 
     def __init__(self, s_config_location):
         self._g_oLogger = logging.getLogger(__file__)
-        self.__g_oConfig = configparser.RawConfigParser() # make python3 config parser parse key case sensitive
-        self.__g_oConfig.optionxform = lambda option: option # make python3 config parser parse key case sensitive
+        self.__g_oConfig = configparser.RawConfigParser()  # make python3 config parser parse key case sensitive
+        self.__g_oConfig.optionxform = lambda option: option  # make python3 config parser parse key case sensitive
         self.__g_sAbsolutePath = config('ABSOLUTE_PATH_BOT')
-        self.__g_sConfigLoc = s_config_location
-
-        if self.__g_sConfigLoc[0] == '/': # absolute config path case
-            self._printDebug( 'absolute api_info.ini not process is not defined')
-            raise IOError('failed to read api_info.ini')
-        else: # relative config path case
-            self.__g_sApiConfigFile = os.path.join(self.__g_sAbsolutePath, settings.SV_STORAGE_ROOT, self.__g_sConfigLoc, 'api_info.ini')
-            self.__g_lstAcctInfo = self.__g_sConfigLoc.split('/')
+        self.__g_lstAcctInfo = s_config_location.split('/')  # 1/1 means relative config path case
+        self.__g_sApiConfigFile = os.path.join(self.__g_sAbsolutePath, settings.SV_STORAGE_ROOT,
+                                               self.__g_lstAcctInfo[0], self.__g_lstAcctInfo[1], 'api_info.ini')
 
     def __enter__(self):
         """ grammtical method to use with "with" statement """
@@ -74,26 +68,21 @@ class SvApiConfigParser(sv_object.ISvObject):
         pass
 
     def getConfig(self):
+        s_err_msg = 'no_api_info_ini'
+        dict_2nd_layer = {'sv_account_id': s_err_msg, 'brand_id': s_err_msg, 'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
         try:
             with open(self.__g_sApiConfigFile) as f:
                 self.__g_oConfig.read_file(f)
         except IOError: # run plugin for the first time
             self._printDebug('api_info.ini not exist')
-            if __name__ == 'sv_api_config_parser': # for plugin console running
-                import sv_install
-                o_install = sv_install.SvInstall()
-                dict_config_info = {'s_abs_path_bot': self.__g_sAbsolutePath, 's_acct_info': self.__g_sConfigLoc}
-                o_install.start_up_job_plugin(dict_config_info)
-                del o_install
-            # raise IOError('failed to read api_info.ini')
+            return dict_2nd_layer
 
         dict_nvr_ad_acct = {}
         lst_googleads_acct = []
         lst_fb_biz_aid = []
-        lst_nvr_master_rpt = [] 
+        lst_nvr_master_rpt = []
         lst_nvr_stat_rpt = []
         dict_other_ads_api_info = {}
-        self.__g_oConfig.read(self.__g_sApiConfigFile)
         for s_section_title in self.__g_oConfig:
             if s_section_title == 'naver_searchad':
                 for s_value_title in self.__g_oConfig[s_section_title]:
@@ -134,12 +123,13 @@ class SvApiConfigParser(sv_object.ISvObject):
                     dict_other_ads_api_info[s_value_title] = self.__g_oConfig[s_section_title][s_value_title]
         dict_nvr_ad_acct['nvr_master_report'] = lst_nvr_master_rpt
         dict_nvr_ad_acct['nvr_stat_report'] = lst_nvr_stat_rpt
-        
-        s_tbl_prefix = self.__g_lstAcctInfo[0] + '_' + self.__g_lstAcctInfo[1]
-        dict_2nd_layer = {'sv_account_id': self.__g_lstAcctInfo[0], 'brand_id': self.__g_lstAcctInfo[1], 
-                        'tbl_prefix': s_tbl_prefix, 'nvr_ad_acct': dict_nvr_ad_acct}
+
+        dict_2nd_layer['sv_account_id'] = self.__g_lstAcctInfo[0]
+        dict_2nd_layer['brand_id'] = self.__g_lstAcctInfo[1]
+        dict_2nd_layer['tbl_prefix'] = self.__g_lstAcctInfo[0] + '_' + self.__g_lstAcctInfo[1]
+        dict_2nd_layer['nvr_ad_acct'] = dict_nvr_ad_acct
         for s_title in dict_other_ads_api_info:
-                dict_2nd_layer[s_title] = dict_other_ads_api_info[s_title]
+            dict_2nd_layer[s_title] = dict_other_ads_api_info[s_title]
         return dict_2nd_layer
 
 
