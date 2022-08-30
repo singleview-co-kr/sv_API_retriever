@@ -358,7 +358,7 @@ class GaSourceMediaRaw:
         lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByBrandId', self.__g_dtDesignatedFirstDate,
                                                    self.__g_dtDesignatedLastDate)
         
-        if lst_raw_data and 'err_code' in lst_raw_data.pop().keys():  # for an initial stage; no table
+        if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
             lst_raw_data = []
 
         lst_blank_raw = []

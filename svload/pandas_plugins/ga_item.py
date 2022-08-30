@@ -37,7 +37,7 @@ class GaItem:
         # begin - construct item list
         lst_cleaned_catalog = []
         lst_rst = self.__g_oSvDb.executeQuery('getGaItemList')
-        if lst_rst and 'err_code' in lst_rst.pop().keys():  # for an initial stage; no table
+        if lst_rst and 'err_code' in lst_rst[0].keys():  # for an initial stage; no table
             lst_rst = []
         if len(lst_rst):
             for dict_single_item in lst_rst:
@@ -168,7 +168,7 @@ class GaItem:
         """
         dict_arranged_catalog_depth = {}
         lst_cat_depth_rst = self.__g_oSvDb.executeQuery('getGaItemDepthAll')
-        if lst_cat_depth_rst and 'err_code' in lst_cat_depth_rst.pop().keys():  # for an initial stage; no table
+        if lst_cat_depth_rst and 'err_code' in lst_cat_depth_rst[0].keys():  # for an initial stage; no table
             lst_cat_depth_rst = []
         for dict_single_cat in lst_cat_depth_rst:
             n_item_srl = dict_single_cat['item_srl']
