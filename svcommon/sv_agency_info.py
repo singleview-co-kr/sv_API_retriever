@@ -72,7 +72,11 @@ class SvAgencyInfo(sv_object.ISvObject):
         pass
     
     def load_agency_info_by_source_id(self, s_acct_pk, s_brand_pk, s_data_source, s_data_source_id):
-        s_cur_agency_info_id = str(s_data_source_id) + '-' + s_data_source
+        s_acct_pk = str(s_acct_pk)
+        s_brand_pk = str(s_brand_pk)
+        s_data_source = str(s_data_source)
+        s_data_source_id = str(s_data_source_id)
+        s_cur_agency_info_id = s_data_source_id + '-' + s_data_source
         if self.__dictAgencyInfo.get(s_cur_agency_info_id, self.__g_sSvNull) != self.__g_sSvNull:  # if s_agency_info_id exists
             self.__lstAgencyInfo = self.__dictAgencyInfo[s_cur_agency_info_id]
         else:  # if new s_agency_info_id requested

@@ -150,8 +150,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sRetrieveMonth != None:
             dictDateRange = self.__deleteCertainMonth()
         else:
-            self.__g_oAgencyInfo = sv_agency_info.SvAgencyInfo()
             dictDateRange = self.__getTouchDateRange()
+        self.__g_oAgencyInfo = sv_agency_info.SvAgencyInfo()
         
         if dictDateRange['start_date'] is None and dictDateRange['end_date'] is None:
             self._printDebug('stop - weird raw data last date')
