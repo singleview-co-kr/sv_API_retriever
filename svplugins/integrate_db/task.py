@@ -142,7 +142,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-
+        
+        self.__g_oAgencyInfo = sv_agency_info.SvAgencyInfo()
         if self.__g_sMode == 'clear':
             self.__truncateCompiledTable()
             self._task_post_proc(self._g_oCallback)
@@ -151,7 +152,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictDateRange = self.__deleteCertainMonth()
         else:
             dictDateRange = self.__getTouchDateRange()
-        self.__g_oAgencyInfo = sv_agency_info.SvAgencyInfo()
         
         if dictDateRange['start_date'] is None and dictDateRange['end_date'] is None:
             self._printDebug('stop - weird raw data last date')
