@@ -1,8 +1,11 @@
-from dateutil.relativedelta import relativedelta
 from django.utils.html import strip_tags
 from datetime import datetime
 from datetime import date
+from dateutil.relativedelta import relativedelta
 import pandas as pd
+
+from svcommon.sv_campaign_parser import SvCampaignParser
+from svcommon.sv_agency_info import SvAgencyInfo
 
 # for logger
 import logging
@@ -14,28 +17,38 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 class Budget:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
-    # .svcommon.sv_campaign_parser 와 병합 검토
-    __g_dictBudgetType = {1: {'title': 'GOOGLE_ADS', 'media_rst_type': 'PS', 'media_source': 'google',
-                              'media_media': 'cpc', 'desc': 'GDN, 구글 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
-                          2: {'title': 'YOUTUBE', 'media_rst_type': 'PS', 'media_source': 'youtube',
-                              'media_media': 'display', 'desc': '유튜브 동영상 광고 예산', 'camp_prefix': 'YT_PS_DISP_'},
-                          3: {'title': 'FACEBOOK', 'media_rst_type': 'PS', 'media_source': 'facebook',
-                              'media_media': 'cpc', 'desc': '페이스북 광고 예산', 'camp_prefix': 'FB_PS_CPC_'},
-                          4: {'title': 'NVR_CPC', 'media_rst_type': 'PS', 'media_source': 'naver',
-                              'media_media': 'cpc', 'desc': '네이버 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
-                          5: {'title': 'NVR_SEO', 'media_rst_type': 'PNS', 'media_source': 'naver',
-                              'media_media': 'organic', 'desc': '네이버 블로그 바이럴 예산', 'camp_prefix': 'NV_PNS_REF_'},
-                          6: {'title': 'NVR_BRS', 'media_rst_type': 'PS', 'media_source': 'naver',
-                              'media_media': 'display', 'desc': '네이버 브랜드 검색 페이지 예산', 'camp_prefix': 'NV_PS_DISP_'},
-                          7: {'title': 'KAKAO_CPC', 'media_rst_type': 'PS', 'media_source': 'kakao',
-                              'media_media': 'cpc', 'desc': '카카오 모먼트 예산', 'camp_prefix': 'KKO_PS_CPC_'},
-                          100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
-                                'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
-                          }
+    __g_dictBudgetType = {}
+    # __g_dictBudgetType = {1: {'title': 'GOOGLE_ADS', 'media_rst_type': 'PS', 'media_source': 'google',
+    #                           'media_media': 'cpc', 'desc': 'GDN, 구글 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
+    #                       2: {'title': 'YOUTUBE', 'media_rst_type': 'PS', 'media_source': 'youtube',
+    #                           'media_media': 'display', 'desc': '유튜브 동영상 광고 예산', 'camp_prefix': 'YT_PS_DISP_'},
+    #                       3: {'title': 'FACEBOOK', 'media_rst_type': 'PS', 'media_source': 'facebook',
+    #                           'media_media': 'cpc', 'desc': '페이스북 광고 예산', 'camp_prefix': 'FB_PS_CPC_'},
+    #                       4: {'title': 'NVR_CPC', 'media_rst_type': 'PS', 'media_source': 'naver',
+    #                           'media_media': 'cpc', 'desc': '네이버 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
+    #                       5: {'title': 'NVR_SEO', 'media_rst_type': 'PNS', 'media_source': 'naver',
+    #                           'media_media': 'organic', 'desc': '네이버 블로그 바이럴 예산', 'camp_prefix': 'NV_PNS_REF_'},
+    #                       6: {'title': 'NVR_BRS', 'media_rst_type': 'PS', 'media_source': 'naver',
+    #                           'media_media': 'display', 'desc': '네이버 브랜드 검색 페이지 예산', 'camp_prefix': 'NV_PS_DISP_'},
+    #                       7: {'title': 'KAKAO_CPC', 'media_rst_type': 'PS', 'media_source': 'kakao',
+    #                           'media_media': 'cpc', 'desc': '카카오 모먼트 예산', 'camp_prefix': 'KKO_PS_CPC_'},
+    #                       100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
+    #                             'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
+    #                       }
 
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
         self.__g_oSvDb = o_sv_db
+        o_campaign_alias_info = SvCampaignParser()
+        self.__g_dictBudgetType = o_campaign_alias_info.get_source_medium_type_dict()
+        del o_campaign_alias_info
+        # Append etc budget
+        self.__g_dictBudgetType[100] = {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
+                                        'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
+        o_sv_agency_info = SvAgencyInfo()
+        self.__dictAgencyInfo = o_sv_agency_info.load_agency_dict()
+        del o_sv_agency_info
+        # self.__dictAgencyInfo = {}
         super().__init__()
 
     def __enter__(self):
@@ -64,11 +77,9 @@ class Budget:
         lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
         if lst_budget_forward_rst and 'err_code' in lst_budget_forward_rst[0].keys():  # for an initial stage; no table
             lst_budget_forward_rst = []
-        # print(lst_budget_forward_rst)
         for dict_row in lst_budget_forward_rst:
             dict_budget[dict_row['id']] = dict_row
         del lst_budget_forward_rst
-
         lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
         if lst_budget_backward_rst and 'err_code' in lst_budget_backward_rst[0].keys():  # for an initial stage; no table
             lst_budget_backward_rst = []
@@ -76,7 +87,6 @@ class Budget:
             dict_budget[dict_row['id']] = dict_row
         del lst_budget_backward_rst
         # end - construct budget list
-
         # begin - calculate period allocated budget list
         dict_budget_to_display = {}
         for n_budget_id, dict_single_budget in dict_budget.items():
@@ -97,13 +107,15 @@ class Budget:
             dt_delta = dt_period_end - dt_period_start
             n_alloc_budget_days = dt_delta.days + 1
             n_target_amnt_inc_vat_alloc = int(dict_single_budget['target_amnt_inc_vat'] * n_alloc_budget_days / n_full_budget_days)
-
+            # begin - tag a media agency title
+            n_media_agency_id = dict_single_budget['media_agency_id']
+            s_media_agency_title = self.__dictAgencyInfo[n_media_agency_id] if n_media_agency_id != 0 else 'N/A'
+            # end - tag a media agency title
             n_acct_id = dict_single_budget['acct_id']
             dict_acct_info = self.__g_dictBudgetType[n_acct_id]
             if dict_acct_info['media_rst_type'] is None:
                 continue
             s_source_medium = dict_acct_info['media_source'] + '_' + dict_acct_info['media_media']
-
             if s_source_medium in dict_budget_to_display.keys():  # update existing
                 dict_budget_to_display[s_source_medium]['n_budget_tgt_amnt_inc_vat'] = \
                     dict_budget_to_display[s_source_medium]['n_budget_tgt_amnt_inc_vat'] + n_target_amnt_inc_vat_alloc
@@ -114,6 +126,7 @@ class Budget:
             else:  # add new
                 dict_budget_to_display[s_source_medium] = {'s_source': dict_acct_info['media_source'],
                                                            's_media': dict_acct_info['media_media'],
+                                                           's_media_agency_title': s_media_agency_title,
                                                            'dt_period_start': dt_period_start,
                                                            'dt_period_end': dt_period_end,
                                                            'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc,
@@ -123,10 +136,12 @@ class Budget:
                 if 'dict_campaign' not in dict_budget_to_display[s_source_medium].keys():
                     dict_budget_to_display[s_source_medium]['dict_campaign'] = {}  # append dict_campaign attr
                 s_campaign_title = dict_single_budget['memo']
-                if s_campaign_title not in dict_budget_to_display[s_source_medium]['dict_campaign'].keys():  # register new dict_campaign attr
+                # register new dict_campaign attr
+                if s_campaign_title not in dict_budget_to_display[s_source_medium]['dict_campaign'].keys():
                     dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = {}
                     dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = \
                         {'dt_period_start': dt_period_start, 'dt_period_end': dt_period_end,
+                         's_media_agency_title': s_media_agency_title,
                          'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc}
                 else:  # add additional dict_campaign attr
                     if dt_period_start < dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_start']:
@@ -200,7 +215,8 @@ class Budget:
             elif dict_acct_info['title'] == 'NVR_SEO':
                 if dict_budget['date_begin'] > dt_today:  # if budget begin date is future than today
                     b_gross_cost_inc_vat_proc = True
-                elif dict_budget['date_begin'] <= dt_today and dict_budget['date_end'] >= dt_today:  # if budget period is between today
+                # if budget period is between today
+                elif dict_budget['date_begin'] <= dt_today <= dict_budget['date_end']:
                     n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])    
                     b_gross_cost_inc_vat_proc = True
                 elif dict_budget['date_end'] < dt_today:  # if budget end date is past than today
@@ -209,13 +225,19 @@ class Budget:
 
             if not b_gross_cost_inc_vat_proc:
                 n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])
-            
+
+            if dict_budget['media_agency_id'] == 0:
+                s_media_agency = 'N/A'
+            else:
+                s_media_agency = self.__dictAgencyInfo[dict_budget['media_agency_id']]
             s_alloc_yr_mo = str(dict_budget['alloc_yr']) + '{:02d}'.format(dict_budget['alloc_mo'])
             # begin - build account level table info
             dict_tmp = {'id': dict_budget['id'], 'title': dict_acct_info['title'],
                         'desc': dict_acct_info['desc'],
                         'alloc_period': s_alloc_yr_mo,
                         'memo': dict_budget['memo'],
+                        'media_agency_id': dict_budget['media_agency_id'],
+                        'media_agency_name': s_media_agency,
                         'target_amnt_inc_vat': dict_budget['target_amnt_inc_vat'],
                         'actual_amnt_inc_vat': n_gross_cost_inc_vat,
                         'date_begin': dict_budget['date_begin'], 'date_end': dict_budget['date_end'],
@@ -223,12 +245,21 @@ class Budget:
             lst_added_rst.append(dict_tmp)
             # end - build account level table info
             # begin - build monthly budget bar-graph info
-            try:
-                dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] + int(dict_budget['target_amnt_inc_vat'])
-                dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] + int(n_gross_cost_inc_vat)
-            except KeyError:  # regards exceptional future budget
-                dict_budget_monthly[s_alloc_yr_mo] = {'tgt_budget_amnt_inc_vat': int(dict_budget['target_amnt_inc_vat']),
-                                                      'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
+            if s_alloc_yr_mo in dict_budget_monthly:
+                dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] = \
+                    dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] + int(dict_budget['target_amnt_inc_vat'])
+                dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] = \
+                    dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] + int(n_gross_cost_inc_vat)
+            else:
+                dict_budget_monthly[s_alloc_yr_mo] = {
+                    'tgt_budget_amnt_inc_vat': int(dict_budget['target_amnt_inc_vat']),
+                    'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
+            # try:
+            #     dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] + int(dict_budget['target_amnt_inc_vat'])
+            #     dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] + int(n_gross_cost_inc_vat)
+            # except KeyError:  # regards exceptional future budget
+            #     dict_budget_monthly[s_alloc_yr_mo] = {'tgt_budget_amnt_inc_vat': int(dict_budget['target_amnt_inc_vat']),
+            #                                           'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
             n_tgt_budget_inc_vat = n_tgt_budget_inc_vat + int(dict_budget['target_amnt_inc_vat'])
             n_act_spent_inc_vat = n_act_spent_inc_vat + int(n_gross_cost_inc_vat)
             # end - build monthly budget bar-graph info
@@ -280,14 +311,25 @@ class Budget:
                                   'desc': dict_acct['desc']})
         return lst_acct_info
 
+    def get_agency_list_for_ui(self):
+        """
+        :return:
+        """
+        # o_sv_agency_info = SvAgencyInfo()
+        # self.__dictAgencyInfo = o_sv_agency_info.load_agency_dict()
+        # del o_sv_agency_info
+        return self.__dictAgencyInfo
+
     def update_budget(self, n_budget_id, request):
         dict_rst = self.__validate_budget_info(request)
         if not dict_rst['b_error']:
             dict_budget = dict_rst['dict_ret']
             self.__g_oSvDb.executeQuery('updateBudgetByBudgetId', dict_budget['n_acct_id'],
-                                        dict_budget['dt_budget_alloc_yr_mo'].year, dict_budget['dt_budget_alloc_yr_mo'].month,
-                                        dict_budget['s_budget_memo'], dict_budget['n_budget_target_amnt_inc_vat'],
-                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'], n_budget_id)
+                                        dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
+                                        dict_budget['dt_budget_alloc_yr_mo'].month, dict_budget['s_budget_memo'],
+                                        dict_budget['n_budget_target_amnt_inc_vat'],
+                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'],
+                                        n_budget_id)
             del dict_budget
         return dict_rst
 
@@ -301,7 +343,8 @@ class Budget:
         if not dict_rst['b_error']:
             dict_budget = dict_rst['dict_ret']
             self.__g_oSvDb.executeQuery('insertBudget', request.user.pk, dict_budget['n_acct_id'],
-                                        dict_budget['dt_budget_alloc_yr_mo'].year, dict_budget['dt_budget_alloc_yr_mo'].month,
+                                        dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
+                                        dict_budget['dt_budget_alloc_yr_mo'].month,
                                         dict_budget['s_budget_memo'], dict_budget['n_budget_target_amnt_inc_vat'],
                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'])
             del dict_budget
@@ -314,13 +357,20 @@ class Budget:
         if n_acct_id not in list(self.__g_dictBudgetType.keys()):
             dict_rst['s_msg'] = 'invalid acct id'
             return dict_rst
+        if request.POST['media_agency_id'] != '':
+            n_media_agency_id = int(request.POST['media_agency_id'])
+            if n_media_agency_id != 0:
+                if n_media_agency_id not in list(self.__dictAgencyInfo.keys()):
+                    dict_rst['s_msg'] = 'invalid media agency id'
+                    return dict_rst
+        else:
+            n_agency_id = 0
 
         s_budget_alloc_period = strip_tags(request.POST['budget_alloc_period'].strip())
         s_budget_memo = strip_tags(request.POST['budget_memo'].strip())  # <script>console.log('dd')</script> 방지해야 함
         s_budget_target_amnt_inc_vat = request.POST['budget_target_amnt_inc_vat'].strip()
         s_budget_date_begin = request.POST['budget_date_begin'].strip()
         s_budget_date_end = request.POST['budget_date_end'].strip()
-
         try:
             dt_budget_alloc_yr_mo = datetime.strptime(s_budget_alloc_period, '%Y%m')
         except ValueError:
@@ -337,22 +387,20 @@ class Budget:
         except ValueError:
             dict_rst['s_msg'] = 'invalid target_amnt_inc_vat'
             return dict_rst
-
         try:
             dt_budget_date_begin = datetime.strptime(s_budget_date_begin, '%Y-%m-%d')
         except ValueError:
             dict_rst['s_msg'] = 'invalid budget_date_begin'
             return dict_rst
-
         try:
             dt_budget_date_end = datetime.strptime(s_budget_date_end, '%Y-%m-%d')
         except ValueError:
             dict_rst['s_msg'] = 'invalid budget_date_end'
             return dict_rst
-
         dict_rst['b_error'] = False
-        dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'dt_budget_alloc_yr_mo': dt_budget_alloc_yr_mo,
-                                's_budget_memo': s_budget_memo, 'n_budget_target_amnt_inc_vat': n_budget_target_amnt_inc_vat,
+        dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'n_media_agency_id': n_media_agency_id,
+                                'dt_budget_alloc_yr_mo': dt_budget_alloc_yr_mo, 's_budget_memo': s_budget_memo,
+                                'n_budget_target_amnt_inc_vat': n_budget_target_amnt_inc_vat,
                                 'dt_budget_date_begin': dt_budget_date_begin, 'dt_budget_date_end': dt_budget_date_end}
         return dict_rst
 

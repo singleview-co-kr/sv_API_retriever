@@ -30,7 +30,6 @@ import threading
 import time
 
 import os
-from os import listdir
 import logging
 import importlib
 
@@ -46,12 +45,13 @@ else:
     from svcommon import sv_api_config_parser
     from svcommon import sv_events
 
+
 class ISvPlugin(ABC):
     _g_sAbsRootPath = None
     _g_oLogger = None
     _g_oThread = None  # AttributeError: 'svJobPlugin' object has no attribute '_g_oThread' if move to __init__
-    _g_dictParam = {'config_loc':None}  # can't recognize attr if move to __init__
-    _g_dictSvAcctInfo = {'n_acct_id':None, 'n_brand_id': None}  # can't recognize attr if move to __init__
+    _g_dictParam = {'config_loc': None}  # can't recognize attr if move to __init__
+    _g_dictSvAcctInfo = {'n_acct_id': None, 'n_brand_id': None}  # can't recognize attr if move to __init__
     """ to raise an exeception on the daemonocle running env """
     _g_bDaemonEnv = False
 
@@ -78,7 +78,6 @@ class ISvPlugin(ABC):
         # begin - to avoid an exception below
         # django.core.exceptions.ImproperlyConfigured: Requested setting SV_STORAGE_ROOT, but settings are not configured
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "svdjango.settings")
-        from django.conf import settings
         # end - to avoid exception below
         self._g_bDaemonEnv = True
 
@@ -91,11 +90,11 @@ class ISvPlugin(ABC):
             self._g_oThread = threading.currentThread()
 
         self._g_sAbsRootPath = config('ABSOLUTE_PATH_BOT')
-        oSvApiConfigParser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['config_loc'])
-        return oSvApiConfigParser.getConfig()
+        o_sv_api_config_parser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['config_loc'])
+        return o_sv_api_config_parser.getConfig()
 
     def _task_post_proc(self, o_callback):
-        if o_callback:  # regarding an execution on a web console 
+        if o_callback:  # regarding an execution on a web console
             o_callback(self._g_sPluginName)
         self._g_oThread = None
 
@@ -109,7 +108,7 @@ class ISvPlugin(ABC):
         # begin something
         i = 0
         while self._continue_iteration():  # getattr(self._g_oThread, "b_run", True):
-            self._printDebug(self._g_sPluginName + " "+str(i))
+            self._printDebug(self._g_sPluginName + " " + str(i))
             i = i + 1
             time.sleep(2)
             if i > 105:
@@ -118,7 +117,7 @@ class ISvPlugin(ABC):
         o_callback(self._g_sPluginName)  # in the end
     
     def _continue_iteration(self):
-        return getattr(self._g_oThread, 'b_run', True)  # regading a console execution, return True if attr not existed
+        return getattr(self._g_oThread, 'b_run', True)  # regarding a console execution, return True if attr not existed
 
     def parse_command(self, lst_command):
         n_params = len(lst_command)
@@ -158,15 +157,16 @@ class svPluginDaemonJob():
         s_config_loc_param = lst_plugin_params[1]
         s_extra_param = lst_plugin_params[2]
         # raise SvErrorHandler('remove') # raise event code to remove job if the connected method is invalid
-        lst_command = []  # make same cmd line like a console
-        lst_command.append(s_plugin_title)
-        lst_command.append(s_config_loc_param)
+        # lst_command = []  # make same cmd line like a console
+        # lst_command.append(s_plugin_title)
+        # lst_command.append(s_config_loc_param)
+        lst_command = [s_plugin_title, s_config_loc_param]  # make same cmd line like a console
         s_extra_param_without_eol = s_extra_param.replace("\r\n", " ")
         lst_command += s_extra_param_without_eol.split(' ')
         lst_command = [x for x in lst_command if x]  # remove empty entity after replace "\r\n" to " "
         try:
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_title + '.task')
-            with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
+            with o_job_plugin.svJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
                 self.__print_debug(o_job.__class__.__name__ + ' has been initiated')
                 o_job.set_my_name(s_plugin_title)
                 o_job.toggle_daemon_env()
@@ -179,20 +179,20 @@ class svPluginDaemonJob():
             self.__print_debug('plugin is not existed -> remove job')
             raise SvErrorHandler('remove')
         except Exception as err:
-            nIdx = 0
+            n_idx = 0
             for e in err.args:
-                if e == 'stop' or e == 'wait': # handle HTTP err response from XE
+                if e == 'stop' or e == 'wait':  # handle HTTP err response from XE
                     self.__print_debug('handle stop: ' + e)
                     raise SvErrorHandler(e)
-                elif e == 'completed': # handle completed exception signal from each job
+                elif e == 'completed':  # handle completed exception signal from each job
                     self.__print_debug('raised completed job!')
                     raise SvErrorHandler(e)
                 try:
-                    self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ' + e)
+                    self.__print_debug('plugin occured general exception arg' + str(n_idx) + ': ' + e)
                 except TypeError:
-                    self.__print_debug('plugin occured general exception arg' + str(nIdx) + ': ')
+                    self.__print_debug('plugin occured general exception arg' + str(n_idx) + ': ')
                     self.__print_debug(e)
-                nIdx += 1
+                n_idx += 1
             raise SvErrorHandler('remove')
         finally:
             del lst_command
@@ -210,7 +210,7 @@ class SvPluginValidation():
         
     def validate(self, s_plugin_name):
         """ find the module directory in /svplugins folder """
-        if s_plugin_name in listdir(os.path.join(config('ABSOLUTE_PATH_BOT'), 'svplugins')):
+        if s_plugin_name in os.listdir(os.path.join(config('ABSOLUTE_PATH_BOT'), 'svplugins')):
             return True
         return False
 

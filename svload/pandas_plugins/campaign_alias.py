@@ -2,11 +2,11 @@ import sys
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-if __name__ == 'campaign_alias': # for calling from svplugins.aw_register_db.task
+if __name__ == 'campaign_alias':  # for calling from svplugins.aw_register_db.task
     sys.path.append('../../svcommon')
     from sv_mysql import SvMySql
     from sv_campaign_parser import SvCampaignParser
-else: # for platform running
+else:  # for platform running
     from svcommon.sv_mysql import SvMySql
     from svcommon.sv_campaign_parser import SvCampaignParser
 

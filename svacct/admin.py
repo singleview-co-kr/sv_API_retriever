@@ -1,43 +1,40 @@
 import os
-import csv
-from pathlib import Path
-from datetime import datetime
 from django.contrib import messages
 from django.contrib import admin
 from django.contrib.admin import display  # was introduced in Django 3.2
 from django.conf import settings
+# from django.template.response import TemplateResponse
 
-from svcommon import sv_agency_info
-
+from .models import PAID_NATURAL_SEARCH
 from .models import Account
 from .models import Brand
 from .models import DataSource
 from .models import DataSourceType
 from .models import DataSourceDetail
+from .models import MediaAgency
+from .models import Contract
 from .forms import DataSourceDetailForm
-
-from django.template.response import TemplateResponse
-from django.urls import path
 
 
 # Register your models here.
-class MyModelAdmin(admin.ModelAdmin):
-    def get_urls(self):
-        urls = super().get_urls()
-        my_urls = [
-            path('my_view/', self.my_view),
-        ]
-        return my_urls + urls
+# class MyModelAdmin(admin.ModelAdmin):
+#     def get_urls(self):
+#         urls = super().get_urls()
+#         my_urls = [
+#             path('my_view/', self.my_view),
+#         ]
+#         return my_urls + urls
+#
+#     def my_view(self, request):
+#         # ...
+#         context = dict(
+#            # Include common variables for rendering the admin template.
+#            self.admin_site.each_context(request),
+#            # Anything else you want in the context...
+#            key='value',
+#         )
+#         return TemplateResponse(request, "sometemplate.html", context)
 
-    def my_view(self, request):
-        # ...
-        context = dict(
-           # Include common variables for rendering the admin template.
-           self.admin_site.each_context(request),
-           # Anything else you want in the context...
-           key='value',
-        )
-        return TemplateResponse(request, "sometemplate.html", context)
 
 class BrandInline(admin.TabularInline):
     model = Brand
@@ -182,21 +179,21 @@ class DataSourceAdmin(admin.ModelAdmin):
         return obj.sv_brand.sv_acct
 
     def get_readonly_fields(self, request, obj=None):
-        if obj: # make a field read-only if edit an existing object
+        if obj:  # make a field read-only if edit an existing object
             return self.readonly_fields + ('n_data_source', )
         return self.readonly_fields  # but required when adding new obj
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
-        s_base_dir = Path(__file__).resolve().parent.parent
+        # s_base_dir = Path(__file__).resolve().parent.parent
         super().save_model(request, obj, form, change)
 
     def save_formset(self, request, form, formset, change):
         # https://jay-ji.tistory.com/32
         if formset.is_valid():
-            n_acct_id = None
-            n_brand_pk = None
-            o_data_source_id = None
+            # n_acct_id = None
+            # n_brand_pk = None
+            # o_data_source_id = None
             for form1 in formset:
                 # print(form1.cleaned_data)
                 if 'sv_data_source' in form1.cleaned_data.keys():
@@ -220,8 +217,9 @@ class DataSourceAdmin(admin.ModelAdmin):
                                 if not os.path.isdir(s_data_source_id_abs_path):
                                     os.makedirs(s_data_source_id_abs_path)
                                     os.makedirs(os.path.join(s_data_source_id_abs_path, 'conf'))  # make conf folder
-                                    os.makedirs(os.path.join(s_data_source_id_abs_path, 'data'))  # make data folder
-                                # proc source - fb biz 
+                                    if s_data_source_serial_id != PAID_NATURAL_SEARCH:  # make data folder
+                                        os.makedirs(os.path.join(s_data_source_id_abs_path, 'data'))
+                                # proc source - fb biz
                                 if form1.cleaned_data['sv_data_source'].n_data_source == DataSourceType.FB_BIZ:
                                     try:
                                         with open(os.path.join(s_data_source_id_abs_path, 'conf', 'info_fx.tsv'), "w") as o_file:
@@ -237,16 +235,22 @@ class DataSourceAdmin(admin.ModelAdmin):
         super().delete_model(request, obj)
 
 
+class ContractIdInline(admin.TabularInline):
+    model = Contract
+    extra = 0
+    # readonly_fields = ['date_begin', ]  # enforce to show auto_now_add date field
+    can_delete = False
+
+
 class DataSourceDetailAdmin(admin.ModelAdmin):
     # set extra form
     form = DataSourceDetailForm
+    inlines = [ContractIdInline]
 
     fieldsets = [  # choose editable attr
-        (None, {'fields': ['s_data_source_serial', 'sv_data_source', 's_agency_name', 's_begin_date',
-                            'n_fee_percent', 's_fee_type']}),
+        (None, {'fields': ['s_acct_name', 's_brand_name', 's_data_source_serial', 'sv_data_source', 'n_datasource_id']}),
         # ('Date information', {'fields': ['date_reg'], 'classes': ['collapse']}),
     ]
-    # readonly_fields = ['sv_data_source', ]
     list_display = ('get_account', 'get_brand', 'sv_data_source', 's_data_source_serial', )
     list_filter = ['date_reg']
     search_fields = ['sv_data_source__sv_brand__sv_acct__s_acct_title', 'sv_data_source__sv_brand__s_brand_title',
@@ -262,33 +266,52 @@ class DataSourceDetailAdmin(admin.ModelAdmin):
         return obj.sv_data_source.sv_brand
 
     def get_readonly_fields(self, request, obj=None):
-        if obj: # make a field read-only if edit an existing object
-            return self.readonly_fields + ('sv_data_source', )
+        if obj:  # make a field read-only if edit an existing object
+            return self.readonly_fields + ('sv_data_source',)
         return self.readonly_fields  # but required when adding new obj
 
-    def get_form(self, request, obj=None, **kwargs):
-        # https://stackoverflow.com/questions/6164773/django-adminform-field-default-value
-        form = super(DataSourceDetailAdmin, self).get_form(request, obj, **kwargs)
-        s_acct_pk = str(obj.sv_data_source.sv_brand.sv_acct.pk)
-        s_brand_pk = str(obj.sv_data_source.sv_brand.pk)
-        s_data_source = str(obj.sv_data_source)
-        s_data_source_id = str(obj.s_data_source_serial)
-        o_sv_agency_info = sv_agency_info.SvAgencyInfo()
-        o_sv_agency_info.load_agency_info_by_source_id(s_acct_pk, s_brand_pk, s_data_source, s_data_source_id)
-        dict_agency_info = o_sv_agency_info.get_latest_agency_info_dict()
-        if dict_agency_info['s_agency_name'] != '' and dict_agency_info['s_fee_type'] != '':
-            form.base_fields['s_agency_name'].initial = dict_agency_info['s_agency_name']
-            form.base_fields['s_begin_date'].initial = dict_agency_info['s_begin_date']
-            form.base_fields['n_fee_percent'].initial = dict_agency_info['n_fee_rate']
-            form.base_fields['s_fee_type'].initial = dict_agency_info['s_fee_type'] 
-        else:
-            form.base_fields['s_begin_date'].initial = str(datetime.today().strftime('%Y%m%d'))
-        del dict_agency_info
-        del o_sv_agency_info
-        return form
+    # def get_form(self, request, obj=None, **kwargs):
+    #     # https://stackoverflow.com/questions/6164773/django-adminform-field-default-value
+    #     form = super(DataSourceDetailAdmin, self).get_form(request, obj, **kwargs)
+    #     s_acct_pk = str(obj.sv_data_source.sv_brand.sv_acct.pk)
+    #     form.base_fields['s_agency_name'].initial = dict_agency_info['s_agency_name']
+    #     return form
+
+
+class MediaAgencyAdmin(admin.ModelAdmin):
+    list_display = ('s_agency_name', 's_agency_rep_name', 's_agency_contact', 'b_approval', 'date_reg')
+    list_filter = ['date_reg']
+    search_fields = ['s_agency_name']
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # make a field read-only if edit an existing object
+            return self.readonly_fields + ('s_agency_name',)
+        return self.readonly_fields  # but required when adding new obj
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        # s_base_dir = Path(__file__).resolve().parent.parent
+        super().save_model(request, obj, form, change)
+
+    def delete_model(self, request, obj):
+        obj.user = request.user
+        super().delete_model(request, obj)
+
+
+class ContractAdmin(admin.ModelAdmin):
+    list_display = ('get_data_source', 'date_begin', 'date_end', 'b_approval', 'date_reg')
+    # list_filter = ['date_reg']
+    # search_fields = ['s_agency_name']
+
+    @display(ordering='sv_brand__sv_acct', description='계약 명칭')
+    def get_data_source(self, obj):
+        return str(obj.sv_media_agency) + ' > ' + str(obj.sv_data_source.sv_data_source.sv_brand) + ' > '\
+               ' > ' + str(obj.sv_data_source.sv_data_source) + ' > ' + str(obj.sv_data_source)
 
 
 admin.site.register(Account, AccountAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(DataSource, DataSourceAdmin)
 admin.site.register(DataSourceDetail, DataSourceDetailAdmin)
+admin.site.register(MediaAgency, MediaAgencyAdmin)
+admin.site.register(Contract, ContractAdmin)

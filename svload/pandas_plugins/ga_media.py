@@ -175,7 +175,6 @@ class GaMediaVisual(ABC):
         dict_top_source_medium, n_other_source_cnt = \
             self._retrieve_gross_source_medium(s_period_window=s_period_window, s_sort_column=s_sort_column,
                                                n_th_rank=10)
-
         # get full month date range for JS sparkline
         idx_full_day = self._g_dictPeriodRaw[s_period_window].get_full_period_idx()
         f_full_period_est_factor = self._g_dictPeriodRaw[s_period_window].get_full_period_est_factor()
@@ -187,11 +186,12 @@ class GaMediaVisual(ABC):
                         'avg_dur_sec': 0, 'avg_pvs': 0}
         dict_ps_source_medium_daily = {}
         dict_ps_source_medium_gross = {}
+        lst_filter = [{'col_ttl': 'media_source', 'fil_val': None}, {'col_ttl': 'media_media', 'fil_val': None}]
         for s_source_medium, dict_row in dict_top_source_medium.items():
             if dict_row['media_gross_cost_inc_vat'] > 0:
                 lst_info = s_source_medium.split('_')
-                lst_filter = [{'col_ttl': 'media_source', 'fil_val': lst_info[0]},
-                              {'col_ttl': 'media_media', 'fil_val': lst_info[1]}]
+                lst_filter[0]['fil_val'] = lst_info[0]
+                lst_filter[1]['fil_val'] = lst_info[1]
                 df_by_source_medium = self._g_dictPeriodRaw[s_period_window].get_gross_filtered_by_index(lst_filter)
                 # begin - collect derivative max value to determine y-axis range
                 dict_maximum['media_gross_cost_inc_vat'] = dict_maximum['media_gross_cost_inc_vat'] + \
@@ -295,6 +295,7 @@ class GaMediaVisual(ABC):
                     n_agency_fee_inc_vat_est = 0
                 # del o_keys
                 del dict_keys
+                dict_ttl_value_temp['s_media_agency_title'] = dict_budget_info[s_source_medium]['s_media_agency_title']
                 dict_ttl_value_temp['n_budget_tgt_amnt_inc_vat'] = n_budget_tgt_amnt_inc_vat
                 dict_ttl_value_temp['n_agency_fee_inc_vat'] = n_agency_fee_inc_vat
                 dict_ttl_value_temp['n_agency_fee_inc_vat_est'] = n_agency_fee_inc_vat_est
@@ -309,22 +310,31 @@ class GaMediaVisual(ABC):
                     for s_camp_name, dict_camp_budget in dict_budget_info[s_source_medium]['dict_campaign'].items():
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name] =\
                             self._g_dictPeriodRaw[s_period_window].get_sv_campaign_info(s_camp_name)
-                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][
-                            s_camp_name]['n_budget_tgt_amnt_inc_vat'] = dict_camp_budget['n_budget_tgt_amnt_inc_vat']
-                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][
-                            s_camp_name]['campaign_gross_cost_inc_vat_ttl'] = \
-                            dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][
-                                s_camp_name]['campaign_gross_cost_inc_vat'] * dict_camp_budget['f_est_factor']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['s_media_agency_title'] = \
+                            dict_camp_budget['s_media_agency_title']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_budget_tgt_amnt_inc_vat'] = \
+                            dict_camp_budget['n_budget_tgt_amnt_inc_vat']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['campaign_gross_cost_inc_vat_ttl'] = \
+                            dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['campaign_gross_cost_inc_vat'] * \
+                            dict_camp_budget['f_est_factor']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_agency_fee_inc_vat'] = \
+                            dict_camp_budget['n_agency_fee_inc_vat']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_agency_fee_inc_vat_est'] = \
+                            dict_camp_budget['n_agency_fee_inc_vat'] * dict_camp_budget['f_est_factor']
                 else:
                     dict_ps_source_medium_gross[s_source_medium]['b_campaign_level'] = False
                 # end - add a campaign level info if exists
-
                 # make full month for bokeh
                 del df_by_source_medium['in_site_tot_duration_sec']
                 del df_by_source_medium['in_site_tot_pvs']
                 df_by_source_medium = df_by_source_medium.reindex(idx_full_day, fill_value=0)
                 dict_ps_source_medium_daily[s_source_medium] = df_by_source_medium
-
+        for s_sm, dict_single in dict_budget_info.items():
+            if s_sm.endswith('organic'):
+                dict_ps_source_medium_gross[s_sm] = {
+                    's_media_agency_title': dict_single['s_media_agency_title'],
+                    'n_budget_tgt_amnt_inc_vat': dict_single['n_budget_tgt_amnt_inc_vat']
+                }
         # specify derivative max value sum to determine y-axis range
         dict_col_gross_max_value = {'media_gross_cost_inc_vat': dict_maximum['media_gross_cost_inc_vat'],
                                     'media_imp': dict_maximum['media_imp'],

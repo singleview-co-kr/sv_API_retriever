@@ -30,13 +30,14 @@ import sys
 # 3rd party library
 
 # singleview config
-if __name__ == 'svcommon.sv_campaign_parser': # for platform running
+if __name__ == 'svcommon.sv_campaign_parser':  # for platform running
     from svcommon import sv_object
-elif __name__ == 'sv_campaign_parser': # for plugin console debugging
+elif __name__ == 'sv_campaign_parser':  # for plugin console debugging
     import sv_object
-elif __name__ == '__main__': # for class console debugging
+elif __name__ == '__main__':  # for class console debugging
     sys.path.append('../svcommon')
     import sv_object
+
 
 class SvCampaignParser(sv_object.ISvObject):
     """ campaign parser class for singleview only 
@@ -46,26 +47,26 @@ class SvCampaignParser(sv_object.ISvObject):
     """
     # __g_oLogger = None
     # caution! sv campaign code does not allow NS but allow PNS only, as pure NS could not be designated
-    __g_lstSourceInfo = [ # (id, title, tag_name)
+    __g_lstSourceInfo = [  # (id, title, tag_name)
         (0, 'unknown', 'UNKNOWN'),
-        (1, 'naver', 'NVR'),
-        (1, 'naver', 'NV'),
+        (1, 'naver', 'NVR'),  # NVR will be deprecated in near future
+        (1, 'naver', 'NV'),  # NV has priority than NVR
         (2, 'google', 'GG'),
         (3, 'youtube', 'YT'),
-        (4, 'facebook', 'FB'),  # facebook PNS is mainly for instagram but API depends on facebook
+        (11, 'facebook', 'FBIG'),  # facebook PNS is mainly for instagram but API depends on facebook
         (5, 'instagram', 'IG'),
+        (4, 'facebook', 'FB'),  # FB has priority than IG and FBIG
         (6, 'kakao', 'KKO'),
         (7, 'daum', 'DAUM'),
         (8, 'targeting', 'TG'),
         (9, 'mobon', 'MBO'),
         (10, 'smr', 'SMR'),
-        (11, 'facebook', 'FBIG')  # facebook PNS is mainly for instagram but API depends on facebook
     ]
     __g_dictSourceIdTitle = None  # {1:'naver'}
     __g_dictSourceTagTitle = None  # {'NV': 'naver'}
     __g_dictSourceIdTag = None  # {1: 'NV'}
-    
-    __g_lstSearchRstInfo = [ # (id, title, tag_name)
+
+    __g_lstSearchRstInfo = [  # (id, title, tag_name)
         (0, 'unknown', 'UNKNOWN'),
         (1, 'Paid Search', 'PS'),
         (2, 'Paid Natural Search', 'PNS'),
@@ -77,7 +78,7 @@ class SvCampaignParser(sv_object.ISvObject):
     __g_dictSearchRstIdTag = None  # {1: 'PS'}
     # __g_dictSearchResultTypeTagTitle = {'PS':'PS', 'paid_search':'PS', 'PNS':'PNS', 'paid_natural_search':'PNS','NS':'NS', 'natural_search':'NS', 'SNS':'SNS', 'sns':'SNS'}
 
-    __g_lstMediumInfo = [ # (id, title, tag_name)
+    __g_lstMediumInfo = [  # (id, title, tag_name)
         (0, 'unknown', 'UNKNOWN'),
         (1, 'cpc', 'CPC'),
         (2, 'display', 'DISP'),
@@ -89,21 +90,66 @@ class SvCampaignParser(sv_object.ISvObject):
     __g_dictMediumTagTitle = None  # {'CPC':'cpc', 'DISP':'display', 'CPI':'cpi', 'REF':'organic', 'PAGE':'organic'}
     __g_dictMediumIdTag = None  # {1: 'CPC'}
     __g_dictGaMedium = {
-        '(none)':'(none)',
-        '(not set)':'(none)',
-        'referral':'referral',
-        'organic':'organic',
-        'owned':'organic', # could be "blog / owned", but weird, hence enforce to categorize in blog / organic 
-        'cpc':'cpc',
-        'display':'display',
-        'social':'social',
-        'sns':'social',
-        'group':'social', # could be "facebook / group", hence enforce to categorize in facebook / social 
-        'email':'email',
-        'zalo':'zalo' # vietnamese messenger app
-        }
+        '(none)': '(none)',
+        '(not set)': '(none)',
+        'referral': 'referral',
+        'organic': 'organic',
+        'owned': 'organic',  # could be "blog / owned", but weird, hence enforce to categorize in blog / organic
+        'cpc': 'cpc',
+        'display': 'display',
+        'social': 'social',
+        'sns': 'social',
+        'group': 'social',  # could be "facebook / group", hence enforce to categorize in facebook / social
+        'email': 'email',
+        'zalo': 'zalo'  # vietnamese messenger app
+    }
 
-    __g_lstPnsContractInfo = [ # (id, title, tag_name)
+    __g_dictSourceMediumType = {
+        1: {'title': 'GADS_CPC', 'media_rst_type': 'PS', 'media_source': 'google',
+            'media_media': 'cpc', 'desc': 'GDN, 구글 키워드 광고', 'camp_prefix': 'GG_PS_CPC_'},
+        11: {'title': 'GADS_DISP', 'media_rst_type': 'PS', 'media_source': 'google',
+             'media_media': 'display', 'desc': 'GDN, 구글 키워드 광고', 'camp_prefix': 'GG_PS_DISP_'},
+        2: {'title': 'YT_DISP', 'media_rst_type': 'PS', 'media_source': 'youtube',
+            'media_media': 'display', 'desc': '유튜브 동영상 광고', 'camp_prefix': 'YT_PS_DISP_'},
+        21: {'title': 'YT_CPC', 'media_rst_type': 'PS', 'media_source': 'youtube',
+             'media_media': 'cpc', 'desc': '유튜브 동영상 광고', 'camp_prefix': 'YT_PS_CPC_'},
+        3: {'title': 'FB_CPC', 'media_rst_type': 'PS', 'media_source': 'facebook',
+            'media_media': 'cpc', 'desc': '페이스북 광고', 'camp_prefix': 'FB_PS_CPC_'},
+        31: {'title': 'FB_DISP', 'media_rst_type': 'PS', 'media_source': 'facebook',
+             'media_media': 'display', 'desc': '페이스북 광고', 'camp_prefix': 'FB_PS_DISP_'},
+        32: {'title': 'FBIG_CPC', 'media_rst_type': 'PS', 'media_source': 'facebook',
+             'media_media': 'cpc', 'desc': '페이스북 광고', 'camp_prefix': 'FBIG_PS_CPC_'},
+        33: {'title': 'FBIG_DISP', 'media_rst_type': 'PS', 'media_source': 'facebook',
+             'media_media': 'display', 'desc': '페이스북 광고', 'camp_prefix': 'FBIG_PS_DISP_'},
+        34: {'title': 'IG_CPC', 'media_rst_type': 'PS', 'media_source': 'instagram',
+             'media_media': 'cpc', 'desc': '페이스북 광고', 'camp_prefix': 'IG_PS_CPC_'},
+        35: {'title': 'IG_DISP', 'media_rst_type': 'PS', 'media_source': 'facebook',
+             'media_media': 'display', 'desc': '페이스북 광고', 'camp_prefix': 'IG_PS_DISP_'},
+        36: {'title': 'FB_PNS', 'media_rst_type': 'PS', 'media_source': 'facebook',
+             'media_media': 'organic', 'desc': '페이스북 유료 자연검색 광고', 'camp_prefix': 'FB_PNS_REF_'},
+        4: {'title': 'NVR_CPC', 'media_rst_type': 'PS', 'media_source': 'naver',
+            'media_media': 'cpc', 'desc': '네이버 키워드 광고', 'camp_prefix': 'GG_PS_CPC_'},
+        5: {'title': 'NVR_SEO', 'media_rst_type': 'PNS', 'media_source': 'naver',
+            'media_media': 'organic', 'desc': '네이버 블로그 바이럴', 'camp_prefix': 'NV_PNS_REF_'},
+        6: {'title': 'NVR_BRS', 'media_rst_type': 'PS', 'media_source': 'naver',
+            'media_media': 'display', 'desc': '네이버 브랜드 검색 페이지', 'camp_prefix': 'NV_PS_DISP_'},
+        7: {'title': 'KKO_CPC', 'media_rst_type': 'PS', 'media_source': 'kakao',
+            'media_media': 'cpc', 'desc': '카카오 모먼트', 'camp_prefix': 'KKO_PS_CPC_'},
+        71: {'title': 'KKO_DISP', 'media_rst_type': 'PS', 'media_source': 'kakao',
+             'media_media': 'display', 'desc': '카카오 모먼트', 'camp_prefix': 'KKO_PS_DISP_'},
+        72: {'title': 'DAUM_CPC', 'media_rst_type': 'PS', 'media_source': 'daum',
+             'media_media': 'cpc', 'desc': '카카오 모먼트', 'camp_prefix': 'DAUM_PS_CPC_'},
+        73: {'title': 'TG_CPC', 'media_rst_type': 'PS', 'media_source': 'targetinggates',
+             'media_media': 'cpc', 'desc': '타게팅게이츠', 'camp_prefix': 'TG_PS_CPC_'},
+        74: {'title': 'MOBON_CPC', 'media_rst_type': 'PS', 'media_source': 'mobon',
+             'media_media': 'cpc', 'desc': '모비온', 'camp_prefix': 'MBO_PS_CPC_'},
+        75: {'title': 'SMR_DISP', 'media_rst_type': 'PS', 'media_source': 'smr',
+             'media_media': 'display', 'desc': '포탈에 개시되는 동영상 광고, 항상 DISP', 'camp_prefix': 'SMR_PS_DISP_'},
+        # 100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
+        #       'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
+    }
+
+    __g_lstPnsContractInfo = [  # (id, title, tag_name)
         (1, '파블', 'REF'),
         (2, '체험단', 'REF'),
         (3, '상위노출', 'REF'),
@@ -114,50 +160,57 @@ class SvCampaignParser(sv_object.ISvObject):
     ]
     __g_dictPnsContractType = None  # {1:'파블', 2:'체험단', 3:'상위노출', 4:'인플루언서', 5:'카페활동', 6:'연관검색어'}
     __g_dictPnsContractTypeNamed = None  # {'파블':'REF', '체험단':'REF', '상위노출':'REF', '인플루언서':'REF', '카페활동':'REF', '연관검색어':'RELATED', '지식인활동':'REF'}
-    
-    __g_lstLatestSvCampaignPrefix = [
-        'NV_PS_CPC_',
-        'NV_PS_DISP_BRS_',
-        'NV_PNS_REF_',
-        'GG_PS_DISP_',
-        'GG_PS_CPC_',
-        'YT_PS_DISP_',
-        'YT_PS_CPC_',
-        'DAUM_PS_CPC_',
-        'KKO_PS_CPC_',
-        'FB_PS_CPC_',
-        'FB_PS_DISP_',
-        'FBIG_PS_CPC_',
-        'FBIG_PS_DISP_',
-        'IG_PS_CPC_',  # instagram designated
-        'IG_PS_DISP_',  # instagram designated
-        'FB_PNS_REF',
-        'TG_PS_CPC_',  # 타게팅게이츠
-        'MBO_PS_CPC_',  # 모비온
-        'SMR_PS_DISP_'  # SMR; 포탈에 개시되는 SMR 광고; 항상 DISP
-        ]
+
+    __g_lstLatestSvCampaignPrefix = [  # 'GG_PS_CPC_', 'GG_PS_DISP_'
+        # (1, 'GOOGLE_ADS', 'GG_PS_CPC_'),  # 구글 애즈 GDN  1
+        # (11, 'GG_DISP', 'GG_PS_DISP_'),  # 구글 애즈 GDN 1-1
+        # (2, 'YT_DISP', 'YT_PS_DISP_'),  # 유튜브 광고  2
+        # (21, 'YT_CPC', 'YT_PS_CPC_'),  # 유튜브 광고  2-1
+        # (3, 'FB_CPC', 'FB_PS_CPC_'),  # 페이스북 광고  3
+        # (31, 'FB_DISP', 'FB_PS_DISP_'),  # 페이스북 광고  3-1
+        # (32, 'FBIG_CPC', 'FBIG_PS_CPC_'),  # 페이스북 광고  3-2
+        # (33, 'FBIG_DISP', 'FBIG_PS_DISP_'),  # 페이스북 광고  3-3
+        # (34, 'IG_CPC', 'IG_PS_CPC_'),  # instagram designated  3-4
+        # (35, 'IG_DISP', 'IG_PS_DISP_'),  # instagram designated  3-5
+        # (36, 'FB_PNS', 'FB_PNS_REF_'),
+        # (4, 'NV_CPC', 'NV_PS_CPC_'),  # 네이버 CPC 광고  4
+        # (5, 'NVR_SEO', 'NV_PNS_REF_'),  # 네이버 바이럴  5
+        # (6, 'NVR_BRS', 'NV_PS_DISP_BRS_'),  # 네이버 브랜드 검색  6
+        # (7, 'KKO_CPC', 'KKO_PS_CPC_'),  # 7
+        # (71, 'KKO_DISP', 'KKO_PS_DISP_'),  # 7-1
+        # (72, 'DAUM_CPC', 'DAUM_PS_CPC_'),  # 7-2
+        # (73, '타게팅케이츠_CPC', 'TG_PS_CPC_'),  # 타게팅게이츠
+        # (74, '모비온_CPC', 'MBO_PS_CPC_'),  # 모비온
+        # (75, 'SMR_DISP', 'SMR_PS_DISP_')  # SMR; 포탈에 개시되는 SMR 광고; 항상 DISP
+    ]
     # __g_lstObsoleteSvCampaignPrefix = ['NVR_BRAND_SEARCH_MOB','NV_PS_BRSEARCH_MOB','NVR_BRAND_SEARCH_PC','NV_PS_BRSEARCH_PC','NV_PS_','NV_NS_','NVR_NS_','FB_NS_','DAUM_PS_']
-    __g_lstBrdedTag = ['_BRS_','_BR_']
-    __g_lstRmkTag = ['_RMK_','_GDNRMK_']
-    __g_lstGaUselessTerm = ['(not set)','(not provided)','(automatic matching)', 'undetermined', '(remarketing/content targeting)', '(user vertical targeting)']
+    __g_lstBrdedTag = ['_BRS_', '_BR_']
+    __g_lstRmkTag = ['_RMK_', '_GDNRMK_']
+    __g_lstGaUselessTerm = ['(not set)', '(not provided)', '(automatic matching)', 'undetermined',
+                            '(remarketing/content targeting)', '(user vertical targeting)']
     __g_lstBrandedTrunc = None
     # adwords placement reserved title begin
-    __g_lstAdwordsPlacement = [ 'World Localities', 'Travel', 'Sports', 'Science', 'Reference', 'Real Estate', 'Pets & Animals',
-            'People & Society', 'News', 'Law & Government', 'Home & Garden', 'Hobbies & Leisure', 'Health', 'Finance', 'Content', 
-            'Computers & Electronics', 'Business & Industrial', 'boomuserlist', 'Books & Literature', 'Beauty & Fitness',
-            'Autos & Vehicles', 'AutomaticContent', 'Arts & Entertainment', 
-            '18-24', '25-34', '35-44', '45-54', '55-64', '65 or more',
-            'Top 10%', '11-20%', '21-30%', '31-40%', '41-50%', 'Lower 50%', 'Undetermined' ]
+    __g_lstAdwordsPlacement = ['World Localities', 'Travel', 'Sports', 'Science', 'Reference', 'Real Estate',
+                               'Pets & Animals',
+                               'People & Society', 'News', 'Law & Government', 'Home & Garden', 'Hobbies & Leisure',
+                               'Health', 'Finance', 'Content',
+                               'Computers & Electronics', 'Business & Industrial', 'boomuserlist', 'Books & Literature',
+                               'Beauty & Fitness',
+                               'Autos & Vehicles', 'AutomaticContent', 'Arts & Entertainment',
+                               '18-24', '25-34', '35-44', '45-54', '55-64', '65 or more',
+                               'Top 10%', '11-20%', '21-30%', '31-40%', '41-50%', 'Lower 50%', 'Undetermined']
     # adwords placement reserved title end
-    
+
     __g_dictUaTag = {
-        'mobile_app':'M', 'mobile_web':'M', 'desktop':'P', # for facebook registration
-        'MOB': 'M', 'PC':'P', # for ga registration
-        'UNSPECIFIED':'M', 'UNKNOWN':'M', 'MOBILE':'M', 'TABLET':'M', 'DESKTOP':'P', 'CONNECTED_TV':'P', 'OTHER': 'M', # for google ads api registration
-        'Mobile devices with full browsers':'M', 'Tablets with full browsers': 'M', 'Other':'M', # for new adwords api registration
-        'Computers':'P', 'Devices streaming video content to TV screens':'P', # for old adwords api registration
-        'PC':'P', '기타':'P','Android':'M', 'iOS':'M' # for kakao ads registration
-        }
+        'mobile_app': 'M', 'mobile_web': 'M', 'desktop': 'P',  # for facebook registration
+        'MOB': 'M', 'PC': 'P',  # for ga registration
+        'UNSPECIFIED': 'M', 'UNKNOWN': 'M', 'MOBILE': 'M', 'TABLET': 'M', 'DESKTOP': 'P', 'CONNECTED_TV': 'P',
+        'OTHER': 'M',  # for google ads api registration
+        'Mobile devices with full browsers': 'M', 'Tablets with full browsers': 'M', 'Other': 'M',
+        # for new adwords api registration
+        'Computers': 'P', 'Devices streaming video content to TV screens': 'P',  # for old adwords api registration
+        'PC': 'P', '기타': 'P', 'Android': 'M', 'iOS': 'M'  # for kakao ads registration
+    }
 
     def __init__(self):
         self._g_oLogger = logging.getLogger(__file__)
@@ -167,22 +220,26 @@ class SvCampaignParser(sv_object.ISvObject):
         self.__g_dictSourceIdTag = {tup_single[0]: tup_single[2] for tup_single in self.__g_lstSourceInfo}
 
         self.__g_dictSearchRstIdTitle = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstSearchRstInfo}
-        self.__g_dictSearchResultTypeTagTitle = {tup_single[2]: tup_single[1] for tup_single in self.__g_lstSearchRstInfo}
+        self.__g_dictSearchResultTypeTagTitle = {tup_single[2]: tup_single[1] for tup_single in
+                                                 self.__g_lstSearchRstInfo}
         self.__g_dictSearchRstIdTag = {tup_single[0]: tup_single[2] for tup_single in self.__g_lstSearchRstInfo}
-        
+
         self.__g_dictMediumIdTitle = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstMediumInfo}
         self.__g_dictMediumTagTitle = {tup_single[2]: tup_single[1] for tup_single in self.__g_lstMediumInfo}
         self.__g_dictMediumIdTag = {tup_single[0]: tup_single[2] for tup_single in self.__g_lstMediumInfo}
-        
+
         self.__g_dictPnsContractType = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstPnsContractInfo}
         self.__g_dictPnsContractTypeNamed = {tup_single[1]: tup_single[2] for tup_single in self.__g_lstPnsContractInfo}
+
+        self.__g_lstLatestSvCampaignPrefix = [dict_source_medium['camp_prefix'] for _, dict_source_medium in
+                                              self.__g_dictSourceMediumType.items()]
 
     def close(self):
         pass
 
-    def get_ua(self, sUa):
+    def get_ua(self, s_ua):
         try:
-            return self.__g_dictUaTag[sUa]
+            return self.__g_dictUaTag[s_ua]
         except KeyError:
             return 'err_ua'
 
@@ -222,27 +279,35 @@ class SvCampaignParser(sv_object.ISvObject):
         if b_inverted:
             return {v: k for k, v in self.__g_dictSearchRstIdTag.items()}
         return self.__g_dictSearchRstIdTag
-    
+
     def get_sv_medium_tag(self, s_sv_medium_code):
         if s_sv_medium_code in self.__g_dictMediumTagTitle:
             return self.__g_dictMediumTagTitle[s_sv_medium_code]
         else:
             return False
-            
+
     def get_medium_type_id_title_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictMediumIdTitle.items()}
         return self.__g_dictMediumIdTitle
-    
+
     def get_medium_type_id_tag_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictMediumIdTag.items()}
         return self.__g_dictMediumIdTag
-    
+
+    def get_medium_type_tag_title_dict(self, b_inverted=False):
+        if b_inverted:
+            return {v: k for k, v in self.__g_dictMediumTagTitle.items()}
+        return self.__g_dictMediumTagTitle
+
     def get_pns_contract_type_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictPnsContractType.items()}
         return self.__g_dictPnsContractType
+
+    def get_source_medium_type_dict(self):
+        return self.__g_dictSourceMediumType
 
     def validate_sv_campaign_level_tag(self, s_sv_campaign_level_tag):
         """ 
@@ -256,7 +321,7 @@ class SvCampaignParser(sv_object.ISvObject):
             dict_rst['s_msg'] = 'empty string'
             return dict_rst
         if not s_sv_campaign_level_tag.isalnum():
-            print(s_sv_campaign_level_tag)
+            # print(s_sv_campaign_level_tag)
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'alphanumeric allowed only'
             return dict_rst
@@ -265,9 +330,9 @@ class SvCampaignParser(sv_object.ISvObject):
 
     def validate_ga_medium_tag(self, s_ga_medium_tag):
         s_ga_medium_tag = s_ga_medium_tag.lower()
-        dictRst = {'medium':'weird', 'found_pos':-1}
-        if s_ga_medium_tag in self.__g_dictGaMedium: # remedy erronous UTM parameter 
-            dictRst['medium'] = self.__g_dictGaMedium[s_ga_medium_tag] 
+        dictRst = {'medium': 'weird', 'found_pos': -1}
+        if s_ga_medium_tag in self.__g_dictGaMedium:  # remedy erronous UTM parameter
+            dictRst['medium'] = self.__g_dictGaMedium[s_ga_medium_tag]
         else:
             for sGaOfficialMediaCode in self.__g_dictGaMedium:
                 nPos = s_ga_medium_tag.find(sGaOfficialMediaCode)
@@ -275,7 +340,7 @@ class SvCampaignParser(sv_object.ISvObject):
                     dictRst['medium'] = self.__g_dictGaMedium[sGaOfficialMediaCode]
                     dictRst['found_pos'] = nPos
         return dictRst
-        
+
     def get_gad_placement_tag_by_term(self, sTerm):
         # aw means deprecated name of google ads
         for sAdwPlacement in self.__g_lstAdwordsPlacement:
@@ -305,17 +370,17 @@ class SvCampaignParser(sv_object.ISvObject):
             return self.__g_dictPnsContractTypeNamed[s_sv_service_type]
         else:
             raise Exception('stop')
-    
+
     def parse_campaign_code_fb(self, dict_camp_info):
-        dict_rst = {'source':'unknown', 'source_code': '', 'rst_type':'',
-                    'medium':'', 'medium_code': '', 'brd': 0,
-                    'campaign1st':'00','campaign2nd':'00','campaign3rd':'00',
+        dict_rst = {'source': 'unknown', 'source_code': '', 'rst_type': '',
+                    'medium': '', 'medium_code': '', 'brd': 0,
+                    'campaign1st': '00', 'campaign2nd': '00', 'campaign3rd': '00',
                     'detected': False}
-        if dict_camp_info['url_tags'] == 'n/a': # facebook inlink ad or outlink ad without UTM params
+        if dict_camp_info['url_tags'] == 'n/a':  # facebook inlink ad or outlink ad without UTM params
             sAdName = dict_camp_info['ad_name']
             dict_rst['rst_type'] = self.validate_search_rst_tag('SNS')
             if sAdName.find('게시물: ') > -1:
-                sNonSvCampaignCode = sAdName.replace('게시물: ', '').replace('"','').strip()
+                sNonSvCampaignCode = sAdName.replace('게시물: ', '').replace('"', '').strip()
                 dict_rst['source'] = self.get_source_tag('FB')
                 dict_rst['source_code'] = 'FB'
                 dict_rst['brd'] = 1
@@ -326,7 +391,7 @@ class SvCampaignParser(sv_object.ISvObject):
             elif sAdName.find('INSTAGRAM POST: ') > -1:
                 dict_rst['source'] = self.get_source_tag('IG')
                 dict_rst['source_code'] = 'IG'
-                sNonSvCampaignCode = sAdName.replace('Instagram Post: ', '').replace('"','').strip()
+                sNonSvCampaignCode = sAdName.replace('Instagram Post: ', '').replace('"', '').strip()
                 dict_rst['brd'] = 1
                 dict_rst['medium'] = self.get_sv_medium_tag('CPI')
                 dict_rst['medium_code'] = 'CPI'
@@ -350,7 +415,7 @@ class SvCampaignParser(sv_object.ISvObject):
                 #     dict_rst['brd'] = 1
                 #     dict_rst['medium'] = self.get_sv_medium_tag('CPI')  # self.__g_dictMediumTagTitle[ 'CPI' ]
                 #     dict_rst['campaign1st'] = sAdName
-        else: # facebook outlink ad
+        else:  # facebook outlink ad
             dictTempRst = self.__analyze_sv_campaign_code(dict_camp_info['campaign_code'])
             lstCampaignCode = dictTempRst['sv_code']
             if lstCampaignCode[0] in ['FB', 'IG', 'FBIG'] and \
@@ -368,7 +433,8 @@ class SvCampaignParser(sv_object.ISvObject):
                     dict_rst['campaign3rd'] = lstCampaignCode[5]
                 except IndexError:
                     pass
-            elif lstCampaignCode[0] == '{{AD.NAME}}' or lstCampaignCode[0] == '{{ADSET.NAME}}' or lstCampaignCode[0] == '{{CAMPAIGN.NAME}}':
+            elif lstCampaignCode[0] == '{{AD.NAME}}' or lstCampaignCode[0] == '{{ADSET.NAME}}' or lstCampaignCode[
+                0] == '{{CAMPAIGN.NAME}}':
                 dict_rst['rst_type'] = self.validate_search_rst_tag('PS')
                 dict_rst['medium'] = self.get_sv_medium_tag('CPC')
                 dict_rst['campaign1st'] = dict_camp_info['ad_name']
@@ -484,17 +550,17 @@ class SvCampaignParser(sv_object.ISvObject):
         #         dict_rst['detected'] = True
         #     else:
         #         dict_rst['campaign1st'] = s_sv_campaign_code.strip()
-            
+
         #     if dict_rst['campaign1st'].find('BR') > -1:
         #         dict_rst['brd'] = 1
         return dict_rst
-    
+
     def get_branded_trunc(self, s_brded_terms_path):
         """ 
         called by self.decideBrandedByTerm()
         call from svload.pandas_plugins.brded_term:get_list() 
         """
-        if self.__g_lstBrandedTrunc != None: # sentinel to prevent duplicated process
+        if self.__g_lstBrandedTrunc != None:  # sentinel to prevent duplicated process
             return self.__g_lstBrandedTrunc
         lst_branded_trunc = []
         if s_brded_terms_path.find('/branded_term.conf') > -1:
@@ -507,7 +573,7 @@ class SvCampaignParser(sv_object.ISvObject):
             except FileNotFoundError:
                 pass
         return self.__get_unique_sored_trimmed_list(lst_branded_trunc)
-    
+
     def set_branded_trunc(self, s_brded_terms_path, lst_line):
         """ call from svload.pandas_plugins.brded_term:update_list() """
         dict_rst = {'updated': False}
@@ -551,7 +617,6 @@ class SvCampaignParser(sv_object.ISvObject):
                     break
         return dict_rst
 
-
-#if __name__ == '__main__': # for console debugging
+# if __name__ == '__main__': # for console debugging
 #	oSvCampaignParser = SvCampaignParser()
 #	oSvCampaignParser.sendMsg('ddd')

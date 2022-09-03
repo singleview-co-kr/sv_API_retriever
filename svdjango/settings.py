@@ -180,6 +180,8 @@ ADMIN_ORDERING = [
         'Brand',
         'DataSource',
         'DataSourceDetail',
+        'MediaAgency',
+        'Contract',
     ]),
     ('svauth', [
         'User',

@@ -122,6 +122,7 @@
                         <thead>
                         <tr>
                             <th>계정 분류</th>
+                            <th>매체대행사</th>
                             <th>회계연월</th>
                             <th>메모</th>
                             <th>목표액(VAT포함, 원)</th>
@@ -135,6 +136,7 @@
                         {% for dict_row in lst_budget_table %}
                         <tr>
                             <td title="{{dict_row.desc}}">{{dict_row.title}}</td>
+                            <td>{{dict_row.media_agency_name}}</td>
                             <td>{{dict_row.alloc_period}}</td>
                             <td><a budget_id="{{dict_row.id}}" class="lnk_update_budget"><u>{{dict_row.memo}}</u></a></td>
                             <td>{{dict_row.target_amnt_inc_vat|intcomma}}</td>
@@ -151,6 +153,7 @@
                         <thead>
                         <tr>
                             <th>계정 분류</th>
+                            <th>매체대행사</th>
                             <th>회계연월</th>
                             <th>예산 설명</th>
                             <th>목표액(VAT포함, 원)</th>
@@ -169,6 +172,14 @@
                                 <option value="">분류 선택</option>
                                 {% for dic_acct in lst_acct_list %}
                                     <option value="{{dic_acct.n_acct_id}}">{{dic_acct.s_budget_acct_ttl}}</option>
+                                {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-control" name="media_agency_id">
+                                <option value="">매체 대행사 선택</option>
+                                {% for n_id, s_agency_name in dict_agency_list.items %}
+                                    <option value="{{n_id}}">{{s_agency_name}}</option>
                                 {% endfor %}
                                 </select>
                             </td>
@@ -198,7 +209,7 @@ https://taitems.github.io/jQuery.Gantt/ 방식으로 표시?
 <script>
 jQuery(document).ready(function() {
     jQuery('#datatable-responsive').DataTable({
-        "order": [[ 5, "desc" ]]
+        "order": [[ 6, "desc" ]]
     });
 });
 

@@ -134,6 +134,7 @@
                         <thead>
                         <tr class="headings">
                             <th class="column-title">Source_Medium</th>
+                            <th class="column-title">대행사</th>
                             <th class="column-title">비용 목표</th>
                             <th class="column-title">비용 MTD</th>
                             <th class="column-title">비용 예상</th>
@@ -146,6 +147,7 @@
                           {% for s_source_medium, dict_row in dict_gross_tm.items %}
                           <tr class="even pointer">
                               <td class="">{{s_source_medium}}</td>
+                              <td class="">{{dict_row.s_media_agency_title}}</td>
                               <td class="">{{dict_row.n_budget_tgt_amnt_inc_vat|intcomma}}</td>
                               <td class="">{{dict_row.media_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
                               <td class="">{{dict_row.media_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
@@ -156,11 +158,12 @@
                                 {% for s_campaign, dict_camp_row in dict_row.dict_campaign.items %}
                           <tr class="even pointer">
                               <td class=""> &#10136; {{s_campaign}} </td>
+                              <td class="">{{dict_camp_row.s_media_agency_title}} </td>
                               <td class="">{{dict_camp_row.n_budget_tgt_amnt_inc_vat|intcomma}}</td>
                               <td class="">{{dict_camp_row.campaign_gross_cost_inc_vat|floatformat:0|intcomma}}</td>
                               <td class="">{{dict_camp_row.campaign_gross_cost_inc_vat_ttl|floatformat:0|intcomma}}</td>
-                              <td class=""></td>
-                              <td class=" last"></td>
+                              <td class="">{{dict_camp_row.n_agency_fee_inc_vat|floatformat:0|intcomma}}</td>
+                              <td class=" last">{{dict_camp_row.n_agency_fee_inc_vat_est|floatformat:0|intcomma}}</td>
                           </tr>
                                 {% endfor %}
                             {% endif %}

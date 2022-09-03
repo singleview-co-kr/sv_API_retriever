@@ -261,6 +261,9 @@ class SvMySql(sv_object.ISvObject):
         if self.__g_oConn:
             self.__g_oConn.commit()
 
+    def disconnect(self):
+        self.__disconnect()
+
     def __execute_query(self, s_sql_compiled, params=None):
         """
         execute query

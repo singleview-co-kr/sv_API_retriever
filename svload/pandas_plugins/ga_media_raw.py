@@ -422,18 +422,40 @@ class GaSourceMediaRaw:
                                                                self.__g_dfPeriodDataRaw['media_agency_cost'] + \
                                                                self.__g_dfPeriodDataRaw['media_cost_vat']
         # begin - retrieve agency fee
+        # begin - construct source-medium level summary
         df_by_source_medium = self.__g_dfPeriodDataRaw.groupby(['media_source', 'media_media']).sum()
         df = df_by_source_medium.sort_values(['media_gross_cost_inc_vat'], ascending=False)
-        for i, df_row in df.iterrows():
-            if df_row['media_agency_cost'] > 0:
-                n_agency_fee_inc_vat = df_row['media_agency_cost'] * 1.1  # add VAT  #
-                self.__g_dictBudgetInfo['_'.join(df_row.name)] = {
+        for i, df_row_sm in df.iterrows():
+            if df_row_sm['media_agency_cost'] > 0:
+                n_agency_fee_inc_vat = df_row_sm['media_agency_cost'] * 1.1  # add VAT
+                self.__g_dictBudgetInfo['_'.join(df_row_sm.name)] = {
+                    's_media_agency_title': 'N/A',
                     'n_budget_tgt_amnt_inc_vat': 0,
                     'n_agency_fee_inc_vat': n_agency_fee_inc_vat,
                     'n_agency_fee_inc_vat_est': 0,
                     'f_est_factor': 1,
                     'b_campaign_level': False
                 }
+        del df_row_sm
+        # end - construct source-medium level summary
+        # begin - construct sv-campaign level summary
+        dict_source_ttl_tag = self.__g_oSvCampaignParser.get_source_tag_title_dict(b_inverted=True)
+        dict_medium_ttl_tag = self.__g_oSvCampaignParser.get_medium_type_tag_title_dict(b_inverted=True)
+        df_by_sv_campaign = self.__g_dfPeriodDataRaw.groupby(
+            ['media_source', 'media_rst_type', 'media_media', 'media_camp1st', 'media_camp2nd', 'media_camp3rd']).sum()
+        df_camp = df_by_sv_campaign.sort_values(['media_gross_cost_inc_vat'], ascending=False)
+        df_camp = df_camp[(df_camp.media_gross_cost_inc_vat > 0)]
+        dict_camp_lvl_budget = {}
+        for i, df_camp_row in df_camp.iterrows():
+            if df_camp_row['media_agency_cost'] > 0:
+                s_camp_id_uniq = dict_source_ttl_tag[df_camp_row.name[0]] + '_' + df_camp_row.name[1] + '_' + \
+                                 dict_medium_ttl_tag[df_camp_row.name[2]] + '_' + df_camp_row.name[3] + '_' + \
+                                 df_camp_row.name[4] + '_' + df_camp_row.name[5]
+                dict_camp_lvl_budget[s_camp_id_uniq] = {
+                    'n_agency_fee_inc_vat': df_camp_row['media_agency_cost'] * 1.1,  # add VAT
+                }
+        del df_camp
+        # end - construct sv-campaign level summary
         # end - retrieve agency fee
         # begin - retrieve planned budget
         from .budget import Budget
@@ -441,34 +463,56 @@ class GaSourceMediaRaw:
         dict_budget = o_budget.get_budget_amnt_by_period(dt_start=self.__g_dtDesignatedFirstDate,
                                                          dt_end=dt_last_date_of_month)
         del o_budget
-        for s_source_medium, dict_budget in dict_budget.items():
-            if s_source_medium in self.__g_dictBudgetInfo:  #.keys():  # update existing
-                self.__g_dictBudgetInfo[s_source_medium]['n_budget_tgt_amnt_inc_vat'] = \
-                    dict_budget['n_budget_tgt_amnt_inc_vat']
-                f_est_factor = self.__get_estimate_factor(dict_budget['dt_period_start'], dict_budget['dt_period_end'])
+        for s_sm, dict_budget_single in dict_budget.items():  # sm means source-medium
+            # print(s_sm)
+            if s_sm in self.__g_dictBudgetInfo:  # update existing
+                self.__g_dictBudgetInfo[s_sm]['s_media_agency_title'] = dict_budget_single['s_media_agency_title']
+
+                self.__g_dictBudgetInfo[s_sm]['n_budget_tgt_amnt_inc_vat'] = \
+                    dict_budget_single['n_budget_tgt_amnt_inc_vat']
+                f_est_factor = self.__get_estimate_factor(dict_budget_single['dt_period_start'],
+                                                          dict_budget_single['dt_period_end'])
                 if f_est_factor >= 1:  # f_est_factor == 1 means budget schedule has been finished
-                    self.__g_dictBudgetInfo[s_source_medium]['n_agency_fee_inc_vat_est'] = \
-                        self.__g_dictBudgetInfo[s_source_medium]['n_agency_fee_inc_vat'] * f_est_factor
-                self.__g_dictBudgetInfo[s_source_medium]['f_est_factor'] = f_est_factor
+                    self.__g_dictBudgetInfo[s_sm]['n_agency_fee_inc_vat_est'] = \
+                        self.__g_dictBudgetInfo[s_sm]['n_agency_fee_inc_vat'] * f_est_factor
+                self.__g_dictBudgetInfo[s_sm]['f_est_factor'] = f_est_factor
             else:  # add new
-                self.__g_dictBudgetInfo[s_source_medium] = {
-                    'n_budget_tgt_amnt_inc_vat': dict_budget['n_budget_tgt_amnt_inc_vat'],
+                self.__g_dictBudgetInfo[s_sm] = {
+                    's_media_agency_title': dict_budget_single['s_media_agency_title'],
+                    'n_budget_tgt_amnt_inc_vat': dict_budget_single['n_budget_tgt_amnt_inc_vat'],
                     'n_agency_fee_inc_vat': 0,
                     'n_agency_fee_inc_vat_est': 0,
                     'f_est_factor': 1,
                     'b_campaign_level': False
                 }
             # begin - arrange campaign level budget if exists
-            if dict_budget['b_campaign_level']:
-                self.__g_dictBudgetInfo[s_source_medium]['b_campaign_level'] = True
-                self.__g_dictBudgetInfo[s_source_medium]['dict_campaign'] = {}
-                for s_camp_title, dict_single_campaign in dict_budget['dict_campaign'].items():
+            if dict_budget_single['b_campaign_level']:
+                self.__g_dictBudgetInfo[s_sm]['b_campaign_level'] = True
+                self.__g_dictBudgetInfo[s_sm]['dict_campaign'] = {}
+                for s_camp_title, dict_single_campaign in dict_budget_single['dict_campaign'].items():
                     n_budget_tgt_amnt_inc_vat = dict_single_campaign['n_budget_tgt_amnt_inc_vat']
                     f_est_factor = self.__get_estimate_factor(dict_single_campaign['dt_period_start'],
                                                               dict_single_campaign['dt_period_end'])
-                    self.__g_dictBudgetInfo[s_source_medium]['dict_campaign'][s_camp_title] = \
-                        {'n_budget_tgt_amnt_inc_vat': n_budget_tgt_amnt_inc_vat, 'f_est_factor': f_est_factor}
+                    if s_camp_title in dict_camp_lvl_budget:
+                        n_agency_fee_inc_vat = dict_camp_lvl_budget[s_camp_title]['n_agency_fee_inc_vat']
+                    else:
+                        n_agency_fee_inc_vat = 0
+                    # if f_est_factor >= 1:  # f_est_factor == 1 means budget schedule has been finished
+                    #     n_agency_fee_inc_vat_est = n_agency_fee_inc_vat * f_est_factor
+                    # else:
+                    #     n_agency_fee_inc_vat_est = 0
+                    self.__g_dictBudgetInfo[s_sm]['dict_campaign'][s_camp_title] = {
+                        's_media_agency_title': dict_single_campaign['s_media_agency_title'],
+                        'n_budget_tgt_amnt_inc_vat': n_budget_tgt_amnt_inc_vat,
+                        'n_agency_fee_inc_vat': n_agency_fee_inc_vat,
+                        'f_est_factor': f_est_factor
+                    }
             # end - arrange campaign level budget if exists
+        # begin - clear campaign level budget related
+        del dict_camp_lvl_budget
+        del dict_source_ttl_tag
+        del dict_medium_ttl_tag
+        # end - clear campaign level budget related
         # end - retrieve planned budget
         # remove unnecessary columns to minimize DF sum() overload
         del self.__g_dfPeriodDataRaw['media_raw_cost']
