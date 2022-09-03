@@ -19,14 +19,16 @@ class DataSourceDetailForm(forms.ModelForm):
         # make extra field read-only
         # https://stackoverflow.com/questions/67555787/django-forms-how-to-make-certain-fields-readonly-except-for-superuser
         # self.fields['s_begin_date'].widget.attrs['disabled'] = 'disabled'
-
-        o_data_source_detail = kwargs['instance']
-        self.fields['s_acct_name'].initial = str(o_data_source_detail.sv_data_source.sv_brand.sv_acct)
-        self.fields['s_acct_name'].widget.attrs['readonly'] = True
-        self.fields['s_brand_name'].initial = str(o_data_source_detail.sv_data_source.sv_brand)
-        self.fields['s_brand_name'].widget.attrs['readonly'] = True
-        self.fields['n_datasource_id'].initial = o_data_source_detail.pk
-        self.fields['n_datasource_id'].widget.attrs['readonly'] = True
+        # avoid exception when try to append source-detail
+        # appending new item on source-detail screen is disallowed on admin.py::DataSourceDetailAdmin
+        if 'instance' in kwargs:
+            o_data_source_detail = kwargs['instance']
+            self.fields['s_acct_name'].initial = str(o_data_source_detail.sv_data_source.sv_brand.sv_acct)
+            self.fields['s_acct_name'].widget.attrs['readonly'] = True
+            self.fields['s_brand_name'].initial = str(o_data_source_detail.sv_data_source.sv_brand)
+            self.fields['s_brand_name'].widget.attrs['readonly'] = True
+            self.fields['n_datasource_id'].initial = o_data_source_detail.pk
+            self.fields['n_datasource_id'].widget.attrs['readonly'] = True
 
         # self.fields['s_fee_type'] = forms.ChoiceField(
         #     choices=lst_tup_type,

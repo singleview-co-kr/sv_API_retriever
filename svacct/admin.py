@@ -265,6 +265,10 @@ class DataSourceDetailAdmin(admin.ModelAdmin):
     def get_brand(self, obj):
         return obj.sv_data_source.sv_brand
 
+    def has_add_permission(self, request, obj=None):  # disallow source-detail appending
+        # https://stackoverflow.com/questions/4143886/django-admin-disable-the-add-action-for-a-specific-model
+        return False
+
     def get_readonly_fields(self, request, obj=None):
         if obj:  # make a field read-only if edit an existing object
             return self.readonly_fields + ('sv_data_source',)
