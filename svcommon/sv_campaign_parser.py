@@ -128,7 +128,7 @@ class SvCampaignParser(sv_object.ISvObject):
         36: {'title': 'FB_PNS', 'media_rst_type': 'PS', 'media_source': 'facebook',
              'media_media': 'organic', 'desc': '페이스북 유료 자연검색 광고', 'camp_prefix': 'FB_PNS_REF_'},
         4: {'title': 'NVR_CPC', 'media_rst_type': 'PS', 'media_source': 'naver',
-            'media_media': 'cpc', 'desc': '네이버 키워드 광고', 'camp_prefix': 'GG_PS_CPC_'},
+            'media_media': 'cpc', 'desc': '네이버 키워드 광고', 'camp_prefix': 'NV_PS_CPC_'},
         5: {'title': 'NVR_SEO', 'media_rst_type': 'PNS', 'media_source': 'naver',
             'media_media': 'organic', 'desc': '네이버 블로그 바이럴', 'camp_prefix': 'NV_PNS_REF_'},
         6: {'title': 'NVR_BRS', 'media_rst_type': 'PS', 'media_source': 'naver',
