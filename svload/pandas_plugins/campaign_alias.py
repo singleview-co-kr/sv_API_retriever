@@ -1,3 +1,4 @@
+import re
 import sys
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 class CampaignAliasInfo:
     """ depends on svplugins.ga_register_db.item_performance """
     # __g_bPeriodDebugMode = False
+    __g_oRegEx = re.compile(r'<.*?>')  # remove all HTML tag
     __g_oSvDb = None
     __g_dictSourceIdTitle = None
     # __g_dictSourceTitleId = None
@@ -199,6 +201,7 @@ class CampaignAliasInfo:
                                         dict_rst['dict_ret']['s_sv_lvl_2'], 
                                         dict_rst['dict_ret']['s_sv_lvl_3'],
                                         dict_rst['dict_ret']['s_sv_lvl_4'], 
+                                        dict_rst['dict_ret']['memo'], 
                                         dict_rst['dict_ret']['dt_regdate'])
         return dict_rst
     
@@ -219,6 +222,7 @@ class CampaignAliasInfo:
                                         dict_rst['dict_ret']['s_sv_lvl_2'], 
                                         dict_rst['dict_ret']['s_sv_lvl_3'],
                                         dict_rst['dict_ret']['s_sv_lvl_4'],
+                                        dict_rst['dict_ret']['memo'], 
                                         n_alias_id)
         return
 
@@ -253,7 +257,7 @@ class CampaignAliasInfo:
             s_sv_lvl_4 = None
             dt_regdate = datetime.strptime(lst_single_line[7], '%Y-%m-%d')
             self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_media_campaign_title,
-                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, dt_regdate)
+                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, '', dt_regdate)  # blank memo
 
             del dt_regdate
         del lst_line
@@ -281,7 +285,7 @@ class CampaignAliasInfo:
     def __validate_alias_single(self, request):
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         lst_query_title = ['media_campaign_title', 'source_id', 'search_rst_type_id', 
-                            'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'regdate']
+                            'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'memo', 'regdate']
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))
@@ -310,12 +314,12 @@ class CampaignAliasInfo:
         s_sv_lvl_4 = None
         del o_sv_campaign_parser
 
-        if request.POST['act'] != 'update_alias' and len(lst_query_value[7]) > 0:
+        if request.POST['act'] != 'update_alias' and len(lst_query_value[8]) > 0:
             try:
-                dt_regdate = datetime.strptime(lst_query_value[7], '%Y-%m-%d')
+                dt_regdate = datetime.strptime(lst_query_value[8], '%Y-%m-%d')
             except ValueError:
                 dict_rst['b_error'] = True
-                dict_rst['s_msg'] = lst_query_title[7] + ' is invalid date'
+                dict_rst['s_msg'] = lst_query_title[8] + ' is invalid date'
                 return dict_rst
         else:
             dt_regdate = datetime.today()
@@ -328,8 +332,15 @@ class CampaignAliasInfo:
                                 's_sv_lvl_2': s_sv_lvl_2, 
                                 's_sv_lvl_3': s_sv_lvl_3, 
                                 's_sv_lvl_4': s_sv_lvl_4, 
+                                'memo': self.__remove_html(lst_query_value[7]),
                                 'dt_regdate': dt_regdate}
         return dict_rst
+
+    def __remove_html(self, s_original):
+        if len(s_original):
+            return re.sub(self.__g_oRegEx, '', s_original)
+        else:
+            return ''
 
     def __construct_sv_campaign_convention(self, dict_single_alias):
         s_source_title = self.__g_dictSourceIdTitle[dict_single_alias['source_id']]

@@ -26,6 +26,7 @@
 import logging
 import csv
 import sys
+import re
 
 # 3rd party library
 
@@ -45,6 +46,8 @@ class SvCampaignParser(sv_object.ISvObject):
         TG=targetinggates
         how to categorize owned NS & owned SNS
     """
+    __g_oRegEx = re.compile(r'^[A-Za-z0-9-]+$')  # pattern ex) GA3AGE-H
+
     # __g_oLogger = None
     # caution! sv campaign code does not allow NS but allow PNS only, as pure NS could not be designated
     __g_lstSourceInfo = [  # (id, title, tag_name)
@@ -320,8 +323,10 @@ class SvCampaignParser(sv_object.ISvObject):
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'empty string'
             return dict_rst
-        if not s_sv_campaign_level_tag.isalnum():
-            # print(s_sv_campaign_level_tag)
+        
+        # if not s_sv_campaign_level_tag.isalnum():
+        m = self.__g_oRegEx.search(s_sv_campaign_level_tag)  # match() vs search()
+        if not m:  # if invalid campaign_level_tag string
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'alphanumeric allowed only'
             return dict_rst
