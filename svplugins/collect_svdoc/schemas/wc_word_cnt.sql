@@ -8,6 +8,7 @@ CREATE TABLE `wc_word_cnt` (
   `logdate` DATETIME NOT NULL,
   PRIMARY KEY (`log_srl`),
   KEY `idx_document_srl` (`document_srl`),
+  KEY `idx_module_srl` (`module_srl`),
   KEY `idx_word_srl` (`word_srl`),
   KEY `idx_logdate` (`logdate`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

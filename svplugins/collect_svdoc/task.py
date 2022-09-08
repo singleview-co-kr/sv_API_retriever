@@ -55,11 +55,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 14th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 8th, Sep 2022')
         self.__g_oConfig = configparser.ConfigParser()
         self._g_dictParam.update({'mode':None, 
                                     'target_host_url':None,  # for sv doc retrieval
-                                    'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None  # for morpeheme analysis
+                                    'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None,  # for morpeheme analysis
+                                    'module_srl': None  # for module-level retrieval
                                 })
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -79,6 +80,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_comma_sep_words = self._g_dictParam['words']
         s_start_yyyymmdd = self._g_dictParam['start_yyyymmdd']
         s_end_yyyymmdd = self._g_dictParam['end_yyyymmdd']
+        s_module_srl = self._g_dictParam['module_srl']
 
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
@@ -125,7 +127,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
                                         self._printDebug, self._printProgressBar, self._continue_iteration,
                                         self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
-                                        s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd)
+                                        s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd, s_module_srl)
             o_sv_morpheme_retriever.do_task()
             del o_sv_morpheme_retriever
         else:
@@ -154,6 +156,9 @@ if __name__ == '__main__': # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1
     # collect_svdoc mode=retrieve
     # collect_svdoc mode=analyze_new
+    # collect_svdoc mode=tag_ignore_word words=a,b,c,d
+    # collect_svdoc mode=add_custom_noun words=a,b,c,d
+    # collect_svdoc mode=get_period start_yyyymmdd=20220101 end_yyyymmdd=20220102 module_srl=1234
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob: # to enforce to call plugin destructor
@@ -161,4 +166,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [config_loc] [mode] [target_host_url] params are required for console execution.')
+        print('warning! [config_loc] [mode] params are required for console execution.')

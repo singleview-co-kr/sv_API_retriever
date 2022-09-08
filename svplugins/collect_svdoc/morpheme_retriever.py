@@ -71,6 +71,7 @@ class SvMorphRetriever():
         self.__g_sCommaSeparatedWords = None
         self.__g_sStartYyyymmdd = None
         self.__g_sEndYyyymmdd = None
+        self.__g_sModuleSrl = None
         self.__g_dictCountingNouns = {}
         self.__g_lstCountingNounsSrl = []
         self.__g_dictRegisteredNouns = {}
@@ -90,6 +91,7 @@ class SvMorphRetriever():
         self.__g_sCommaSeparatedWords = None
         self.__g_sStartYyyymmdd = None
         self.__g_sEndYyyymmdd = None
+        self.__g_sModuleSrl = None
         self.__g_dictCountingNouns = {}
         self.__g_lstCountingNounsSrl = []
         self.__g_dictRegisteredNouns = {}
@@ -98,7 +100,8 @@ class SvMorphRetriever():
     def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
                     f_print_debug, f_print_progress_bar, f_continue_iteration,
                     s_plugin_name, s_abs_root_path, s_sv_storage_root,
-                    s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd):
+                    s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd,
+                    s_module_srl):
         self.__g_dictSvAcctInfo = dict_sv_acct_info
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -111,6 +114,7 @@ class SvMorphRetriever():
         self.__g_sCommaSeparatedWords = s_comma_sep_words
         self.__g_sStartYyyymmdd = s_start_yyyymmdd
         self.__g_sEndYyyymmdd = s_end_yyyymmdd
+        self.__g_sModuleSrl = s_module_srl
 
     def do_task(self):
         import nltk  # this import disturbs the plugin turn into __del__() automatically
@@ -129,22 +133,21 @@ class SvMorphRetriever():
             self.__print_debug('tag_ignore_word')
             self.__tag_ignore_word()
             self.__load_custom_noun()
-            # self.__register_new_word_cnt(s_acct_title)
             lst_noun = self.__retrieve_word_cnt()
-            self.__print_debug(lst_noun)
+            self.__print_lst_noun(lst_noun)
         elif self.__g_sMode == 'add_custom_noun':
             self.__print_debug('add_custom_noun')
             self.__add_custom_noun()
             self.__load_custom_noun()
             self.__register_new_word_cnt()
             lst_noun = self.__retrieve_word_cnt()
-            self.__print_debug(lst_noun)
+            self.__print_lst_noun(lst_noun)
         elif self.__g_sMode == 'analyze_new':
             self.__print_debug('analyze_new')
             self.__load_custom_noun()
             self.__register_new_word_cnt()
             lst_noun = self.__retrieve_word_cnt()
-            self.__print_debug(lst_noun)
+            self.__print_lst_noun(lst_noun)
         elif self.__g_sMode == 'get_period':
             self.__print_debug('get_period')
             dict_period = {'dt_start': None, 'dt_end': None}
@@ -153,8 +156,12 @@ class SvMorphRetriever():
             if self.__g_sEndYyyymmdd:
                 dict_period['dt_end'] = datetime.strptime(self.__g_sEndYyyymmdd, '%Y%m%d')
             
-            lst_noun = self.__retrieve_word_cnt(dict_period)
-            self.__print_debug(lst_noun)
+            if self.__g_sModuleSrl:
+                n_module_srl = int(self.__g_sModuleSrl)
+            else:
+                n_module_srl = None
+            lst_noun = self.__retrieve_word_cnt(dict_period, n_module_srl)
+            self.__print_lst_noun(lst_noun)
         else:
             self.__print_debug('weird')
             return
@@ -177,7 +184,11 @@ class SvMorphRetriever():
         except TypeError:  # len(lst_noun) occurs exception if interrupted on a web console
             self.__print_debug('Processing has been interrupted abnormally')
             return
-            
+
+    def __print_lst_noun(self, lst_noun):
+        for tup_single in lst_noun:
+            self.__print_debug(tup_single[0] + '\t' + str(tup_single[1]))
+
     def __tag_ignore_word(self):
         lst_ignore_word = self.__g_sCommaSeparatedWords.split(',')
 
@@ -282,7 +293,7 @@ class SvMorphRetriever():
                     #print(s_pure_english + lst_kor_morpheme[0])
                     lst_eng_kor_word.append(s_pure_english + lst_kor_morpheme[0])
                 elif len(s_pure_english) > 1:
-                        lst_eng_kor_word.append(s_pure_english)
+                    lst_eng_kor_word.append(s_pure_english)
         # end - eng + kor combined morpheme
         ################################
         return lst_eng_kor_word
@@ -301,13 +312,29 @@ class SvMorphRetriever():
         # end - pure Korean morpheme
         return lst_counting_word
 
-    def __retrieve_word_cnt(self, dict_period=None):
+    def __retrieve_word_cnt(self, dict_period=None, n_module_srl=None):
         if dict_period is None:
-            b_mode = 'full_period'
+            s_period_mode = 'full_period'
         elif dict_period['dt_start'] is None or dict_period['dt_end'] is None:
-            b_mode = 'full_period'
+            s_period_mode = 'full_period'
         else:
-            b_mode = 'partial_period'
+            s_period_mode = 'partial_period'
+
+        print(s_period_mode)
+        if n_module_srl is None:
+            s_module_mode = 'all'
+        elif n_module_srl > 0:
+            s_module_mode = 'specific'
+        
+        if s_module_mode == 'specific':  # validate module srl
+            with sv_mysql.SvMySql() as o_sv_mysql:
+                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.collect_svdoc')
+                o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
+                lst_validate_module_srl = o_sv_mysql.executeQuery('getWordCntByModuleSrlCnt', n_module_srl)
+                if lst_validate_module_srl[0]['count(*)'] == 0:
+                    self.__print_debug('invalid module_srl')
+                    return
 
         n_iter_cnt = 1
         with sv_mysql.SvMySql() as o_sv_mysql:
@@ -320,10 +347,14 @@ class SvMorphRetriever():
                 self.__g_dictCountingNouns[dict_row['word_srl']] = dict_row['word']
             del lst_counting_words_rst
             
-            if  b_mode == 'partial_period':
-                lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriod', dict_period['dt_start'], dict_period['dt_end'])
-            elif b_mode == 'full_period':
+            if s_period_mode == 'full_period' and s_module_mode == 'all':
                 lst_rst = o_sv_mysql.executeQuery('getWordCnt')
+            elif s_period_mode == 'partial_period' and s_module_mode == 'all':
+                lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriodAllModule', dict_period['dt_start'], dict_period['dt_end'])
+            elif s_period_mode == 'full_period' and s_module_mode == 'specific':
+                lst_rst = o_sv_mysql.executeQuery('getWordCntByModuleSrl', n_module_srl)
+            elif s_period_mode == 'partial_period' and s_module_mode == 'specific':
+                lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriodModuleSrl', dict_period['dt_start'], dict_period['dt_end'], n_module_srl)
             
             self.__print_debug(str(len(lst_rst)) + ' documents')
             for dict_row in lst_rst:
