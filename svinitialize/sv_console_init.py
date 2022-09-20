@@ -87,8 +87,9 @@ class svInitialize():
         # write .env file.
         s_template = self.__read_template_file(self.__g_sEnvFileName)
         with open(self.__g_sEnvPath, 'w', encoding='utf-8') as out:
-           out.write(s_template.format(self.__g_sRootPath, 'True', self.__get_secret_key(), s_allowed_host_csv,
-                    str(n_mysql_db_port), s_db_hostname, lst_param_val[0], lst_param_val[1], lst_param_val[2], s_db_charset, lst_param_val[3]))
+            out.write(s_template.format(self.__g_sRootPath, 'True', self.__get_secret_key(), s_allowed_host_csv,
+                                        str(n_mysql_db_port), s_db_hostname, lst_param_val[0], lst_param_val[1],
+                                        lst_param_val[2], s_db_charset, lst_param_val[3]))
 
         sys.stdout.write('console initialization has been completed\nrun python manage.py runserver 0.0.0.0:8000\n')
         return 'stop'

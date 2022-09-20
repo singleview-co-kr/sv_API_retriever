@@ -1,0 +1,8 @@
+[COMMON]
+web_hook_url = {}
+bot_name = {}
+slack_user_oauth_token = {}
+[DBS]
+channel = {}
+[DBO]
+channel = {}
