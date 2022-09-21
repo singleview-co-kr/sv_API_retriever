@@ -89,10 +89,8 @@ def main(client_secrets_path, scopes):
     """
     # begin - singleview appending
     if not os.path.isdir(_sConfPath):
-        try:
-            os.makedirs(_sConfPath)  # check conf directory
-        except OSError:
-            print('Error: Creating directory. ' + _sConfPath)
+        print('Error: you must begin with running manage.py in the root directory')
+        return
     if os.path.isfile(_sGoogleAdsYamlFileName):
         print(_sGoogleAdsYamlFileName + " already exists, carefully remove old file if you want to continue")
         return

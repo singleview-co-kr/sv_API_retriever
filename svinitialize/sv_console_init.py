@@ -8,6 +8,8 @@ class svInitialize():
     __g_bInitMode = False
     __g_sEnvPath = None
     __g_sRootPath = None
+    __g_lstSystemDirectory = ['conf', 'storage', 'media']  # media will be deprecated
+
     """
     Encapsulate the logic of the django-admin and manage.py utilities.
     """
@@ -91,6 +93,15 @@ class svInitialize():
                                         str(n_mysql_db_port), s_db_hostname, lst_param_val[0], lst_param_val[1],
                                         lst_param_val[2], s_db_charset, lst_param_val[3]))
 
+        # create system directories
+        for s_dir in self.__g_lstSystemDirectory:
+            s_dir_path = os.path.join(self.__g_sRootPath, s_dir)
+            if not os.path.isdir(s_dir_path):
+                try:
+                    os.makedirs(s_dir_path)
+                except OSError:
+                    print('Error: Creating directory. ' + s_dir_path)
+                
         sys.stdout.write('console initialization has been completed\nrun python manage.py runserver 0.0.0.0:8000\n')
         return 'stop'
 
