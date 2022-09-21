@@ -1,6 +1,6 @@
 # Singleview API Retriever Python Google Ads Initialize Procedures
 
-This document describes how to initialize google analytics API access for the sv-api-retriever.
+This document describes how to initialize google ads API access for the sv-api-retriever.
 
 ## Prerequisites
 
