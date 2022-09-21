@@ -4,7 +4,9 @@ This document describes how to initialize google ads API access for the sv-api-r
 
 ## Prerequisites
 
-Please make sure that you have installed Python 3.7 or higher and sv-api-retriever(https://github.com/singleview-co-kr/sv_API_retriever).
+Please make sure that you have installed Python 3.7 and sv-api-retriever(https://github.com/singleview-co-kr/sv_API_retriever).
+
+Please make sure that you have installed X-window on the machine if you use Linux server. OAuth2 for Google Ads requires call back to the local GUI browser.
 
 ## Setup Authentication
 
@@ -24,8 +26,11 @@ To get started quickly, follow these steps.
 
 Execute the following command in the root directory of the sv-api-retriever to install the dependencies.
 
+    $ pip install --upgrade google-ads
     $ pip install --upgrade google-api-python-client
     $ pip install --upgrade google-auth-oauthlib
+
+Make sure you have installed **google-ads 16.0.0** or higher
 
 ## Running the Examples ##
 
