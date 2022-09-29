@@ -66,7 +66,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 8th, May 2022')
+        self._g_oLogger = logging.getLogger(__name__ + ' modified at 21st, Sep 2022')
         self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
@@ -83,15 +83,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sDataFirstDate = None
         self.__g_lstAccessLevel = []
 
-    def getConsoleAuth(self, argv):
-        """ Get console auth with arg  --noauth_local_webserver """
-        # to get auth for the first time
-        # bring dbs.py gaauth method here
-        from googleapiclient import sample_tools
+    # def getConsoleAuth(self, argv):
+    #     """ Get console auth with arg  --noauth_local_webserver """
+    #     # to get auth for the first time
+    #     # bring dbs.py gaauth method here
+    #     from googleapiclient import sample_tools
 
-        service, flags = sample_tools.init(
-            argv, 'analytics', 'v3', __doc__, __file__,
-            scope='https://www.googleapis.com/auth/analytics.readonly')
+    #     service, flags = sample_tools.init(
+    #         argv, 'analytics', 'v3', __doc__, __file__,
+    #         scope='https://www.googleapis.com/auth/analytics.readonly')
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -110,12 +110,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
 
         """ Authenticate and construct service. """
-        sClientSecretsJson = os.path.join(self._g_sAbsRootPath, 'conf', 'google_client_secrets.json')
-
         # Define the auth scopes to request.
         scope = ['https://www.googleapis.com/auth/analytics.readonly']
         # Authenticate and construct service.
-        service = self.__getService('analytics', 'v3', scope, sClientSecretsJson )
+        # sClientSecretsJson = os.path.join(self._g_sAbsRootPath, 'conf', 'google_client_secrets.json')
+        # service = self.__getServiceOob('analytics', 'v3', scope, sClientSecretsJson )
+        sPrivateKeyJson = os.path.join(self._g_sAbsRootPath, 'conf', 'private_key_google_analytics.json')
+        service = self.__get_service_oauth2('analytics', 'v3', scope, sPrivateKeyJson)
         # Try to make a request to the API. Print the results or handle errors.        
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'google_analytics' not in dict_acct_info:
@@ -318,57 +319,77 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug(s_msg)
                 return
 
-    def __getService(self, api_name, api_version, scope, client_secrets_path):
+    def __get_service_oauth2(self, api_name, api_version, scopes, key_file_location):
         """Get a service that communicates to a Google API.
+
         Args:
-        api_name: string The name of the api to connect to.
-        api_version: string The api version to connect to.
-        scope: A list of strings representing the auth scopes to authorize for the connection.
-        client_secrets_path: string A path to a valid client secrets file.
+            api_name: The name of the api to connect to.
+            api_version: The api version to connect to.
+            scopes: A list auth scopes to authorize for the application.
+            key_file_location: The path to a valid service account JSON key file.
 
         Returns:
-        A service that is connected to the specified API.
+            A service that is connected to the specified API.
         """
-        # Parse command-line arguments.
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            parents=[tools.argparser])
-        flags = parser.parse_args([])
+        from oauth2client.service_account import ServiceAccountCredentials  # regarding OOB auth will be deprecated
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file_location, scopes=scopes)
 
-        # Set up a Flow object to be used if we need to authenticate.
-        flow = client.flow_from_clientsecrets(
-            client_secrets_path, scope=scope,
-            message=tools.message_if_missing(client_secrets_path))
-
-        # Prepare credentials, and authorize HTTP object with them.
-        # If the credentials don't exist or are invalid run through the native client
-        # flow. The Storage object will ensure that if successful the good
-        # credentials will get written back to a file.
-        # storage = file.Storage(basic_config.ABSOLUTE_PATH_BOT + '/conf/google_' + api_name + '.dat')
-        storage = file.Storage(os.path.join(self._g_sAbsRootPath, 'conf', 'google_' + api_name + '.dat'))
-        credentials = storage.get()
-        if credentials is None or credentials.invalid:
-            credentials = tools.run_flow(flow, storage, flags)
-
-        http = credentials.authorize(http=httplib2.Http())
         # Build the service object.
-        service = build(api_name, api_version, http=http)
+        service = build(api_name, api_version, credentials=credentials)
+
         return service
+        
+    # def __getServiceOob(self, api_name, api_version, scope, client_secrets_path):
+    #     """Get a service that communicates to a Google API.
+    #     Args:
+    #     api_name: string The name of the api to connect to.
+    #     api_version: string The api version to connect to.
+    #     scope: A list of strings representing the auth scopes to authorize for the connection.
+    #     client_secrets_path: string A path to a valid client secrets file.
+
+    #     Returns:
+    #     A service that is connected to the specified API.
+    #     """
+    #     # Parse command-line arguments.
+    #     parser = argparse.ArgumentParser(
+    #         formatter_class=argparse.RawDescriptionHelpFormatter,
+    #         parents=[tools.argparser])
+    #     flags = parser.parse_args([])
+
+    #     # Set up a Flow object to be used if we need to authenticate.
+    #     flow = client.flow_from_clientsecrets(
+    #         client_secrets_path, scope=scope,
+    #         message=tools.message_if_missing(client_secrets_path))
+
+    #     # Prepare credentials, and authorize HTTP object with them.
+    #     # If the credentials don't exist or are invalid run through the native client
+    #     # flow. The Storage object will ensure that if successful the good
+    #     # credentials will get written back to a file.
+    #     # storage = file.Storage(basic_config.ABSOLUTE_PATH_BOT + '/conf/google_' + api_name + '.dat')
+    #     storage = file.Storage(os.path.join(self._g_sAbsRootPath, 'conf', 'google_' + api_name + '.dat'))
+    #     credentials = storage.get()
+    #     if credentials is None or credentials.invalid:
+    #         credentials = tools.run_flow(flow, storage, flags)
+
+    #     http = credentials.authorize(http=httplib2.Http())
+    #     # Build the service object.
+    #     service = build(api_name, api_version, http=http)
+    #     return service
 
 
 if __name__ == '__main__': # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        if sys.argv[1] == '--noauth_local_webserver':
-            print('noauth')
-            with svJobPlugin() as oJob: # to enforce to call plugin destructor
-            	oJob.getConsoleAuth( sys.argv )
-        else:
-            dictPluginParams = {'config_loc':'2/1', 'earliest_date':'20200229', 'latest_date':'20210229'}
-            with svJobPlugin() as oJob: # to enforce to call plugin destructor
-                oJob.set_my_name('ga_get_day')
-                oJob.parse_command(sys.argv)
-                oJob.do_task(None)
+        # if sys.argv[1] == '--noauth_local_webserver':
+        #     print('noauth')
+        #     with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        #     	oJob.getConsoleAuth( sys.argv )
+        # else:
+        # dictPluginParams = {'config_loc':'2/1', 'earliest_date':'20200229', 'latest_date':'20210229'}
+        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+            oJob.set_my_name('ga_get_day')
+            oJob.parse_command(sys.argv)
+            oJob.do_task(None)
     else:
         print('warning! [config_loc] [earliest_date] [latest_date] params or --noauth_local_webserver is required for console execution.')
 

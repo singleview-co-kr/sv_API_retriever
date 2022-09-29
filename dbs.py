@@ -65,24 +65,24 @@ class setSvDaemon(daemonocle.Daemon):
         # self.__get_logger()
         # _arouse_dbo('1')
 
-    @daemonocle.expose_action
-    def gaauth(self):
-        # move this method to ga job plugin?
-        print( '1. place ./client_secret.json downloaded from google to root directory(where ./dbs.py is located)' )
-        print( '2. run python dbs.py gaauth' )
-        print( '3. move newly created analytics.dat to ./conf/google_analytics.dat directory manually' )
-        print( '4. move client_secret.json to ./conf/google_client_secret.json' )
-        """ to get auth for the first time, get console auth with arg  --noauth_local_webserver """
-        sys.argv[1] = '--noauth_local_webserver'
-        from googleapiclient import sample_tools
-        service, flags = sample_tools.init(
-            sys.argv, 'analytics', 'v3', __doc__, __file__,
-            scope='https://www.googleapis.com/auth/analytics.readonly')
+    # @daemonocle.expose_action
+    # def gaauth(self):
+    #     # move this method to ga job plugin?
+    #     print( '1. place ./client_secret.json downloaded from google to root directory(where ./dbs.py is located)' )
+    #     print( '2. run python dbs.py gaauth' )
+    #     print( '3. move newly created analytics.dat to ./conf/google_analytics.dat directory manually' )
+    #     print( '4. move client_secret.json to ./conf/google_client_secret.json' )
+    #     """ to get auth for the first time, get console auth with arg  --noauth_local_webserver """
+    #     sys.argv[1] = '--noauth_local_webserver'
+    #     from googleapiclient import sample_tools
+    #     service, flags = sample_tools.init(
+    #         sys.argv, 'analytics', 'v3', __doc__, __file__,
+    #         scope='https://www.googleapis.com/auth/analytics.readonly')
 
-    @daemonocle.expose_action
-    def adwrefreshtoken(self):
-        # move this method to aw job plugin?
-        print('1. run ./svplugins/aw_get_day/generate_refresh_token.py')
+    # @daemonocle.expose_action
+    # def adwrefreshtoken(self):
+    #     # move this method to aw job plugin?
+    #     print('1. run ./svplugins/aw_get_day/generate_refresh_token.py')
 
     @daemonocle.expose_action
     def init(self):
