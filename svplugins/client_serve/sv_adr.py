@@ -155,7 +155,7 @@ class SvAddress():
                                         dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
                                         dict_single_wc['addr_dong_myun_eup'], s_addr_full,
                                         dict_single_wc['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer sv adr data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         del lst_sv_addr
         del dict_standardize_metropolis
