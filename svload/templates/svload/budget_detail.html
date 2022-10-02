@@ -46,7 +46,7 @@
                                 <select class="form-control" name="media_agency_id">
                                 <option value="">매체 대행사 선택</option>
                                 {% for n_id, s_agency_name in dict_agency_list.items %}
-                                    <option value="{{n_id}}">{{s_agency_name}}</option>
+                                    <option value="{{n_id}}" {% if n_id == dict_budget_info.media_agency_id %}selected="selected"{% endif %}>{{s_agency_name}}</option>
                                 {% endfor %}
                                 </select>
                             </div>

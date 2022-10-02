@@ -364,7 +364,7 @@ class Budget:
                     dict_rst['s_msg'] = 'invalid media agency id'
                     return dict_rst
         else:
-            n_agency_id = 0
+            n_media_agency_id = 0
 
         s_budget_alloc_period = strip_tags(request.POST['budget_alloc_period'].strip())
         s_budget_memo = strip_tags(request.POST['budget_memo'].strip())  # <script>console.log('dd')</script> 방지해야 함
