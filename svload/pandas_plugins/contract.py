@@ -250,7 +250,7 @@ class NvrBrsInfo:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     __g_lstUa = ['M', 'P']
-    __g_lstContractStatus = ['집행 중', '집행 대기', '집행 중 취소', '종료']
+    __g_lstContractStatus = ['집행 중', '집행 대기', '집행 전 취소', '집행 중 취소', '종료']
     __g_lstUaDictionaryMob = ['모바', 'MO']
     __g_lstUaDictionaryPc = ['PC', '피시', '피씨', '데스크']
 
@@ -320,16 +320,32 @@ class NvrBrsInfo:
         :return:
         """
         lst_contract_detail = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailBySrl', n_contract_srl)
-        return lst_contract_detail[0]
+        if len(lst_contract_detail):
+            return lst_contract_detail[0]
+        return None
 
     def update_contract(self, request):
         """
         data for contract detail screen
         :param s_budget_id:
-        :return:
+        :return: dict_rst
         """
+        dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         n_contract_srl = int(request.POST['contract_srl'])
         dict_contract = self.get_detail_by_srl(n_contract_srl)
+        if dict_contract is None:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'invalid contract'
+            return dict_rst
+
+        s_contract_date_end  = request.POST['contract_date_end']
+        try:
+            dt_contract_end = datetime.strptime(s_contract_date_end, '%Y년 %m월 %d일')
+        except ValueError:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = s_contract_date_end + ' is invalid date'
+            return dict_rst
+
         s_ua = request.POST['ua'].strip()
         if s_ua not in self.__g_lstUa:
             s_ua = dict_contract['ua']
@@ -342,8 +358,23 @@ class NvrBrsInfo:
             s_contract_status = dict_contract['contract_status']
         else:
             s_contract_status = '집행 중 취소'
-        self.__g_oSvDb.executeQuery('updateNvrBrsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
-        return
+        self.__g_oSvDb.executeQuery('updateNvrBrsContractUaBySrl', s_contract_status, dt_contract_end, s_refund_amnt, s_ua, n_contract_srl)
+        return dict_rst
+
+    def delete_contract(self, request):
+        """
+        :param s_budget_id:
+        :return:
+        """
+        dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
+        n_contract_srl = int(request.POST['contract_srl'])
+        dict_contract = self.get_detail_by_srl(n_contract_srl)
+        if dict_contract is None:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'invalid contract'
+            return dict_rst
+        self.__g_oSvDb.executeQuery('deleteNvrBrsContractBySrl', n_contract_srl)
+        return dict_rst
 
     def add_contract_barter(self, request):
         """ 

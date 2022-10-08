@@ -846,8 +846,22 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
                 return render(request, "svload/deny.html", context=dict_context)
             o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
-            o_nvr_brs_info.update_contract(request)
+            dict_rst = o_nvr_brs_info.update_contract(request)
             del o_nvr_brs_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
+        elif s_act == 'delete_contract':
+            if request.POST['contract_srl'] == '':
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
+            o_nvr_brs_info = NvrBrsInfo(self.__g_oSvDb)
+            dict_rst = o_nvr_brs_info.delete_contract(request)
+            del o_nvr_brs_info
+            if dict_rst['b_error']:
+                dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
+                return render(request, "svload/deny.html", context=dict_context)
             o_redirect = redirect('svload:nvr_brs_contract_list', sv_brand_id=n_brand_id)
         elif s_act == 'inquiry_contract':
             s_period_from = request.POST.get('contract_period_from')
