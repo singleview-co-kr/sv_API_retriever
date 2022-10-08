@@ -47,7 +47,8 @@ class ISvObject(Error):
     _g_oWebsocket = None
 
     def __init__(self):
-        self._g_oLogger = logging.getLogger(__file__)
+        # not work at all
+        pass
 
     def set_websocket_output(self, o_websocket_display_pipe):
         self._g_oWebsocket = o_websocket_display_pipe

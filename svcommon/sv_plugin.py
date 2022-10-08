@@ -28,6 +28,7 @@ from abc import ABC
 from abc import abstractmethod
 import threading
 import time
+from datetime import datetime
 
 import os
 import logging
@@ -91,6 +92,11 @@ class ISvPlugin(ABC):
 
         self._g_sAbsRootPath = config('ABSOLUTE_PATH_BOT')
         o_sv_api_config_parser = sv_api_config_parser.SvApiConfigParser(self._g_dictParam['config_loc'])
+
+        logging.basicConfig(
+            filename= self._g_sAbsRootPath + '/log/svplugins.' + str(datetime.today().strftime('%Y%m%d')) + '.log',
+            level=logging.DEBUG, format='%(name)s [%(levelname)s] %(message)s @ %(asctime)s',
+        )
         return o_sv_api_config_parser.getConfig()
 
     def _task_post_proc(self, o_callback):

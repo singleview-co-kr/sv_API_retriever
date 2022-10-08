@@ -30,6 +30,7 @@
 # to monitor API traffic refer to https://console.developers.google.com/apis/api/analytics.googleapis.com/quotas?project=svgastudio
 
 # standard library
+import os
 import sys
 import logging
 from datetime import datetime
@@ -62,7 +63,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
-        self._g_oLogger = logging.getLogger(__name__ + ' modified at 16th, May 2022')
+        s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+
         self._g_dictParam.update({'mode':None, 'sv_file_id':None, 'new_sku_id':None,
                                   'start_yyyymmdd': None, 'end_yyyymmdd': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
