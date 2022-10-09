@@ -68,7 +68,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
         self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
-        
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -188,6 +187,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __proc_transaction_log(self, s_data_path):
         # print('proc_transaction_log')
+        self._printDebug('UA Transaction log has been started\n')
         # traverse directory and categorize data files
         lst_transaction_log = []
         lst_data_file = os.listdir(s_data_path)
@@ -195,60 +195,65 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_idx = 0
         n_sentinel = len(lst_data_file)
         dict_query = {'transactionRevenueByTrId.tsv': 'rev'}
-        # lst_analyzing_filename = dict_query.keys()
-        for s_filename in lst_data_file:
-            s_data_file_fullname = os.path.join(s_data_path, s_filename)
-            if s_filename == 'archive':
-                continue
-            lst_file_info = s_filename.split('_')
-            s_data_date = lst_file_info[0]
-            s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file_info[1])
-            s_specifier = lst_file_info[2]
-            if s_specifier in dict_query:  #lst_analyzing_filename:
-                s_attr_name = dict_query[s_specifier]
-            else:
-                continue
-            
-            if os.path.isfile(s_data_file_fullname):
-                with open(s_data_file_fullname, 'r') as tsvfile:
-                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
-                    for row in reader:
-                        if not self._continue_iteration():
-                            break
-                        lst_tmp_row = row[1:]  # remove transaction ID
-                        dictRst = self.__parseGaRow(lst_tmp_row, s_data_file_fullname)
-                        del lst_tmp_row
-                        lst_transaction_log.append([row[0], s_ua_type, dictRst['source'], dictRst['rst_type'], 
-                            dictRst['medium'], str(dictRst['brd']), dictRst['campaign1st'], dictRst['campaign2nd'], 
-                            dictRst['campaign3rd'], row[2], str(row[4]), s_data_date])
-            else:
-                self._printDebug('pass ' + s_data_file_fullname + ' does not exist')
-
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
-            n_idx += 1
         
-        n_idx = 0
-        n_sentinel = len(lst_transaction_log)
-        with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            oSvMysql.set_app_name('svplugins.ga_register_db')
-            oSvMysql.initialize(self._g_dictSvAcctInfo)
-            for lst_single_row in lst_transaction_log:
-                if not self._continue_iteration():
-                    break
-                # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertGaTransactionDailyLog', 
-                    lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3], lst_single_row[4], 
-                    lst_single_row[5], lst_single_row[6], lst_single_row[7], lst_single_row[8], lst_single_row[9], 
-                    str(lst_single_row[10]), lst_single_row[11])
+        try:
+            for s_filename in lst_data_file:
+                s_data_file_fullname = os.path.join(s_data_path, s_filename)
+                if s_filename == 'archive':
+                    continue
+                lst_file_info = s_filename.split('_')
+                s_data_date = lst_file_info[0]
+                s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file_info[1])
+                s_specifier = lst_file_info[2]
+                if s_specifier in dict_query:  #lst_analyzing_filename:
+                    s_attr_name = dict_query[s_specifier]
+                else:
+                    continue
+                
+                if os.path.isfile(s_data_file_fullname):
+                    with open(s_data_file_fullname, 'r') as tsvfile:
+                        reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                        for row in reader:
+                            if not self._continue_iteration():
+                                break
+                            lst_tmp_row = row[1:]  # remove transaction ID
+                            dictRst = self.__parseGaRow(lst_tmp_row, s_data_file_fullname)
+                            del lst_tmp_row
+                            lst_transaction_log.append([row[0], s_ua_type, dictRst['source'], dictRst['rst_type'], 
+                                dictRst['medium'], str(dictRst['brd']), dictRst['campaign1st'], dictRst['campaign2nd'], 
+                                dictRst['campaign3rd'], row[2], str(row[4]), s_data_date])
+                else:
+                    self._printDebug('pass ' + s_data_file_fullname + ' does not exist')
 
-                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
                 n_idx += 1
-        del lst_transaction_log
-        self._printDebug('UA data file has been arranged\n')
+            
+            n_idx = 0
+            n_sentinel = len(lst_transaction_log)
+            with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
+                oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+                oSvMysql.set_app_name('svplugins.ga_register_db')
+                oSvMysql.initialize(self._g_dictSvAcctInfo)
+                for lst_single_row in lst_transaction_log:
+                    if not self._continue_iteration():
+                        break
+                    # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
+                    oSvMysql.executeQuery('insertGaTransactionDailyLog', 
+                        lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3], lst_single_row[4], 
+                        lst_single_row[5], lst_single_row[6], lst_single_row[7], lst_single_row[8], lst_single_row[9], 
+                        str(lst_single_row[10]), lst_single_row[11])
+
+                    self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                    n_idx += 1
+            del lst_transaction_log
+        except Exception as err:
+            self._printDebug(err)
+            
+        self._printDebug('UA Transaction log has been finished\n')
 
     def __proc_media_perf_log(self, sDataPath):
         """ process homepage level data """
+        self._printDebug('UA media performance log has been started\n')
         # traverse directory and categorize data files
         lstDataFiles = os.listdir(sDataPath)
         lstDataFiles.sort()
@@ -260,48 +265,51 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
             'transactions.tsv':'trs', 'transactionRevenueByTrId.tsv':'rev'}
 
-        # lst_analyzing_filename = dictQuery.keys()
-        for sFilename in lstDataFiles:
-            sDataFileFullname = os.path.join(sDataPath, sFilename)
-            if sFilename == 'archive':
-                continue
-            
-            aFile = sFilename.split('_')
-            sDataDate = aFile[0]
-            sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
-            sSpecifier = aFile[2]
-            if sSpecifier in dictQuery:  #lst_analyzing_filename:
-                sIdxName = dictQuery[sSpecifier]
-            else:
-                continue
-            
-            if os.path.isfile(sDataFileFullname):
-                with open(sDataFileFullname, 'r') as tsvfile:
-                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
-                    for row in reader:
-                        if not self._continue_iteration():
-                            break
-                        if sSpecifier == 'transactionRevenueByTrId.tsv':
-                            row = row[1:]  # remove transaction ID
+        try:
+            for sFilename in lstDataFiles:
+                sDataFileFullname = os.path.join(sDataPath, sFilename)
+                if sFilename == 'archive':
+                    continue
+                
+                aFile = sFilename.split('_')
+                sDataDate = aFile[0]
+                sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
+                sSpecifier = aFile[2]
+                if sSpecifier in dictQuery:  #lst_analyzing_filename:
+                    sIdxName = dictQuery[sSpecifier]
+                else:
+                    continue
+                
+                if os.path.isfile(sDataFileFullname):
+                    with open(sDataFileFullname, 'r') as tsvfile:
+                        reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                        for row in reader:
+                            if not self._continue_iteration():
+                                break
+                            if sSpecifier == 'transactionRevenueByTrId.tsv':
+                                row = row[1:]  # remove transaction ID
 
-                        dictRst = self.__parseGaRow(row, sDataFileFullname)
-                        sTerm = row[2]
-                        sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
-                            dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
-                            dictRst['campaign3rd']+'|@|'+sTerm
-                        
-                        if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
-                            self.__g_dictGaRaw[sReportId] = {
-                                'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
-                            }
-                        self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
-                self.__archive_ga_data_file(sDataPath, sFilename)
-            else:
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+                            dictRst = self.__parseGaRow(row, sDataFileFullname)
+                            sTerm = row[2]
+                            sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
+                                dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
+                                dictRst['campaign3rd']+'|@|'+sTerm
+                            
+                            if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
+                                self.__g_dictGaRaw[sReportId] = {
+                                    'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
+                                }
+                            self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
+                    self.__archive_ga_data_file(sDataPath, sFilename)
+                else:
+                    self._printDebug('pass ' + sDataFileFullname + ' does not exist')
 
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
-            nIdx += 1
-        self._printDebug('UA data file has been arranged')
+                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+                nIdx += 1
+        except Exception as err:
+            self._printDebug(err)
+
+        self._printDebug('UA media performance log has been finished\n')
         
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}

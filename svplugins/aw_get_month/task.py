@@ -65,6 +65,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
         self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
