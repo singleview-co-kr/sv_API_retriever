@@ -11,23 +11,11 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
 class GaSourceMediaRaw:
-    __g_sClassId = None
-    __g_oSvDb = None
     __g_oSvCampaignParser = None
-    __g_dtDesignatedFirstDate = None  # 추출 기간 시작일
-    __g_dtDesignatedLastDate = None  # 추출 기간 종료일
-    __g_dfPeriodDataRaw = None  # 추출한 기간 데이터 원본
     __g_lstAllowedSamplingFreq = ['Q', 'M', 'W', 'D']
     __g_sFreqMode = 'D'  # default freq is daily
-    __g_nBrandId = -1
     __g_fFullPeriodEstFactor = 1  # 전기간 마감 예상 가중치
-    __g_dfCompressedByFreqMode = None  # 빈도에 따라 압축된 데이터
     __g_dictAggregatedDf = {}  # 지표별 합산 데이터
-    __g_dictBudgetInfo = {}  # 예산과 대행사 수수료 정보
-    __g_idxFullPeriod = None  # 설정한 기간의 완전한 일자 목록
-    __g_dtToday = None
-
-    # __g_dictSamplingFreq = {'qtr': 'Q', 'mon': 'M', 'day': 'D'}
 
     # def __new__(cls):
     #    # print(__file__ + ':' + sys._getframe().f_code.co_name)  # turn to decorator
@@ -40,8 +28,15 @@ class GaSourceMediaRaw:
         self.__g_oSvDb = o_sv_db
         self.__g_oSvCampaignParser = SvCampaignParser()
         self.__g_sClassId = id(self)
-        self.__g_dictAggregatedDf[self.__g_sClassId] = {'mtd': None, 'full': None}
+        self.__g_dictAggregatedDf[self.__g_sClassId] = {'mtd': None, 'full': None}  # 지표별 합산 데이터
         self.__g_dtToday = datetime.today().date()
+        self.__g_dtDesignatedFirstDate = None  # 추출 기간 시작일
+        self.__g_dtDesignatedLastDate = None  # 추출 기간 종료일
+        self.__g_dfPeriodDataRaw = None  # 추출한 기간 데이터 원본
+        self.__g_nBrandId = -1
+        self.__g_dfCompressedByFreqMode = None  # 빈도에 따라 압축된 데이터
+        self.__g_dictBudgetInfo = {}  # 예산과 대행사 수수료 정보
+        self.__g_idxFullPeriod = None  # 설정한 기간의 완전한 일자 목록
         super().__init__()
 
     def __enter__(self):
@@ -50,6 +45,18 @@ class GaSourceMediaRaw:
 
     def __del__(self):
         # logger.debug('__del__')
+        self.__g_sClassId = None
+        self.__g_oSvDb = None
+        self.__g_oSvCampaignParser = None
+        self.__g_dtDesignatedFirstDate = None  # 추출 기간 시작일
+        self.__g_dtDesignatedLastDate = None  # 추출 기간 종료일
+        self.__g_dfPeriodDataRaw = None  # 추출한 기간 데이터 원본
+        self.__g_nBrandId = -1
+        self.__g_dfCompressedByFreqMode = None  # 빈도에 따라 압축된 데이터
+        self.__g_dictAggregatedDf = {}  # 지표별 합산 데이터
+        self.__g_dictBudgetInfo = {}  # 예산과 대행사 수수료 정보
+        self.__g_idxFullPeriod = None  # 설정한 기간의 완전한 일자 목록
+        self.__g_dtToday = None
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
