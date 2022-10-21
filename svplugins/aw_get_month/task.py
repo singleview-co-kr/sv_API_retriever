@@ -51,11 +51,15 @@ from google.ads.googleads.client import GoogleAdsClient
 if __name__ == '__main__':  # for console debugging
     sys.path.append('../../svcommon')
     sys.path.append('../../svdjango')
+    import sv_mysql
     import sv_object
+    import sv_campaign_parser
     import sv_plugin
     import settings
 else:  # for platform running
+    from svcommon import sv_mysql
     from svcommon import sv_object
+    from svcommon import sv_campaign_parser
     from svcommon import sv_plugin
     from django.conf import settings
 
@@ -69,11 +73,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oLogger = logging.getLogger(s_plugin_name + '(20221021)')
 
         self._g_dictParam.update({'yyyymm': None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first,
         # whenever you create new objects it will reuse this same dict.
         # To create instance variables, you declare them with self in __init__.
         self.__g_sRetrieveMonth = None
+        self.__g_lstDateQueue = []
 
     def __del__(self):
         """ never place self._task_post_proc() here
@@ -86,6 +91,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sRetrieveMonth = self._g_dictParam['yyyymm']
 
         dict_acct_info = self._task_pre_proc(o_callback)
+
+        self.__get_retrieval_period(dict_acct_info['tbl_prefix'])
+        if len(self.__g_lstDateQueue) == 0:
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('stop')
+            else:
+                self._printDebug('nothing to retreive')
+                return
+        
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
@@ -113,6 +127,56 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self._task_post_proc(self._g_oCallback)
 
+    def __get_retrieval_period(self, s_tbl_prefix):
+        n_yr = int(self.__g_sRetrieveMonth[:4])
+        n_mo = int(self.__g_sRetrieveMonth[4:None])
+        try:
+            lst_month_range = calendar.monthrange(n_yr, n_mo)
+        except calendar.IllegalMonthError:
+            self._printDebug('invalid yyyymm')
+            if self._g_bDaemonEnv:  # for running on dbs.py only
+                raise Exception('remove')
+            else:
+                return
+
+        lst_google_ads_sm_id = []
+        o_sv_campaign_parser = sv_campaign_parser.SvCampaignParser()
+        dict_source_medium_type = o_sv_campaign_parser.get_source_medium_type_dict()
+        for n_idx, dict_single_sm in dict_source_medium_type.items():
+            if dict_single_sm['media_source'] == 'google' or dict_single_sm['media_source'] == 'youtube':
+                lst_google_ads_sm_id.append(n_idx)
+        del dict_source_medium_type
+
+        # begin - get budget list for designated month
+        s_start_date_retrieval = self.__g_sRetrieveMonth + '01'
+        s_end_date_retrieval = self.__g_sRetrieveMonth + str(lst_month_range[1])
+        with sv_mysql.SvMySql() as oSvMysql:
+            oSvMysql.setTablePrefix(s_tbl_prefix)
+            oSvMysql.set_app_name('svplugins.daily_cron')
+            oSvMysql.initialize(self._g_dictSvAcctInfo)
+            lst_rst = oSvMysql.executeQuery('getBudgetPeriodByPeriod', s_start_date_retrieval, s_end_date_retrieval)
+        # end - get budget list for designated month
+
+        lst_date_begin = []
+        lst_date_end = []
+        for dict_single in lst_rst:
+            if dict_single['acct_id'] in lst_google_ads_sm_id:
+                lst_date_begin.append(dict_single['date_begin'])
+                lst_date_end.append(dict_single['date_end'])
+        del lst_rst
+
+        dt_start_retrieval = min(lst_date_begin)
+        dt_date_end_retrieval = max(lst_date_end)
+        dt_date_diff = dt_date_end_retrieval - dt_start_retrieval
+        n_num_days = int(dt_date_diff.days) + 1
+        for x in range(0, n_num_days):
+            self.__g_lstDateQueue.append(dt_start_retrieval + timedelta(days=x))
+        del lst_date_begin
+        del lst_date_end
+        del dt_start_retrieval
+        del dt_date_end_retrieval
+        del dt_date_diff
+
     def __get_adwords_raw(self, s_sv_acct_id, s_acct_title, s_adwords_cid):
         s_download_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title,
                                        'adwords', s_adwords_cid, 'data', 'closing')
@@ -136,35 +200,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
             return
         o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
-
-        n_yr = int(self.__g_sRetrieveMonth[:4])
-        n_mo = int(self.__g_sRetrieveMonth[4:None])
-        try:
-            lst_month_range = calendar.monthrange(n_yr, n_mo)
-        except calendar.IllegalMonthError:
-            self._printDebug('invalid yyyymm')
-            if self._g_bDaemonEnv:  # for running on dbs.py only
-                raise Exception('remove')
-            else:
-                return
-
-        s_start_date_retrieval = self.__g_sRetrieveMonth + '01'
-        s_end_date_retrieval = self.__g_sRetrieveMonth + str(lst_month_range[1])
-        dt_start_retrieval = datetime.strptime(s_start_date_retrieval, '%Y%m%d')
-        dt_date_end_retrieval = datetime.strptime(s_end_date_retrieval, '%Y%m%d')
-        dt_date_diff = dt_date_end_retrieval - dt_start_retrieval
-        n_num_days = int(dt_date_diff.days) + 1
         dict_date_queue = dict()
-        for x in range(0, n_num_days):
-            dt_element = dt_start_retrieval + timedelta(days=x)
-            s_date = dt_element
-            dict_date_queue.update({s_date: 0})
-
-        if len(dict_date_queue) == 0:
-            if self._g_bDaemonEnv:  # for running on dbs.py only
-                raise Exception('stop')
-            else:
-                return
+        for dt_single in self.__g_lstDateQueue:
+            dict_date_queue.update({dt_single: 0})
 
         # set device dictionary
         dict_googleads_v10_device = {i.value: i.name for i in DeviceEnum.Device}
@@ -174,7 +212,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device',
                                'Conversions', 'Total conv. value', 'Day']
-
         while self._continue_iteration():  # loop for each report date
             try:
                 # find unhandled report task

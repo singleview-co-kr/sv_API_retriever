@@ -42,7 +42,6 @@ import importlib
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_object
     import sv_plugin
@@ -58,10 +57,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221021)')
 
         # self._g_dictParam.update({'yyyymm':None, 'mode':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -93,7 +92,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.setTablePrefix(dict_acct_info['tbl_prefix'])
             oSvMysql.set_app_name('svplugins.daily_cron')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lst_rst = oSvMysql.executeQuery('getBugetByPeriod', s_yesterday, s_yesterday)
+            lst_rst = oSvMysql.executeQuery('getBudgetByDay', s_yesterday, s_yesterday)
         # end - retrieve PS budget list for yesterday
         # begin - decide jobs to do now
         o_budget = budget.Budget(None)
