@@ -153,7 +153,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dict_date_range = self.__delete_specific_month()
         else:
             dict_date_range = self.__get_touch_date_range()
-        
+
         if dict_date_range['start_date'] is None and dict_date_range['end_date'] is None:
             self._printDebug('stop - weird raw data last date')
             self._task_post_proc(self._g_oCallback)
@@ -266,22 +266,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for s_ignore in ['alias_info_campaign.tsv']:
                 if s_ignore in lst_directory:
                     lst_directory.remove(s_ignore)
-        lst_googleads_last_date = []
-        if self.__g_bGoogleAdsProcess:
-            for s_cid in lst_directory:
-                # check google-ads latest retrieved date
-                if not self.__g_oAgencyInfo.load_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', s_cid):
-                    return dict_rst
-                s_googlead_latest_file = os.path.join(s_googlead_api_root, s_cid, 'conf', 'general.latest')
-                if os.path.exists(s_googlead_latest_file):
-                    o_file = open(s_googlead_latest_file, 'r')
-                    s_latest_date = o_file.read()
-                    o_file.close()
-                else:
-                    s_latest_date = dt_yesterday.strftime("%Y%m%d")
-                lst_googleads_last_date.append(
-                    date(int(s_latest_date[:4]), int(s_latest_date[4:6]), int(s_latest_date[6:8])))
-        del lst_directory
+        # lst_googleads_last_date = []
+        # if self.__g_bGoogleAdsProcess:
+        #     for s_cid in lst_directory:
+        #         # check google-ads latest retrieved date
+        #         if not self.__g_oAgencyInfo.load_by_source_id(self.__g_sSvAcctId, self.__g_sBrandId, 'adwords', s_cid):
+        #             return dict_rst
+        #         s_googlead_latest_file = os.path.join(s_googlead_api_root, s_cid, 'conf', 'general.latest')
+        #         if os.path.exists(s_googlead_latest_file):
+        #             o_file = open(s_googlead_latest_file, 'r')
+        #             s_latest_date = o_file.read()
+        #             o_file.close()
+        #         else:
+        #             s_latest_date = dt_yesterday.strftime("%Y%m%d")
+        #         print(s_latest_date)
+        #         lst_googleads_last_date.append(
+        #             date(int(s_latest_date[:4]), int(s_latest_date[4:6]), int(s_latest_date[6:8])))
+        # del lst_directory
 
         # get a latest retrieval info of fb_biz
         b_fb_biz_proc = True
@@ -321,8 +322,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lst_last_date = []
             lst_ga_log_date_range = oSvMysql.executeQuery('getGaLogDateMaxMin')
             lst_last_date.append(lst_ga_log_date_range[0]['maxdate'])
-            if self.__g_bGoogleAdsProcess:
-                lst_last_date.append(max(lst_googleads_last_date))
+            # if self.__g_bGoogleAdsProcess:
+            #     lst_last_date.append(max(lst_googleads_last_date))
 
             lst_last_date.append(max(lst_nvrad_last_date))
             dict_rst['end_date'] = min(lst_last_date)
