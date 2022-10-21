@@ -39,6 +39,7 @@ import csv
 import sys
 
 # 3rd party library
+import google.auth.exceptions  # to catch google.auth.exceptions.RefreshError
 from google.ads.googleads.v10.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
 # https://developers.google.com/google-ads/api/fields/v6/segments
@@ -64,7 +65,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221021)')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -117,7 +118,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             os.makedirs(s_conf_path_abs)
 
         s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
-        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
+        try:
+            o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
+        except google.auth.exceptions.RefreshError:
+            self._printDebug('A refresh token in google-ads.yaml has expired!')
+            self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
+            return
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
 
         sLatestFilepath = os.path.join(s_conf_path_abs, 'general.latest')

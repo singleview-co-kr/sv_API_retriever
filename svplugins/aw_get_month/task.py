@@ -39,8 +39,10 @@ import csv
 import calendar
 
 # 3rd party library
+import google.auth.exceptions  # to catch google.auth.exceptions.RefreshError
 from google.ads.googleads.v10.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
+
 # https://developers.google.com/google-ads/api/fields/v6/segments
 # https://developers.google.com/google-ads/api/docs/query/overview
 # cd /usr/local/lib/python3.7/site-packages/google/ads/googleads/v6/enums
@@ -52,7 +54,7 @@ if __name__ == '__main__':  # for console debugging
     import sv_object
     import sv_plugin
     import settings
-else: # for platform running
+else:  # for platform running
     from svcommon import sv_object
     from svcommon import sv_plugin
     from django.conf import settings
@@ -64,17 +66,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
-        
-        self._g_dictParam.update({'yyyymm':None})
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20221021)')
+
+        self._g_dictParam.update({'yyyymm': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
-        # It is only created once at first, 
-        # whenever you create new objects it will reuse this same dict. 
+        # It is only created once at first,
+        # whenever you create new objects it will reuse this same dict.
         # To create instance variables, you declare them with self in __init__.
         self.__g_sRetrieveMonth = None
 
     def __del__(self):
-        """ never place self._task_post_proc() here 
+        """ never place self._task_post_proc() here
             __del__() is not executed if try except occurred """
         self.__g_sRetrieveMonth = None
 
@@ -104,18 +106,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_google_ads = dict_acct_info['adw_cid']
         try:
             for s_googleads_cid in lst_google_ads:
-                self.__getAdwordsRaw(s_sv_acct_id, s_brand_id, s_googleads_cid )
+                self.__get_adwords_raw(s_sv_acct_id, s_brand_id, s_googleads_cid)
         except TypeError as error:
             # Handle errors in constructing a query.
             self._printDebug(('There was an error in constructing your query : %s' % error))
 
         self._task_post_proc(self._g_oCallback)
-        
-    def __getAdwordsRaw(self, sSvAcctId, sAcctTitle, sAdwordsCid):
-        sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords', sAdwordsCid, 'data', 'closing')
-        if os.path.isdir(sDownloadPath) is False:
-            os.makedirs(sDownloadPath)
-        
+
+    def __get_adwords_raw(self, s_sv_acct_id, s_acct_title, s_adwords_cid):
+        s_download_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title,
+                                       'adwords', s_adwords_cid, 'data', 'closing')
+        if os.path.isdir(s_download_path) is False:
+            os.makedirs(s_download_path)
+
         # https://developers.google.com/adwords/api/docs/guides/accounts-overview?hl=ko#test_accounts
         # https://medium.com/@MihaZelnik/how-to-create-test-account-for-adwords-api-503ca72b25a4
         # MCC = My Customer Center
@@ -124,55 +127,64 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # https://github.com/googleads/googleads-python-lib/releases
         # https://www.youtube.com/watch?v=80KOeuCNc0c
         s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
-        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
-        o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
         
-        nYr = int(self.__g_sRetrieveMonth[:4])
-        nMo = int(self.__g_sRetrieveMonth[4:None])
         try:
-            lstMonthRange = calendar.monthrange(nYr, nMo)
+            o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path,
+                                                                   version=self.__g_sGoogleAdsApiVersion)
+        except google.auth.exceptions.RefreshError:
+            self._printDebug('A refresh token in google-ads.yaml has expired!')
+            self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
+            return
+        o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
+
+        n_yr = int(self.__g_sRetrieveMonth[:4])
+        n_mo = int(self.__g_sRetrieveMonth[4:None])
+        try:
+            lst_month_range = calendar.monthrange(n_yr, n_mo)
         except calendar.IllegalMonthError:
             self._printDebug('invalid yyyymm')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
-        
-        sStartDateRetrieval = self.__g_sRetrieveMonth + '01'
-        sEndDateRetrieval = self.__g_sRetrieveMonth + str(lstMonthRange[1])
-        dtStartRetrieval = datetime.strptime(sStartDateRetrieval, '%Y%m%d')
-        dtDateEndRetrieval = datetime.strptime(sEndDateRetrieval, '%Y%m%d')
-        dtDateDiff = dtDateEndRetrieval - dtStartRetrieval
-        nNumDays = int(dtDateDiff.days) + 1
-        dictDateQueue = dict()
-        for x in range (0, nNumDays):
-            dtElement = dtStartRetrieval + timedelta(days = x)
-            sDate = dtElement
-            dictDateQueue.update({sDate:0})
 
-        if len(dictDateQueue) == 0:
+        s_start_date_retrieval = self.__g_sRetrieveMonth + '01'
+        s_end_date_retrieval = self.__g_sRetrieveMonth + str(lst_month_range[1])
+        dt_start_retrieval = datetime.strptime(s_start_date_retrieval, '%Y%m%d')
+        dt_date_end_retrieval = datetime.strptime(s_end_date_retrieval, '%Y%m%d')
+        dt_date_diff = dt_date_end_retrieval - dt_start_retrieval
+        n_num_days = int(dt_date_diff.days) + 1
+        dict_date_queue = dict()
+        for x in range(0, n_num_days):
+            dt_element = dt_start_retrieval + timedelta(days=x)
+            s_date = dt_element
+            dict_date_queue.update({s_date: 0})
+
+        if len(dict_date_queue) == 0:
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('stop')
             else:
                 return
-        
+
         # set device dictionary
         dict_googleads_v10_device = {i.value: i.name for i in DeviceEnum.Device}
-        s_google_ads_cid = sAdwordsCid.replace('-', '')
-        
+        s_google_ads_cid = s_adwords_cid.replace('-', '')
+
         # set report header rows
         lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
-        lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device', 'Conversions', 'Total conv. value', 'Day']
+        lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device',
+                               'Conversions', 'Total conv. value', 'Day']
 
         while self._continue_iteration():  # loop for each report date
             try:
-                dtRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
-                sDataDateForMysql = dtRetrieval.strftime('%Y%m%d')
-                self._printDebug('--> '+ sAdwordsCid +' will retrieve general report on ' + sDataDateForMysql)
+                # find unhandled report task
+                dt_retrieval = list(dict_date_queue.keys())[list(dict_date_queue.values()).index(0)]
+                s_data_date_for_mysql = dt_retrieval.strftime('%Y%m%d')
+                self._printDebug('--> ' + s_adwords_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
             except ValueError:
                 break
-            
-            sTsvFilename = sDataDateForMysql + '_general.tsv'
+
+            s_tsv_filename = s_data_date_for_mysql + '_general.tsv'
             s_disp_campaign_query = """
                     SELECT
                         campaign.id,
@@ -185,22 +197,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         metrics.all_conversions_value, 
                         segments.date 
                     FROM campaign
-                    WHERE metrics.cost_micros > 0 AND segments.date = """ + sDataDateForMysql
+                    WHERE metrics.cost_micros > 0 AND segments.date = """ + s_data_date_for_mysql
             try:  # Issues a search request using streaming.
-                o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_disp_campaign_query)
+                o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
+                                                                         query=s_disp_campaign_query)
             except Exception as e:
-                self._printDebug('unknown exception occured while access googleads API')
+                self._printDebug('unknown exception occurred while access googleads API')
                 self._printDebug(e)
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
                     return
-            
+
             lst_logs = []
             for disp_campaign_batch in o_disp_campaign_resp:
                 for o_disp_campaign_row in disp_campaign_batch.results:
-                    dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0, 'Clicks': 0, 'Cost': 0, 
-                                            'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
+                    dict_disp_campaign = {'CampaignName': None, 'AdGroupName': None, 'Criteria': None, 'Impressions': 0,
+                                          'Clicks': 0, 'Cost': 0,
+                                          'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
                     lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
                     if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
                         s_text_campaign_query = """
@@ -213,10 +227,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 metrics.all_conversions_value, 
                                 segments.date 
                             FROM search_term_view
-                            WHERE segments.date = """ + sDataDateForMysql + ' AND ' + \
-                                'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
+                            WHERE segments.date = """ + s_data_date_for_mysql + ' AND ' + \
+                                                'campaign.id = ' + str(o_disp_campaign_row.campaign.id)
                         try:  # Issues a search request using streaming.
-                            o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid, query=s_text_campaign_query)
+                            o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
+                                                                                    query=s_text_campaign_query)
                         except Exception as e:
                             self._printDebug('unknown exception occured while access googleads API')
                             self._printDebug(e)
@@ -229,10 +244,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dict_disp_campaign['CampaignName'] = o_disp_campaign_row.campaign.name
                                 dict_disp_campaign['AdGroupName'] = 'n/a'
                                 dict_disp_campaign['Criteria'] = o_txt_campaign_row.ad_group_criterion.keyword.text
-                                dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions  # refer to o_disp_campaign_row because [search_term_view] does not provide 
+                                # refer to o_disp_campaign_row because [search_term_view] does not provide
+                                dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
                                 dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
                                 dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
-                                dict_disp_campaign['Device'] = dict_googleads_v10_device[o_disp_campaign_row.segments.device]  # refer to o_disp_campaign_row because [search_term_view] does not provide
+                                # refer to o_disp_campaign_row because [search_term_view] does not provide
+                                dict_disp_campaign['Device'] = dict_googleads_v10_device[o_disp_campaign_row.segments.device]
                                 dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
                                 dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
                                 dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
@@ -251,21 +268,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date
                         lst_logs.append(dict_disp_campaign)
             # write data stream to file.
-            with open(os.path.join(sDownloadPath, sTsvFilename), 'w', encoding='utf-8') as out:
+            with open(os.path.join(s_download_path, s_tsv_filename), 'w', encoding='utf-8') as out:
                 wr = csv.writer(out, delimiter='\t')
                 wr.writerow(lst_report_header_1)
                 wr.writerow(lst_report_header_2)
                 for dict_rows in lst_logs:
                     wr.writerow(list(dict_rows.values()))
-            dictDateQueue[dtRetrieval] = 1
+            dict_date_queue[dt_retrieval] = 1
             time.sleep(3)
-            
-	
-if __name__ == '__main__': # for console debugging and execution
+
+
+if __name__ == '__main__':  # for console debugging and execution
     # python task.py config_loc=1/1 yyyymm=202109
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with svJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('aw_get_month')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

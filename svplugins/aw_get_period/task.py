@@ -37,6 +37,7 @@ import csv
 import sys
 
 # 3rd party library
+import google.auth.exceptions  # to catch google.auth.exceptions.RefreshError
 from google.ads.googleads.v10.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
 # https://developers.google.com/google-ads/api/fields/v6/segments
@@ -57,12 +58,13 @@ else:
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+    # MCC = My Customer Center
     __g_sGoogleAdsApiVersion = 'v10'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221021)')
         
         self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -128,27 +130,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if os.path.isdir(s_conf_path_abs) == False:
             os.makedirs(s_conf_path_abs)
 
-        # https://developers.google.com/adwords/api/docs/guides/accounts-overview?hl=ko#test_accounts
-        # https://medium.com/@MihaZelnik/how-to-create-test-account-for-adwords-api-503ca72b25a4
-        # MCC = My Customer Center
-        # https://developers.google.com/adwords/api/docs/
-        # https://github.com/googleads/googleads-python-lib
-        # https://github.com/googleads/googleads-python-lib/releases
-        # https://www.youtube.com/watch?v=80KOeuCNc0c
-        # """sClientId = googleads_config.CLIENT_ID
-        # sClientSecret = googleads_config.CLIENT_SECRET
-        # sRefreshToken = googleads_config.REFRESH_TOKEN
-        # sDeveloperToken = googleads_config.DEVELOPER_TOKEN
-        # sUserAgent = googleads_config.USER_AGENT
-        # sClientCustomerId = sAdwordsCid
-
-        # oauth2_client = oauth2.GoogleRefreshTokenClient(sClientId, sClientSecret, sRefreshToken)
-        # adwords_client = adwords.AdWordsClient(sDeveloperToken, oauth2_client, sUserAgent,client_customer_id=sClientCustomerId)
-        # customer_service = adwords_client.GetService('CustomerService',version='v201809')
-        # customers = customer_service.getCustomers()
-        # report_downloader = adwords_client.GetReportDownloader(version='v201809')"""
         s_google_ads_yaml_path = os.path.join(self._g_sAbsRootPath, 'conf', 'google-ads.yaml')
-        o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
+        try:
+            o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path, version=self.__g_sGoogleAdsApiVersion)
+        except google.auth.exceptions.RefreshError:
+            self._printDebug('A refresh token in google-ads.yaml has expired!')
+            self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
+            return
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
         
         sEarliestFilepath = os.path.join(s_conf_path_abs, 'general.latest')
