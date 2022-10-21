@@ -64,14 +64,15 @@ SEPARATOR = '|@|'
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
-    __g_nPnsTouchingDate = 20190126  # to separate the old & non-systematic & complicated situation for PNS cost process
+    # __g_nPnsTouchingDate = 20190126  # to separate the old & non-systematic & complicated situation for PNS cost process
+    __g_dictSourceTitleTag = None
     # __g_dictNvPnsUaCostPortion = {'M': 0.7, 'P': 0.3}  # sum must be 1
     __g_sSvNull = '#%'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221021)')
         
         self._g_dictParam.update({'yyyymm': None, 'mode': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -131,14 +132,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
         self.__g_sSvAcctId = dict_acct_info['sv_account_id']
         self.__g_sBrandId = dict_acct_info['brand_id']
-        # s_sv_acct_id = dict_acct_info['sv_account_id']
-        # s_brand_id = dict_acct_info['brand_id']
-        # dict_nvr_ad_acct = dict_acct_info['nvr_ad_acct']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        # s_cid = dict_nvr_ad_acct['customer_id']
         self.__g_sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, self.__g_sSvAcctId,
                                           self.__g_sBrandId)
 
+        if self.__g_dictSourceTitleTag is None:
+            self.__g_dictSourceTitleTag = self.__g_oSvCampaignParser.get_source_tag_title_dict(b_inverted=True)
+        
         with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.setTablePrefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
@@ -744,7 +744,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # GDN campaign sometimes is identified by Campaign Code and UA
         # this is very different with YOUTUBE campaign from google-ads
         dict_gads_log_daily = {}
-        lst_googleads_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogDaily', self.__g_sDate, 'GG')
+        lst_googleads_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogDaily', self.__g_sDate, self.__g_dictSourceTitleTag['google'])
         for dictSingleLog in lst_googleads_log_daily:
             dict_gads_log_daily[dictSingleLog['log_srl']] = {
                 'customer_id': dictSingleLog['customer_id'], 'ua': dictSingleLog['ua'], 'term': dictSingleLog['term'],
@@ -758,7 +758,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for s_uniq_log_id, dict_row in self.__g_dictAdwMergedDailyLog.items():
             dict_id_rst = self.__parse_uniq_log_id(s_uniq_log_id)
             if dict_id_rst['s_camp_1st'].find('GDN') > -1:  # if the campaign is related with GDN
-                lst_gads_log_daily_temp = self.__g_oSvMysql.executeQuery('getAdwLogSpecificRmk', self.__g_sDate, 'GG',
+                lst_gads_log_daily_temp = self.__g_oSvMysql.executeQuery('getAdwLogSpecificRmk', self.__g_sDate, 
+                                                                         self.__g_dictSourceTitleTag['google'],
                                                                          dict_id_rst['s_media'],
                                                                          dict_id_rst['s_camp_1st'],
                                                                          dict_id_rst['s_camp_2nd'],
@@ -786,7 +787,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'click': n_gross_click, 'conv_cnt': n_gross_conv_cnt, 'conv_amnt': n_gross_conv_amnt
                     })
             else:  # if the campaign is related with normal google-ads
-                lst_googleads_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogSpecific', self.__g_sDate, 'GG',
+                lst_googleads_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogSpecific', self.__g_sDate, 
+                                                                         self.__g_dictSourceTitleTag['google'],
                                                                          dict_id_rst['s_media'], dict_id_rst['s_term'],
                                                                          dict_id_rst['s_camp_1st'],
                                                                          dict_id_rst['s_camp_2nd'],
@@ -873,7 +875,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # it is very different with google-ads campaign
         dict_yt_daily_log = {}
         # assume that term from youtube is always '(not set)'
-        lst_yt_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogDaily', self.__g_sDate, 'YT')
+        lst_yt_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogDaily', self.__g_sDate, self.__g_dictSourceTitleTag['youtube'])
         for dictSingleLog in lst_yt_log_daily:
             dict_yt_daily_log[dictSingleLog['log_srl']] = {
                 'customer_id': dictSingleLog['customer_id'], 'ua': dictSingleLog['ua'],
@@ -888,7 +890,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for s_uniq_log_id, dict_row in self.__g_dictYtMergedDailyLog.items():
             dict_id_rst = self.__parse_uniq_log_id(s_uniq_log_id)
             s_term = '(not set)'  # assume that term from youtube is always '(not set)'
-            lst_yt_log_daily_tep = self.__g_oSvMysql.executeQuery('getAdwLogSpecificRmk', self.__g_sDate, 'YT',
+            lst_yt_log_daily_tep = self.__g_oSvMysql.executeQuery('getAdwLogSpecificRmk', self.__g_sDate, self.__g_dictSourceTitleTag['youtube'],
                                                                   dict_id_rst['s_media'], dict_id_rst['s_camp_1st'],
                                                                   dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                                   dict_id_rst['s_ua'])

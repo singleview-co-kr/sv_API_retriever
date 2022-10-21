@@ -257,7 +257,7 @@ class SvCampaignParser(sv_object.ISvObject):
             return {v: k for k, v in self.__g_dictSourceIdTitle.items()}
         return self.__g_dictSourceIdTitle
 
-    def get_source_tag_title_dict(self, b_inverted=False):  # unuse?
+    def get_source_tag_title_dict(self, b_inverted=False):
         if b_inverted:
             return {v: k for k, v in self.__g_dictSourceTagTitle.items()}
         return self.__g_dictSourceTagTitle
