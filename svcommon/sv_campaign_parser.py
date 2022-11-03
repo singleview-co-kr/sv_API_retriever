@@ -64,6 +64,7 @@ class SvCampaignParser(sv_object.ISvObject):
         (8, 'targeting', 'TG'),
         (9, 'mobon', 'MBO'),
         (10, 'smr', 'SMR'),
+        (10, 'signal_play', 'SGP'),
     ]
     __g_dictSourceIdTitle = None  # {1:'naver'}
     __g_dictSourceTagTitle = None  # {'NV': 'naver'}
@@ -148,6 +149,8 @@ class SvCampaignParser(sv_object.ISvObject):
              'media_media': 'cpc', 'desc': '모비온', 'camp_prefix': 'MBO_PS_CPC_'},
         75: {'title': 'SMR_DISP', 'media_rst_type': 'PS', 'media_source': 'smr',
              'media_media': 'display', 'desc': '포탈에 개시되는 동영상 광고, 항상 DISP', 'camp_prefix': 'SMR_PS_DISP_'},
+        76: {'title': 'SGP_DISP', 'media_rst_type': 'PS', 'media_source': 'signal_play',
+             'media_media': 'display', 'desc': '시그널 플레이 항상 DISP', 'camp_prefix': 'SGP_PS_DISP_'},
         # 100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
         #       'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
     }
