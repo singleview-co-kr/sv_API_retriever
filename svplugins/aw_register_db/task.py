@@ -71,7 +71,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221104)')
         
         self._g_dictParam.update({'yyyymm':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -215,13 +215,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 lst_non_sv_convention_campaign_title.append(row[0])
                                 continue
                     if dict_rst['source_code'] not in ['GG', 'YT']:  # if unacceptable googleads campaign name
-                        sCampaignName = row[0]
-                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                        self._printDebug('weird googleads log!')
-                        if self._g_bDaemonEnv:  # for running on dbs.py only
-                            raise Exception('remove')
-                        else:
-                            return
+                        dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                        dict_rst = dict_campaign_alias_rst['dict_ret']
+                        if not dict_rst['detected']:  # retrieve campaign name alias info
+                            lst_non_sv_convention_campaign_title.append(row[0])
+                            continue
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Validate data file:', suffix = 'Complete', length = 50)
             nIdx += 1
         del o_campaign_alias
@@ -297,21 +295,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 else:
                                     return
 
-                    if dict_rst['source_code'] in ['GG', 'YT']:
-                        sSource = dict_rst['source_code']
-                        sRstType = dict_rst['rst_type']
-                        sMedium = dict_rst['medium_code']
-                        sCampaign1st = dict_rst['campaign1st']
-                        sCampaign2nd = dict_rst['campaign2nd']
-                        sCampaign3rd = dict_rst['campaign3rd']
-                    else:  # if unacceptable googleads campaign name
-                        sCampaignName = row[0]
-                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                        self._printDebug('weird googleads log!')
-                        if self._g_bDaemonEnv:  # for running on dbs.py only
-                            raise Exception('remove')
-                        else:
-                            return
+                    if dict_rst['source_code'] not in ['GG', 'YT']:
+                        dict_campaign_alias_rst = o_campaign_alias.get_detail_by_media_campaign_name(row[0])
+                        dict_rst = dict_campaign_alias_rst['dict_ret']
+                        if not dict_rst['detected']:  # if unacceptable googleads campaign name
+                            sCampaignName = row[0]
+                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                            self._printDebug('weird googleads log!')
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                raise Exception('remove')
+                            else:
+                                return
+
+                    sSource = dict_rst['source_code']
+                    sRstType = dict_rst['rst_type']
+                    sMedium = dict_rst['medium_code']
+                    sCampaign1st = dict_rst['campaign1st']
+                    sCampaign2nd = dict_rst['campaign2nd']
+                    sCampaign3rd = dict_rst['campaign3rd']
                     
                     sUa = self.__g_oSvCampaignParser.get_ua(row[6])
                     sTerm = row[2]

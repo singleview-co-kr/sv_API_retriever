@@ -275,7 +275,8 @@ class CampaignAliasInfo:
                                         None, # ['s_sv_lvl_1'],
                                         None, # ['s_sv_lvl_2'], 
                                         None, # ['s_sv_lvl_3'],
-                                        None, # ['s_sv_lvl_4'], 
+                                        None, # ['s_sv_lvl_4'],
+                                        None, # ['memo'], 
                                         datetime.today())
         if 'id' in lst_rst[0]:
             return True
