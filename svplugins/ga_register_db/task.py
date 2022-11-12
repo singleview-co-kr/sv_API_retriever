@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221112)')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -265,12 +265,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
             'transactions.tsv':'trs', 'transactionRevenueByTrId.tsv':'rev'}
 
-        try:
-            for sFilename in lstDataFiles:
-                sDataFileFullname = os.path.join(sDataPath, sFilename)
-                if sFilename == 'archive':
-                    continue
-                
+        for sFilename in lstDataFiles:
+            sDataFileFullname = os.path.join(sDataPath, sFilename)
+            if sFilename == 'archive':
+                continue
+            
+            try:
                 aFile = sFilename.split('_')
                 sDataDate = aFile[0]
                 sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
@@ -279,13 +279,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     sIdxName = dictQuery[sSpecifier]
                 else:
                     continue
-                
-                if os.path.isfile(sDataFileFullname):
-                    with open(sDataFileFullname, 'r') as tsvfile:
-                        reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
-                        for row in reader:
-                            if not self._continue_iteration():
-                                break
+            except Exception as err:
+                self._printDebug('1111')
+                self._printDebug(err)
+            
+            if os.path.isfile(sDataFileFullname):
+                with open(sDataFileFullname, 'r') as tsvfile:
+                    reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                    for row in reader:
+                        if not self._continue_iteration():
+                            break
+                        try:
                             if sSpecifier == 'transactionRevenueByTrId.tsv':
                                 row = row[1:]  # remove transaction ID
 
@@ -300,14 +304,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
                                 }
                             self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
-                    self.__archive_ga_data_file(sDataPath, sFilename)
-                else:
-                    self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+                        except Exception as err:
+                            self._printDebug('2222')
+                            self._printDebug(err)
+                self.__archive_ga_data_file(sDataPath, sFilename)
+            else:
+                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
-                nIdx += 1
-        except Exception as err:
-            self._printDebug(err)
+            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            nIdx += 1
+       
 
         self._printDebug('UA media performance log has been finished\n')
         
