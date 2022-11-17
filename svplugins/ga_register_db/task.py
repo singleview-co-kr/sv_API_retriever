@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221112)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221117)')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -270,18 +270,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if sFilename == 'archive':
                 continue
             
-            try:
-                aFile = sFilename.split('_')
-                sDataDate = aFile[0]
-                sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
-                sSpecifier = aFile[2]
-                if sSpecifier in dictQuery:  #lst_analyzing_filename:
-                    sIdxName = dictQuery[sSpecifier]
-                else:
-                    continue
-            except Exception as err:
-                self._printDebug('1111')
-                self._printDebug(err)
+            aFile = sFilename.split('_')
+            sDataDate = aFile[0]
+            sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
+            sSpecifier = aFile[2]
+            if sSpecifier in dictQuery:  #lst_analyzing_filename:
+                sIdxName = dictQuery[sSpecifier]
+            else:
+                continue
             
             if os.path.isfile(sDataFileFullname):
                 with open(sDataFileFullname, 'r') as tsvfile:
@@ -292,21 +288,54 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         try:
                             if sSpecifier == 'transactionRevenueByTrId.tsv':
                                 row = row[1:]  # remove transaction ID
-
+                        except Exception as err:
+                            self._printDebug('1111')
+                            self._printDebug(err)
+                            self._printDebug(row)
+                        
+                        try:
                             dictRst = self.__parseGaRow(row, sDataFileFullname)
+                        except Exception as err:
+                            self._printDebug('2222')
+                            self._printDebug(err)
+                            self._printDebug(dictRst['source'])
+                            self._printDebug(dictRst['rst_type'])
+                            self._printDebug(dictRst['medium'])
+                            self._printDebug(dictRst['brd'])
+                            self._printDebug(dictRst['campaign1st'])
+                            self._printDebug(dictRst['campaign2nd'])
+                            self._printDebug(dictRst['campaign3rd'])
+                            self._printDebug(sDataFileFullname)
+
+                        try:
                             sTerm = row[2]
+                        except Exception as err:
+                            self._printDebug('3333')
+                            self._printDebug(err)
+                            self._printDebug(sTerm)
+                        
+                        try:
                             sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
                                 dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
                                 dictRst['campaign3rd']+'|@|'+sTerm
+                        except Exception as err:
+                            self._printDebug('4444')
+                            self._printDebug(err)
+                            self._printDebug(dictRst['source'])
+                            self._printDebug(dictRst['rst_type'])
+                            self._printDebug(dictRst['medium'])
+                            self._printDebug(dictRst['brd'])
+                            self._printDebug(dictRst['campaign1st'])
+                            self._printDebug(dictRst['campaign2nd'])
+                            self._printDebug(dictRst['campaign3rd'])
+                            self._printDebug(sReportId)
                             
                             if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
                                 self.__g_dictGaRaw[sReportId] = {
                                     'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
                                 }
                             self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
-                        except Exception as err:
-                            self._printDebug('2222')
-                            self._printDebug(err)
+                        
                 self.__archive_ga_data_file(sDataPath, sFilename)
             else:
                 self._printDebug('pass ' + sDataFileFullname + ' does not exist')
