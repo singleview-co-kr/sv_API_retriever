@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221117)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221118)')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -253,7 +253,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __proc_media_perf_log(self, sDataPath):
         """ process homepage level data """
-        self._printDebug('UA media performance log has been started\n')
+        self._printDebug('UA media performance log arranging has been started\n')
         # traverse directory and categorize data files
         lstDataFiles = os.listdir(sDataPath)
         lstDataFiles.sort()
@@ -285,13 +285,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     for row in reader:
                         if not self._continue_iteration():
                             break
-                        try:
-                            if sSpecifier == 'transactionRevenueByTrId.tsv':
-                                row = row[1:]  # remove transaction ID
-                        except Exception as err:
-                            self._printDebug('1111')
-                            self._printDebug(err)
-                            self._printDebug(row)
+                        if sSpecifier == 'transactionRevenueByTrId.tsv':
+                            row = row[1:]  # remove transaction ID
                         
                         try:
                             dictRst = self.__parseGaRow(row, sDataFileFullname)
@@ -307,34 +302,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             self._printDebug(dictRst['campaign3rd'])
                             self._printDebug(sDataFileFullname)
 
-                        try:
-                            sTerm = row[2]
-                        except Exception as err:
-                            self._printDebug('3333')
-                            self._printDebug(err)
-                            self._printDebug(sTerm)
+                        sTerm = row[2]
                         
-                        try:
-                            sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
-                                dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
-                                dictRst['campaign3rd']+'|@|'+sTerm
-                        except Exception as err:
-                            self._printDebug('4444')
-                            self._printDebug(err)
-                            self._printDebug(dictRst['source'])
-                            self._printDebug(dictRst['rst_type'])
-                            self._printDebug(dictRst['medium'])
-                            self._printDebug(dictRst['brd'])
-                            self._printDebug(dictRst['campaign1st'])
-                            self._printDebug(dictRst['campaign2nd'])
-                            self._printDebug(dictRst['campaign3rd'])
-                            self._printDebug(sReportId)
+                        sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
+                            dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
+                            dictRst['campaign3rd']+'|@|'+sTerm
                             
-                            if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
-                                self.__g_dictGaRaw[sReportId] = {
-                                    'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
-                                }
-                            self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
+                        if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
+                            self.__g_dictGaRaw[sReportId] = {
+                                'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
+                            }
+                        self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
                         
                 self.__archive_ga_data_file(sDataPath, sFilename)
             else:
@@ -342,9 +320,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             nIdx += 1
-       
 
-        self._printDebug('UA media performance log has been finished\n')
+        self._printDebug('UA media performance log arranging has been finished\n')
         
     def __getCampaignNameAlias(self, sParentDataPath):
         dictCampaignNameAliasInfo = {}
@@ -362,6 +339,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return dictCampaignNameAliasInfo
 
     def __registerSourceMediumTerm(self):
+        self._printDebug('UA media performance log registation has been started\n')
         nIdx = 0
         nSentinel = len(self.__g_dictGaRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
@@ -393,6 +371,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 nIdx += 1
+        self._printDebug('UA media performance log registation has been finished\n')
 
     def __parseGaRow(self, lstRow, sDataFileFullname):
         if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
