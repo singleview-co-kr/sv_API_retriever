@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221118)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221127)')
         # Declaring a dict outside of __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -374,23 +374,32 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._printDebug('UA media performance log registation has been finished\n')
 
     def __parseGaRow(self, lstRow, sDataFileFullname):
-        if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-            sSourceMediumAlias = str(self.__g_dictSourceMediaNameAliasInfo[lstRow[0]]['alias'])
-            aSourceMedium = sSourceMediumAlias.split(' / ')
-        else:
-            aSourceMedium = lstRow[0].split(' / ')
-
-        sSource = aSourceMedium[0]
-        sMedium = aSourceMedium[1]
-        sCampaignCode = lstRow[1]
+        try:
+            if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                sSourceMediumAlias = str(self.__g_dictSourceMediaNameAliasInfo[lstRow[0]]['alias'])
+                aSourceMedium = sSourceMediumAlias.split(' / ')
+            else:
+                aSourceMedium = lstRow[0].split(' / ')
+        except Exception as err:
+            self._printDebug('3333')
+        
+        try:
+            sSource = aSourceMedium[0]
+            sMedium = aSourceMedium[1]
+            sCampaignCode = lstRow[1]
+        except Exception as err:
+            self._printDebug('4444')
         sRstType = ''
         sCampaign1st = ''
         sCampaign2nd = ''
         sCampaign3rd = ''
         sTerm = lstRow[2]
         # "skin-skin14--shop3.ratestw.cafe24.com" like source string occurs confusion
-        m = re.search(r"[-\w.]+", sSource)
-        nHttpPos = m.group(0).find('http')
+        try:
+            m = re.search(r"[-\w.]+", sSource)
+            nHttpPos = m.group(0).find('http')
+        except Exception as err:
+            self._printDebug('5555')
         if nHttpPos > -1:
             if len(sSource) > 30: # remedy erronous UTM parameter
                 m = re.search(r"https?://(\w*:\w*@)?[-\w.]+(:\d+)?(/([\w/_.]*(\?\S+)?)?)?", sSource)
@@ -433,80 +442,100 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     self._printDebug(inst)			# __str__ allows args to be printed directly, but may be overridden in exception subclasses
         else: # ex) naver��utm_medium=cpc��utm_campaign=NV_PS_CPC_NVSHOP_00_00��utm_term=NVSHOP_4741��n_media=33421��n_query=��ɼ��漮��n_rank=1��n_ad_group=grp-a001-02-000000002830061��n_ad=nad-a001-02-000000011190197��n_campaign_type=2��n_
             # same source code needs to be method - begin
-            sEncodedSource = sSource.encode('UTF-8')
-            sEncodedSource = str(sEncodedSource)
-            nUnicodeAmpersandPos = sEncodedSource.find("\\xef\\xbc\\x86")
+            try:
+                sEncodedSource = sSource.encode('UTF-8')
+                sEncodedSource = str(sEncodedSource)
+                nUnicodeAmpersandPos = sEncodedSource.find("\\xef\\xbc\\x86")
+            except Exception as err:
+                self._printDebug('6666')
             if nUnicodeAmpersandPos > -1:
-                aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86") # utf-8 encoded unicode ampersand ��
-                for sQueryElement in aWeirdSource:
-                    aQuery = sQueryElement.split('=')
-                    if aQuery[0] == 'utm_campaign':
-                        dictSmRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=aQuery[1])
-                        sSource = dictSmRst['source']
-                        sMedium = dictSmRst['medium']
-                        sCampaignCode = aQuery[1]
-                        sRstType = dictSmRst['rst_type']
-                        sCampaign1st = dictSmRst['campaign1st']
-                        sCampaign2nd = dictSmRst['campaign2nd']
-                        sCampaign3rd = dictSmRst['campaign3rd']
-                    if aQuery[0] == 'utm_term':
-                            sTerm = aQuery[1]
+                try:
+                    aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86") # utf-8 encoded unicode ampersand ��
+                    for sQueryElement in aWeirdSource:
+                        aQuery = sQueryElement.split('=')
+                        if aQuery[0] == 'utm_campaign':
+                            dictSmRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=aQuery[1])
+                            sSource = dictSmRst['source']
+                            sMedium = dictSmRst['medium']
+                            sCampaignCode = aQuery[1]
+                            sRstType = dictSmRst['rst_type']
+                            sCampaign1st = dictSmRst['campaign1st']
+                            sCampaign2nd = dictSmRst['campaign2nd']
+                            sCampaign3rd = dictSmRst['campaign3rd']
+                        if aQuery[0] == 'utm_term':
+                                sTerm = aQuery[1]
+                except Exception as err:
+                    self._printDebug('7777')
             # same source code needs to be method - end
         dictValidMedium = self.__g_oSvCampaignParser.validate_ga_medium_tag(sMedium)
         if dictValidMedium['medium'] != 'weird':
-            sMedium = dictValidMedium['medium']
-            if dictValidMedium['found_pos'] > -1:
-                nPos = dictValidMedium['found_pos'] + len( dictValidMedium['medium'])
-                sRightPart = sMedium[nPos:]
-                aRightPart = sRightPart.split('=')
-                if aRightPart[0] == 'utm_campaign':
-                    sCampaignCode = aRightPart[1]
+            try:
+                sMedium = dictValidMedium['medium']
+                if dictValidMedium['found_pos'] > -1:
+                    nPos = dictValidMedium['found_pos'] + len( dictValidMedium['medium'])
+                    sRightPart = sMedium[nPos:]
+                    aRightPart = sRightPart.split('=')
+                    if aRightPart[0] == 'utm_campaign':
+                        sCampaignCode = aRightPart[1]
+            except Exception as err:
+                self._printDebug('8888')
         else:
-            self.__g_lstErrornousMedia.append(sDataFileFullname + ' -> ' + sSource+' / ' + sMedium)
+            try:
+                self.__g_lstErrornousMedia.append(sDataFileFullname + ' -> ' + sSource+' / ' + sMedium)
+            except Exception as err:
+                self._printDebug('9999')
 
         if sSource == 'google' and sMedium == 'cpc':
-            # lookup alias db, if non sv standard code
-            if self.__g_dictGoogleAdsCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] == 'YT':
-                    sSource = 'youtube'
-                if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] == 'DISP':
-                    sMedium = 'display'
-                sCampaignCode = self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] + '_' + \
-                                self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
-                                self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
-                                self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
-                                self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
-                                self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp3rd']
+            try:
+                # lookup alias db, if non sv standard code
+                if self.__g_dictGoogleAdsCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                    if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] == 'YT':
+                        sSource = 'youtube'
+                    if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] == 'DISP':
+                        sMedium = 'display'
+                    sCampaignCode = self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp3rd']
+            except Exception as err:
+                self._printDebug('aaaa')
         elif sSource == 'naver' and sMedium == 'cpc':
-            # lookup alias db, if non sv standard code
-            if self.__g_dictNaverPowerlinkCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                sCampaignCode = self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['source'] + '_' + \
-                                self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
-                                self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
-                                self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
-                                self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
-                                self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp3rd']
-        
-        dictCampaignRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=sCampaignCode)
-        if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data
-            if sMedium == 'cpc' or sMedium == 'display':
-                dictCampaignRst['rst_type'] = 'PS'
-            else:
-                dictCampaignRst['rst_type'] = 'NS'
+            try:
+                # lookup alias db, if non sv standard code
+                if self.__g_dictNaverPowerlinkCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                    sCampaignCode = self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['source'] + '_' + \
+                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
+                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
+                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
+                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
+                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp3rd']
+            except Exception as err:
+                self._printDebug('bbbb')
+        try:    
+            dictCampaignRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=sCampaignCode)
+            if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data
+                if sMedium == 'cpc' or sMedium == 'display':
+                    dictCampaignRst['rst_type'] = 'PS'
+                else:
+                    dictCampaignRst['rst_type'] = 'NS'
 
-        bBrd = dictCampaignRst['brd']
-        sRstType = dictCampaignRst['rst_type']
-        if len(dictCampaignRst['medium']) > 0: # sv campaign criteria first, GA auto categorize later
-            sMedium = dictCampaignRst['medium']
-        sCampaign1st = dictCampaignRst['campaign1st']
-        sCampaign2nd = dictCampaignRst['campaign2nd']
-        sCampaign3rd = dictCampaignRst['campaign3rd']
-        # finally determine branded by term
-        dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
-        if dict_brded_rst['b_error'] == True:
-            self._printDebug(dict_brded_rst['s_err_msg'])
-        elif dict_brded_rst['b_brded']:
-            bBrd = 1
+            bBrd = dictCampaignRst['brd']
+            sRstType = dictCampaignRst['rst_type']
+            if len(dictCampaignRst['medium']) > 0: # sv campaign criteria first, GA auto categorize later
+                sMedium = dictCampaignRst['medium']
+            sCampaign1st = dictCampaignRst['campaign1st']
+            sCampaign2nd = dictCampaignRst['campaign2nd']
+            sCampaign3rd = dictCampaignRst['campaign3rd']
+            # finally determine branded by term
+            dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
+            if dict_brded_rst['b_error'] == True:
+                self._printDebug(dict_brded_rst['s_err_msg'])
+            elif dict_brded_rst['b_brded']:
+                bBrd = 1
+        except Exception as err:
+            self._printDebug('cccc')
         # monitor weird source name - begin
         if len(sSource) > 50: 
             self._printDebug(sDataFileFullname)
