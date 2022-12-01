@@ -38,7 +38,7 @@ Before proceeding with the following steps, make sure you are in the root direct
 
 1. To acquire a refresh token, execute the following command.
 
-        $ python generate_user_credentials -c ../conf/client_secret_google_ads.json
+        $ python generate_user_credentials.py -c ../conf/client_secret_google_ads.json
 
 1. Complete the authorization steps in the browser.
 1. Enter the refresh token in the terminal google suggested like
