@@ -520,7 +520,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dictCampaignRst['rst_type'] = 'PS'
                 else:
                     dictCampaignRst['rst_type'] = 'NS'
-
+        except Exception as err:
+            self._printDebug('cccc')
+        try:
             bBrd = dictCampaignRst['brd']
             sRstType = dictCampaignRst['rst_type']
             if len(dictCampaignRst['medium']) > 0: # sv campaign criteria first, GA auto categorize later
@@ -535,7 +537,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             elif dict_brded_rst['b_brded']:
                 bBrd = 1
         except Exception as err:
-            self._printDebug('cccc')
+            self._printDebug('dddd')
+        
         # monitor weird source name - begin
         if len(sSource) > 50: 
             self._printDebug(sDataFileFullname)
