@@ -515,13 +515,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._printDebug('bbbb')
         try:    
             dictCampaignRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=sCampaignCode)
+        except Exception as err:
+            self._printDebug('cccc')
+            self._printDebug(err)
+        try:
             if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data
                 if sMedium == 'cpc' or sMedium == 'display':
                     dictCampaignRst['rst_type'] = 'PS'
                 else:
                     dictCampaignRst['rst_type'] = 'NS'
         except Exception as err:
-            self._printDebug('cccc')
+            self._printDebug('dddd')
+            self._printDebug(err)
+        
         try:
             bBrd = dictCampaignRst['brd']
             sRstType = dictCampaignRst['rst_type']
@@ -530,14 +536,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sCampaign1st = dictCampaignRst['campaign1st']
             sCampaign2nd = dictCampaignRst['campaign2nd']
             sCampaign3rd = dictCampaignRst['campaign3rd']
+        except Exception as err:
+            self._printDebug('eeee')
+            self._printDebug(err)
             # finally determine branded by term
+        try:
             dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
+        except Exception as err:
+            self._printDebug('ffff')
+            self._printDebug(err)
+        try:
             if dict_brded_rst['b_error'] == True:
                 self._printDebug(dict_brded_rst['s_err_msg'])
             elif dict_brded_rst['b_brded']:
                 bBrd = 1
         except Exception as err:
-            self._printDebug('dddd')
+            self._printDebug('gggg')
+            self._printDebug(err)
         
         # monitor weird source name - begin
         if len(sSource) > 50: 
