@@ -509,7 +509,7 @@ class SvCampaignParser(sv_object.ISvObject):
         except Exception as err:
             self._g_oLogger.error('1111')
             self._g_oLogger.error(s_sv_campaign_code)
-            self._g_oLogger.error(dict_tmp_rst)
+            # self._g_oLogger.error(dict_tmp_rst)
             self._g_oLogger.error(list_campaign_code)
             self._g_oLogger.error(dict_rst)
         # else:  # process old style SV campaign code; this section will be deprecated after balanceseat complete analysis
