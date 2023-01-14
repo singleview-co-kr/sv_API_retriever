@@ -303,7 +303,7 @@ class MediaAgencyAdmin(admin.ModelAdmin):
 
 
 class ContractAdmin(admin.ModelAdmin):
-    list_display = ('get_data_source', 'date_begin', 'date_end', 'b_approval', 'date_reg')
+    list_display = ('get_data_source', 'get_agent_fee', 'date_begin', 'date_end', 'b_approval', 'date_reg')
     # list_filter = ['date_reg']
     # search_fields = ['s_agency_name']
 
@@ -311,7 +311,10 @@ class ContractAdmin(admin.ModelAdmin):
     def get_data_source(self, obj):
         return str(obj.sv_media_agency) + ' > ' + str(obj.sv_data_source.sv_data_source.sv_brand) + ' > '\
                ' > ' + str(obj.sv_data_source.sv_data_source) + ' > ' + str(obj.sv_data_source)
-
+    
+    @display(description='수수료')
+    def get_agent_fee(self, obj):
+        return obj.s_fee_type + ' ' + str(obj.n_agent_fee_percent) + '%'
 
 admin.site.register(Account, AccountAdmin)
 admin.site.register(Brand, BrandAdmin)
