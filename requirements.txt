@@ -36,9 +36,10 @@ et-xmlfile==1.1.0
 facebook-business==12.0.0
 filelock==3.3.0
 google-ads==18.1.0
-google-api-core==2.10.1
+google-analytics-data==0.16.0
+google-api-core==2.11.0
 google-api-python-client==2.62.0
-google-auth==2.3.0
+google-auth==2.16.0
 google-auth-httplib2==0.1.0
 google-auth-oauthlib==0.5.3
 googleapis-common-protos==1.56.4

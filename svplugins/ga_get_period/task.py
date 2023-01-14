@@ -37,9 +37,9 @@ import time
 import os
 import sys
 import random
-import httplib2
 # import errno
-import argparse
+# import argparse
+# import httplib2
 
 # import re # https://docs.python.org/3/library/re.html
 from apiclient.discovery import build
@@ -67,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230113)')
         
         self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -158,7 +158,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     return
         elif s_version == 'ga4':
-            self._printDebug('plugin is developing')
+            self._printDebug('choose ga4_get_day plugin')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
