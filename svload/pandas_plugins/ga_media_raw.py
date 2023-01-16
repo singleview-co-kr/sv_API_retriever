@@ -437,6 +437,7 @@ class GaSourceMediaRaw:
                 n_agency_fee_inc_vat = df_row_sm['media_agency_cost'] * 1.1  # add VAT
                 self.__g_dictBudgetInfo['_'.join(df_row_sm.name)] = {
                     's_media_agency_title': 'N/A',
+                    'n_media_agency_id': 0,
                     'n_budget_tgt_amnt_inc_vat': 0,
                     'n_agency_fee_inc_vat': n_agency_fee_inc_vat,
                     'n_agency_fee_inc_vat_est': 0,
@@ -471,9 +472,9 @@ class GaSourceMediaRaw:
                                                          dt_end=dt_last_date_of_month)
         del o_budget
         for s_sm, dict_budget_single in dict_budget.items():  # sm means source-medium
-            # print(s_sm)
             if s_sm in self.__g_dictBudgetInfo:  # update existing
                 self.__g_dictBudgetInfo[s_sm]['s_media_agency_title'] = dict_budget_single['s_media_agency_title']
+                self.__g_dictBudgetInfo[s_sm]['n_media_agency_id'] = dict_budget_single['n_media_agency_id']
 
                 self.__g_dictBudgetInfo[s_sm]['n_budget_tgt_amnt_inc_vat'] = \
                     dict_budget_single['n_budget_tgt_amnt_inc_vat']
@@ -486,6 +487,7 @@ class GaSourceMediaRaw:
             else:  # add new
                 self.__g_dictBudgetInfo[s_sm] = {
                     's_media_agency_title': dict_budget_single['s_media_agency_title'],
+                    'n_media_agency_id': dict_budget_single['n_media_agency_id'],
                     'n_budget_tgt_amnt_inc_vat': dict_budget_single['n_budget_tgt_amnt_inc_vat'],
                     'n_agency_fee_inc_vat': 0,
                     'n_agency_fee_inc_vat_est': 0,
@@ -510,6 +512,7 @@ class GaSourceMediaRaw:
                     #     n_agency_fee_inc_vat_est = 0
                     self.__g_dictBudgetInfo[s_sm]['dict_campaign'][s_camp_title] = {
                         's_media_agency_title': dict_single_campaign['s_media_agency_title'],
+                        'n_media_agency_id': dict_single_campaign['n_media_agency_id'],
                         'n_budget_tgt_amnt_inc_vat': n_budget_tgt_amnt_inc_vat,
                         'n_agency_fee_inc_vat': n_agency_fee_inc_vat,
                         'f_est_factor': f_est_factor

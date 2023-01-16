@@ -127,6 +127,7 @@ class Budget:
                 dict_budget_to_display[s_source_medium] = {'s_source': dict_acct_info['media_source'],
                                                            's_media': dict_acct_info['media_media'],
                                                            's_media_agency_title': s_media_agency_title,
+                                                           'n_media_agency_id': n_media_agency_id,
                                                            'dt_period_start': dt_period_start,
                                                            'dt_period_end': dt_period_end,
                                                            'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc,
@@ -142,6 +143,7 @@ class Budget:
                     dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = \
                         {'dt_period_start': dt_period_start, 'dt_period_end': dt_period_end,
                          's_media_agency_title': s_media_agency_title,
+                         'n_media_agency_id': n_media_agency_id,
                          'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc}
                 else:  # add additional dict_campaign attr
                     if dt_period_start < dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title]['dt_period_start']:

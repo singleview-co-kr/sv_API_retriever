@@ -296,6 +296,7 @@ class GaMediaVisual(ABC):
                 # del o_keys
                 del dict_keys
                 dict_ttl_value_temp['s_media_agency_title'] = dict_budget_info[s_source_medium]['s_media_agency_title']
+                dict_ttl_value_temp['n_media_agency_id'] = dict_budget_info[s_source_medium]['n_media_agency_id']
                 dict_ttl_value_temp['n_budget_tgt_amnt_inc_vat'] = n_budget_tgt_amnt_inc_vat
                 dict_ttl_value_temp['n_agency_fee_inc_vat'] = n_agency_fee_inc_vat
                 dict_ttl_value_temp['n_agency_fee_inc_vat_est'] = n_agency_fee_inc_vat_est
@@ -312,6 +313,8 @@ class GaMediaVisual(ABC):
                             self._g_dictPeriodRaw[s_period_window].get_sv_campaign_info(s_camp_name)
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['s_media_agency_title'] = \
                             dict_camp_budget['s_media_agency_title']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_media_agency_id'] = \
+                            dict_camp_budget['n_media_agency_id']
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_budget_tgt_amnt_inc_vat'] = \
                             dict_camp_budget['n_budget_tgt_amnt_inc_vat']
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['campaign_gross_cost_inc_vat_ttl'] = \
@@ -333,6 +336,7 @@ class GaMediaVisual(ABC):
             if s_sm.endswith('organic'):
                 dict_ps_source_medium_gross[s_sm] = {
                     's_media_agency_title': dict_single['s_media_agency_title'],
+                    'n_media_agency_id': dict_single['n_media_agency_id'],
                     'n_budget_tgt_amnt_inc_vat': dict_single['n_budget_tgt_amnt_inc_vat']
                 }
         # specify derivative max value sum to determine y-axis range
