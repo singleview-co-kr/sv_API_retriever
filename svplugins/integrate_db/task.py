@@ -634,7 +634,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if n_rec_cnt_cpc == 0:
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                    dict_id_rst['s_term'], dict_id_rst['s_source'],
-                                                   dict_id_rst['s_rst_type'], 0, dict_id_rst['s_media'],
+                                                   dict_id_rst['s_rst_type'], 0, '', dict_id_rst['s_media'],
                                                    dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                    dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                    0, 0, 0, 0, 0, 0, 0,
@@ -665,7 +665,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         n_media_vat = 0
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                     dict_id_rst['s_term'], dict_id_rst['s_source'],
-                                                    dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'],
+                                                    dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
                                                     dict_id_rst['s_media'], dict_id_rst['s_brd'],
                                                     dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                                     dict_id_rst['s_camp_3rd'], 
@@ -699,7 +699,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     n_media_vat = 0
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                 dict_id_rst['s_term'], dict_id_rst['s_source'],
-                                                dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'],
+                                                dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
                                                 dict_id_rst['s_media'], dict_id_rst['s_brd'],
                                                 dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                                 dict_id_rst['s_camp_3rd'], 
@@ -733,7 +733,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_camp_3rd = dict_remaining_row['campaign_3rd']
                 s_term = ''
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, s_term, s_source, s_rst_type,
-                                               dict_cost_rst['agency_id'], s_media, s_brd,
+                                               dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], s_media, s_brd,
                                                s_camp_1st, s_camp_2nd, s_camp_3rd, 
                                                dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
                                                dict_remaining_row['imp'], dict_remaining_row['click'],
@@ -797,7 +797,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_rec_cnt = len(lst_googleads_log_daily)
             if n_rec_cnt == 0:  # add new non-media bounded log, if unable to find related ADW raw log
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
-                                               dict_id_rst['s_term'], 'google', dict_id_rst['s_rst_type'], 0,
+                                               dict_id_rst['s_term'], 'google', dict_id_rst['s_rst_type'], 0, '',
                                                dict_id_rst['s_media'], dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                0, 0, 0, 0, 0, 0, 0,
@@ -817,9 +817,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                    self.__g_sDate, lst_googleads_log_daily[0]['cost'])
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                dict_id_rst['s_term'], 'google', dict_id_rst['s_rst_type'],
-                                               dict_cost_rst['agency_id'], dict_id_rst['s_media'], dict_id_rst['s_brd'],
-                                               dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
-                                               dict_id_rst['s_camp_3rd'], 
+                                               dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
+                                               dict_id_rst['s_media'], dict_id_rst['s_brd'],
+                                               dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'], 
                                                dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
                                                lst_googleads_log_daily[0]['imp'], lst_googleads_log_daily[0]['click'],
                                                lst_googleads_log_daily[0]['conv_cnt'],
@@ -847,7 +847,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_gads_log_daily[n_log_srl]['ua'],
                                                dict_gads_log_daily[n_log_srl]['term'], 'google',
                                                dict_gads_log_daily[n_log_srl]['rst_type'],
-                                               dict_cost_rst['agency_id'], dict_gads_log_daily[n_log_srl]['media'],
+                                               dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
+                                               dict_gads_log_daily[n_log_srl]['media'],
                                                dict_gads_log_daily[n_log_srl]['brd'],
                                                dict_gads_log_daily[n_log_srl]['campaign_1st'],
                                                dict_gads_log_daily[n_log_srl]['campaign_2nd'],
@@ -867,7 +868,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 a_idx = s_idx.split('_')
                 s_ua = a_idx[0]
                 b_brded = a_idx[1]
-                self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'google', 'PS', 0,
+                self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'google', 'PS', 0, '',
                                                'cpc', b_brded, '|@|sv', '|@|sv', '|@|sv', 0, 0, 0, dict_imp[s_idx],
                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, self.__g_sDate)
 
@@ -920,7 +921,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_rec_cnt = len(lst_yt_log_daily)
             if n_rec_cnt == 0:
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'], s_term, 'youtube',
-                                               dict_id_rst['s_rst_type'], 0, dict_id_rst['s_media'],
+                                               dict_id_rst['s_rst_type'], 0, '', dict_id_rst['s_media'],
                                                dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                0, 0, 0, 0, 0, 0, 0,
@@ -945,7 +946,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_cost_rst = self.__g_oAgencyInfo.get_cost_info('adwords', lst_yt_log_daily[0]['customer_id'],
                                                                    self.__g_sDate, lst_yt_log_daily[0]['cost'])
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'], s_term, 'youtube',
-                                               dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'],
+                                               dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
                                                dict_id_rst['s_media'], dict_id_rst['s_brd'],
                                                dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                                dict_id_rst['s_camp_3rd'],
@@ -995,6 +996,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_camp_3rd = a_row_id[7]
             s_term = '(not set)'  # assume that term from youtube is always '(not set)'
             n_agency_id = 0
+            s_agency_name = ''
             f_cost = 0.0
             f_agency_fee = 0.0
             f_vat = 0.0
@@ -1003,11 +1005,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_cost_rst = self.__g_oAgencyInfo.get_cost_info('adwords', s_cid, self.__g_sDate,
                                                                    dict_single_arranged_log['cost'])
                 n_agency_id = dict_cost_rst['agency_id']
+                s_agency_name = dict_cost_rst['agency_name']
                 f_cost = dict_cost_rst['cost']
                 f_agency_fee = dict_cost_rst['agency_fee']
                 f_vat = dict_cost_rst['vat']
             self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, s_term, 'youtube', s_rst_type,
-                                           n_agency_id, s_media, s_brd, s_camp_1st, s_camp_2nd,
+                                           n_agency_id, s_agency_name, s_media, s_brd, s_camp_1st, s_camp_2nd,
                                            s_camp_3rd, f_cost, f_agency_fee, f_vat,
                                            dict_single_arranged_log['imp'], dict_single_arranged_log['click'],
                                            dict_single_arranged_log['conv_cnt'], dict_single_arranged_log['conv_amnt'],
@@ -1046,7 +1049,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_rec_cnt = len(lst_kko_log_daily)
             if n_rec_cnt == 0:  # GA log exists without KKO PS data
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
-                                               dict_id_rst['s_term'], 'kakao', dict_id_rst['s_rst_type'], 0,
+                                               dict_id_rst['s_term'], 'kakao', dict_id_rst['s_rst_type'], 0, '',
                                                dict_id_rst['s_media'], dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                0, 0, 0, 0, 0, 0, 0,
@@ -1065,7 +1068,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                        dict_kko_daily_log[s_uniq_log_id]['cost_inc_vat'])
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                    dict_id_rst['s_term'], 'kakao', dict_id_rst['s_rst_type'],
-                                                   dict_cost_rst['agency_id'], dict_id_rst['s_media'],
+                                                   dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], dict_id_rst['s_media'],
                                                    dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                    dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                    dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
@@ -1081,7 +1084,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dict_kko_daily_log.pop(s_uniq_log_id)  # removed registered log
                 else:  # if new log requested
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
-                                                   dict_id_rst['s_term'], 'kakao', dict_id_rst['s_rst_type'], 0,
+                                                   dict_id_rst['s_term'], 'kakao', dict_id_rst['s_rst_type'], 0, '',
                                                    dict_id_rst['s_media'], dict_id_rst['s_brd'],
                                                    dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                                    dict_id_rst['s_camp_3rd'], 0, 0, 0, 0, 0, 0, 0,
@@ -1104,7 +1107,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                    dict_kko_daily_log[s_uniq_log_id]['cost_inc_vat'])
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                dict_id_rst['s_term'], dict_id_rst['s_source'],
-                                               dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'],
+                                               dict_id_rst['s_rst_type'], dict_cost_rst['agency_id'], dict_cost_rst['agency_name'],
                                                dict_id_rst['s_media'], dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'], 
@@ -1123,7 +1126,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     a_idx = s_idx.split('_')
                     s_ua = a_idx[0]
                     b_brded = a_idx[1]
-                    self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'kakao', 'PS', 0,
+                    self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'kakao', 'PS', 0, '',
                                                    'cpc', b_brded, '|@|sv', '|@|sv', '|@|sv', 0, 0, 0, dict_imp[s_idx],
                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, self.__g_sDate)
         except NameError:  # if imp only log not exists
@@ -1167,7 +1170,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_rec_cnt = len(lst_nvad_log_daily)
             if n_rec_cnt == 0:
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
-                                               dict_id_rst['s_term'], 'naver', dict_id_rst['s_rst_type'], 0,
+                                               dict_id_rst['s_term'], 'naver', dict_id_rst['s_rst_type'], 0, '',
                                                dict_id_rst['s_media'], dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                0, 0, 0, 0, 0, 0, 0,
@@ -1194,7 +1197,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                    self.__g_sDate, lst_nvad_log_daily[0]['cost'])
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                dict_id_rst['s_term'], 'naver', dict_id_rst['s_rst_type'],
-                                               dict_cost_rst['agency_id'], dict_id_rst['s_media'], dict_id_rst['s_brd'],
+                                               dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], dict_id_rst['s_media'], dict_id_rst['s_brd'],
                                                dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                                dict_id_rst['s_camp_3rd'], dict_cost_rst['cost'],
                                                dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
@@ -1222,7 +1225,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                        self.__g_sDate, dict_brs_log['cost'])
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                    dict_id_rst['s_term'], 'naver', dict_id_rst['s_rst_type'],
-                                                   dict_cost_rst['agency_id'], dict_id_rst['s_media'],
+                                                   dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], dict_id_rst['s_media'],
                                                    dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                    dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                    dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
@@ -1260,7 +1263,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                        self.__g_sDate, n_cost)
                     self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'],
                                                    dict_id_rst['s_term'], 'naver', dict_id_rst['s_rst_type'],
-                                                   dict_cost_rst['agency_id'], dict_id_rst['s_media'],
+                                                   dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], dict_id_rst['s_media'],
                                                    dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'],
                                                    dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                    dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
@@ -1282,7 +1285,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_nvad_daily_log[n_log_srl]['ua'],
                                                dict_nvad_daily_log[n_log_srl]['term'], 'naver',
                                                dict_nvad_daily_log[n_log_srl]['rst_type'],
-                                               dict_cost_rst['agency_id'],
+                                               dict_cost_rst['agency_id'], dict_cost_rst['agency_name'], 
                                                dict_nvad_daily_log[n_log_srl]['media'],
                                                dict_nvad_daily_log[n_log_srl]['brd'],
                                                dict_nvad_daily_log[n_log_srl]['campaign_1st'],
@@ -1303,7 +1306,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 a_idx = s_idx.split('_')
                 s_ua = a_idx[0]
                 b_brded = a_idx[1]
-                self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'naver', 'PS', 0, 'cpc',
+                self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', s_ua, '|@|sv', 'naver', 'PS', 0, '', 'cpc',
                                                b_brded, '|@|sv', '|@|sv', '|@|sv', 0, 0, 0, dict_imp[s_idx],
                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, self.__g_sDate)
 
@@ -1319,7 +1322,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_media_agency_cost = 0
             n_media_cost_vat = 0
             self.__g_oSvMysql.executeQuery('insertCompiledGaMediaDailyLog', dict_id_rst['s_ua'], dict_id_rst['s_term'],
-                                           dict_id_rst['s_source'], dict_id_rst['s_rst_type'], 0, dict_id_rst['s_media'],
+                                           dict_id_rst['s_source'], dict_id_rst['s_rst_type'], 0, '', dict_id_rst['s_media'],
                                            dict_id_rst['s_brd'], dict_id_rst['s_camp_1st'], dict_id_rst['s_camp_2nd'],
                                            dict_id_rst['s_camp_3rd'], n_media_raw_cost,
                                            n_media_agency_cost, n_media_cost_vat, 0, 0, 0, 0,

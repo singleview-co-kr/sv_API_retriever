@@ -16,6 +16,7 @@ def contract_post_save(sender, instance, created, **kwargs):
             'date_begin': o_single_contract.date_begin,
             'date_end': o_single_contract.date_end,
             'media_agency_id': o_single_contract.sv_media_agency.pk,
+            'media_agency_name': o_single_contract.sv_media_agency.s_agency_name,
             'n_agent_fee_percent': o_single_contract.n_agent_fee_percent,
             's_fee_type': o_single_contract.s_fee_type,
         })

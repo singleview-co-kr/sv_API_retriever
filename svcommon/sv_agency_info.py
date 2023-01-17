@@ -81,6 +81,7 @@ class SvAgencyInfo(sv_object.ISvObject):
     def load_agency_dict(self):
         """
         called by svload.pandas_plugins.budget.py::get_list_by_period()
+        this method is executed on Django-context only
         :return:
         """
         dict_agency_info = {}
@@ -107,7 +108,7 @@ class SvAgencyInfo(sv_object.ISvObject):
                                                   s_data_source_id, 'conf', 'agency_info.tsv')
             lst_temp = []
             if os.path.exists(self.__sAgencyInfoPath):
-                with open(self.__sAgencyInfoPath, 'r') as o_tsv_file:
+                with open(self.__sAgencyInfoPath, 'r', encoding='utf8') as o_tsv_file:
                     o_tsv_reader = csv.reader(o_tsv_file, delimiter='\t')
                     for lst_row in o_tsv_reader:
                         lst_temp.append(lst_row)
@@ -128,18 +129,19 @@ class SvAgencyInfo(sv_object.ISvObject):
             s_date_begin = '' if dict_single_contract['date_begin'] is None else dict_single_contract['date_begin'].strftime('%Y%m%d')
             s_date_end = '' if dict_single_contract['date_end'] is None else dict_single_contract['date_end'].strftime('%Y%m%d')
             lst_agency_info_new.append(
-                [s_date_begin+'-'+s_date_end, str(dict_single_contract['media_agency_id']),
+                [s_date_begin+'-'+s_date_end, str(dict_single_contract['media_agency_id']), str(dict_single_contract['media_agency_name']),
                  str(dict_single_contract['n_agent_fee_percent']) + '%', dict_single_contract['s_fee_type']]
             )
-        with open(self.__sAgencyInfoPath, 'w', newline='') as o_csvfile:
+        with open(self.__sAgencyInfoPath, 'w', encoding='utf8', newline='') as o_csvfile:
             write = csv.writer(o_csvfile, delimiter='\t')
             write.writerows(lst_agency_info_new)
+            print(lst_agency_info_new)
         self.__lstAgencyInfo = lst_agency_info_new
         del lst_agency_info_new
         return True
 
     def get_cost_info(self, s_data_source, s_data_source_id, s_touching_date, n_cost, b_debug=False):
-        dict_rst = {'agency_id': 0, 'cost': 0, 'agency_fee': 0, 'vat': 0}
+        dict_rst = {'agency_id': 0, 'agency_name': '', 'cost': 0, 'agency_fee': 0, 'vat': 0}
         if n_cost <= 0:
             return dict_rst
 
@@ -151,6 +153,7 @@ class SvAgencyInfo(sv_object.ISvObject):
         s_touching_date = datetime.strptime(s_touching_date, '%Y-%m-%d').strftime('%Y%m%d')
         s_begin_date = self.__g_sBirthOfUniverse  # define default ancient begin date
         n_agency_id = 0
+        s_agency_name = ''
         f_fee_rate = 0.0
         s_fee_type = None
         if len(self.__lstAgencyInfo):
@@ -167,21 +170,22 @@ class SvAgencyInfo(sv_object.ISvObject):
                     try:  # validate requested date
                         s_end_date = datetime.strptime(lst_period[1], '%Y%m%d').strftime('%Y%m%d')
                     except ValueError:
-                        self._printDebug('end date:' + lst_period[0] + ' is invalid date string')
+                        self._printDebug('end date:' + lst_period[1] + ' is invalid date string')
                 
                 if int(s_begin_date) > int(s_touching_date):
                     continue
                 if int(s_end_date) < int(s_touching_date):
                     continue
                 n_agency_id = lst_single_period[1]
-                m = self.__g_oRegEx.search(lst_single_period[2])  # match() vs search()
+                s_agency_name = lst_single_period[2]
+                m = self.__g_oRegEx.search(lst_single_period[3])  # match() vs search()
                 if m:  # if valid percent string
-                    n_percent = lst_single_period[2].replace('%', '')
+                    n_percent = lst_single_period[3].replace('%', '')
                     f_fee_rate = int(n_percent)/100
                 else:  # if invalid percent string
-                    self._printDebug('invalid percent string ' + lst_single_period[2])
+                    self._printDebug('invalid percent string ' + lst_single_period[3])
                     raise Exception('stop')
-                s_fee_type = lst_single_period[3]
+                s_fee_type = lst_single_period[4]
                 break
         # warn and ignore an agency fee if no belonged period
         if f_fee_rate == 0.0 and s_fee_type is None:
@@ -225,6 +229,7 @@ class SvAgencyInfo(sv_object.ISvObject):
             dict_rst['agency_fee'] = n_agency_cost
             dict_rst['vat'] = (n_final_cost + n_agency_cost) * 0.1
         dict_rst['agency_id'] = n_agency_id
+        dict_rst['agency_name'] = s_agency_name
         if b_debug:
             self._printDebug(s_touching_date + ' ' + str(f_fee_rate) + ' ' + s_fee_type)
         return dict_rst
