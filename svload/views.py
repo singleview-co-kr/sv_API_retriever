@@ -21,7 +21,7 @@ from .pandas_plugins.edi_filter import EdiFilter
 from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
-from .pandas_plugins.contract import PnsInfo
+# from .pandas_plugins.contract import PnsInfo
 from .pandas_plugins.brded_term import BrdedTerm
 from .pandas_plugins.campaign_alias import CampaignAliasInfo
 from .visualizer import Visualizer
@@ -83,8 +83,6 @@ class GaMedia(LoginRequiredMixin, TemplateView):
                               'media_gross_cost_inc_vat']
         o_visualize = GmMainVisual(o_sv_db)
         o_visualize.set_period_dict(dict_period, ['tm', 'lm'])
-        n_brand_id = dict_rst['dict_ret']['n_brand_id']
-        o_visualize.set_brand_id(n_brand_id)
         o_visualize.load_df(lst_retrieve_attrs)
 
         # get this month
@@ -101,6 +99,7 @@ class GaMedia(LoginRequiredMixin, TemplateView):
                                                      n_th_rank=self.__g_nCntToSourceMediumRank)
 
         # plots can be a single Bokeh Model, a list/tuple, or even a dictionary
+        n_brand_id = dict_rst['dict_ret']['n_brand_id']
         lst_graph_to_draw = o_visualize.get_graph_data()
         dict_plots = {}
         for lst_graph in lst_graph_to_draw:
@@ -124,6 +123,7 @@ class GaMedia(LoginRequiredMixin, TemplateView):
                        'dict_period_date': {'from': dict_period['dt_first_day_this_month'].strftime("%Y%m%d"),
                                             'to': dict_period['dt_today'].strftime("%Y%m%d")},
                        's_bokeh_version': bokeh_version.get_versions()['version'],
+                       'n_brand_id': n_brand_id,
                        's_brand_name': s_brand_name,
                        'lst_owned_brand': lst_owned_brand,  # for global navigation
                        'n_target_budget': dict_gross_tm['n_gross_budget_inc_vat'],
@@ -210,6 +210,85 @@ class GaSourceMediumView(LoginRequiredMixin, TemplateView):
                        'dict_gross_tm': dict_gross_tm['dict_ps_source_medium_gross'],
                        'dict_gross_lm': dict_gross_lm['dict_ps_source_medium_gross'],
                        'dict_gross_ly': dict_gross_ly['dict_ps_source_medium_gross']
+                       })
+
+
+class AgencyDetail(LoginRequiredMixin, TemplateView):
+    # template_name = 'analyze/index.html'
+
+    def __init__(self):
+        return
+
+    def get(self, request, *args, **kwargs):
+        o_window = PeriodWindow()
+        # o_window.activate_debug()
+        dict_period = o_window.get_period_range(request, s_freq_mode='day')
+        dict_sampling_freq_mode = o_window.get_sampling_freq_ui()  # sampling freq btn UI
+        del o_window
+
+        o_sv_db = SvMySql()
+        if not o_sv_db:
+            raise Exception('invalid db handler')
+
+        dict_rst = get_brand_info(o_sv_db, request, kwargs)
+        if dict_rst['b_error']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+        s_brand_name = dict_rst['dict_ret']['s_brand_name']
+        lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
+
+        from .pandas_plugins.ga_media import GmAgencyVisual
+        lst_retrieve_attrs = ['media_ua', 'media_rst_type', 'media_source', 'media_media', 'media_imp', 'media_click',
+                              'media_term', 'media_brd', 'in_site_tot_session', 'in_site_tot_bounce',
+                              'in_site_tot_duration_sec', 'in_site_tot_pvs', 'in_site_tot_new',
+                              'media_gross_cost_inc_vat']
+        o_visualize = GmAgencyVisual(o_sv_db)
+        o_visualize.set_period_dict(dict_period, ['tm', 'lm'])
+        o_visualize.set_agency_id(kwargs['sv_agency_id'])
+        o_visualize.load_df(lst_retrieve_attrs)
+
+        # get this month
+        s_sort_column = 'media_gross_cost_inc_vat'  # 'gross_cpc_inc_vat'
+        dict_gross_tm = o_visualize.load_source_medium_ps_only('tm', s_sort_column=s_sort_column)
+        dict_mtd_tm = o_visualize.retrieve_mtd_by_column('tm')
+        dict_est_tm = o_visualize.retrieve_full_by_column('tm')
+        dict_mtd_by_mob, dict_mtd_by_pc = o_visualize.retrieve_period_by_ua_column('tm')
+
+        # plots can be a single Bokeh Model, a list/tuple, or even a dictionary
+        n_brand_id = dict_rst['dict_ret']['n_brand_id']
+        lst_graph_to_draw = o_visualize.get_graph_data()
+        dict_plots = {}
+        for lst_graph in lst_graph_to_draw:
+            o_graph = Visualizer()
+            o_graph.set_title(lst_graph[5])
+            o_graph.set_height(lst_graph[6])
+            o_graph.set_x_labels(lst_graph[2])
+            for s_source_medium_name, lst_series_val in lst_graph[1].items():
+                s_series_color = lst_graph[4].pop(0)
+                o_graph.append_series(s_source_medium_name, s_series_color, lst_series_val)
+            dict_plots[lst_graph[0]] = o_graph.draw_vertical_bar(n_max_y_axis=lst_graph[3])
+            del o_graph
+
+        # get last month
+        dict_mtd_lm = o_visualize.retrieve_mtd_by_column('lm')
+        script, div = components(dict(dict_plots))
+        return render(request, 'svload/agency_detail.html',
+                      {'script': script, 'div': div,
+                       'dict_sampling_freq_mode': dict_sampling_freq_mode,
+                       's_cur_period_window': dict_period['s_cur_period_window'],
+                       'dict_period_date': {'from': dict_period['dt_first_day_this_month'].strftime("%Y%m%d"),
+                                            'to': dict_period['dt_today'].strftime("%Y%m%d")},
+                       's_bokeh_version': bokeh_version.get_versions()['version'],
+                       'n_brand_id': n_brand_id,
+                       's_brand_name': s_brand_name,
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'n_target_budget': dict_gross_tm['n_gross_budget_inc_vat'],
+                       'dict_gross_tm': dict_gross_tm['dict_ps_source_medium_gross'],
+                       'dict_mtd_tm': dict_mtd_tm,
+                       'dict_est_tm': dict_est_tm,
+                       'dict_mtd_lm': dict_mtd_lm,
+                       'dict_mtd_by_mob': dict_mtd_by_mob,
+                       'dict_mtd_by_pc': dict_mtd_by_pc,
                        })
 
 

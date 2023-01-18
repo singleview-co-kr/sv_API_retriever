@@ -77,7 +77,6 @@ class GaMediaVisual(ABC):
     _g_dictPeriod = {'lm': [], 'tm': []}  #
     _g_dictSamplingFreq = {'qtr': 'Q', 'mon': 'M', 'day': 'D'}
     _g_sFreqMode = 'D'
-    _g_nBrandId = -1
     _g_dictPeriodRaw = {'lm': None, 'tm': None}
     _g_dictColumnMaxValue = {'lm': None, 'tm': None}
     _g_dictPsSourceMediumDaily = {'lm': None, 'tm': None}
@@ -153,12 +152,7 @@ class GaMediaVisual(ABC):
             if b_activated:
                 self._g_sFreqMode = self._g_dictSamplingFreq[s_freq]
                 break
-        ######################
-        self._g_sFreqMode = self._g_dictSamplingFreq['day']  # for daily debug
-        ######################
-
-    def set_brand_id(self, n_brand_id):  # 일치
-        self._g_nBrandId = n_brand_id
+        self._g_sFreqMode = self._g_dictSamplingFreq['day']  ###################### for daily debug  
 
     def set_request_attr_list(self, lst_attr_title):  # 일치
         if len(lst_attr_title) == 0:
@@ -295,7 +289,7 @@ class GaMediaVisual(ABC):
                     n_agency_fee_inc_vat_est = 0
                 # del o_keys
                 del dict_keys
-                dict_ttl_value_temp['s_media_agency_title'] = dict_budget_info[s_source_medium]['s_media_agency_title']
+                dict_ttl_value_temp['s_media_agency_name'] = dict_budget_info[s_source_medium]['s_media_agency_name']
                 dict_ttl_value_temp['n_media_agency_id'] = dict_budget_info[s_source_medium]['n_media_agency_id']
                 dict_ttl_value_temp['n_budget_tgt_amnt_inc_vat'] = n_budget_tgt_amnt_inc_vat
                 dict_ttl_value_temp['n_agency_fee_inc_vat'] = n_agency_fee_inc_vat
@@ -311,8 +305,8 @@ class GaMediaVisual(ABC):
                     for s_camp_name, dict_camp_budget in dict_budget_info[s_source_medium]['dict_campaign'].items():
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name] =\
                             self._g_dictPeriodRaw[s_period_window].get_sv_campaign_info(s_camp_name)
-                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['s_media_agency_title'] = \
-                            dict_camp_budget['s_media_agency_title']
+                        dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['s_media_agency_name'] = \
+                            dict_camp_budget['s_media_agency_name']
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_media_agency_id'] = \
                             dict_camp_budget['n_media_agency_id']
                         dict_ps_source_medium_gross[s_source_medium]['dict_campaign'][s_camp_name]['n_budget_tgt_amnt_inc_vat'] = \
@@ -335,7 +329,7 @@ class GaMediaVisual(ABC):
         for s_sm, dict_single in dict_budget_info.items():
             if s_sm.endswith('organic'):
                 dict_ps_source_medium_gross[s_sm] = {
-                    's_media_agency_title': dict_single['s_media_agency_title'],
+                    's_media_agency_name': dict_single['s_media_agency_name'],
                     'n_media_agency_id': dict_single['n_media_agency_id'],
                     'n_budget_tgt_amnt_inc_vat': dict_single['n_budget_tgt_amnt_inc_vat']
                 }
@@ -420,8 +414,7 @@ class GmMainVisual(GaMediaVisual):
             o_ga_media_raw.set_period_dict(dt_start=dt_first_date, dt_end=dt_last_date)
             o_ga_media_raw.set_freq(self._g_sFreqMode)
             self._g_dictPeriodRaw[s_period] = o_ga_media_raw
-            self._g_dictPeriodRaw[s_period].set_brand_id(self._g_nBrandId)
-            self._g_dictPeriodRaw[s_period].load_period(lst_retrieve_attrs)
+            self._g_dictPeriodRaw[s_period].load_period()
             self._g_dictPeriodRaw[s_period].compress_data_by_freq_mode()
             self._g_dictPeriodRaw[s_period].aggregate_data(self._g_dtMtdElapsedDays)
 
@@ -668,7 +661,7 @@ class SourceMediumVisual(GaMediaVisual):
             o_ga_media_raw.set_period_dict(dt_start=dt_first_date, dt_end=dt_last_date)
             o_ga_media_raw.set_freq(self._g_sFreqMode)
             self._g_dictPeriodRaw[s_period] = o_ga_media_raw
-            self._g_dictPeriodRaw[s_period].load_period(lst_retrieve_attrs)
+            self._g_dictPeriodRaw[s_period].load_period()
 
     def get_graph_data(self):
         """
@@ -794,3 +787,260 @@ class SourceMediumVisual(GaMediaVisual):
         lst_graph_to_draw.append(['avg_pvs_ly', dict_rst_ly['dict_source_medium'], lst_x_lbl_ly,
                                   n_max_y, dict_rst_ly['lst_palette'], '평균 PV(GA)', 430])
         return lst_graph_to_draw
+
+
+# pd.set_option('display.max_columns', None) 후에 print(df)하면 모든 컬럼명이 출력됨
+class GmAgencyVisual(GaMediaVisual):
+    """
+    match with ./templates/svload/agency_detail.html
+    """
+    _g_nAgencyId = None
+
+    def set_agency_id(self, n_agency_id):
+        self._g_nAgencyId = n_agency_id
+
+    def load_df(self, lst_retrieve_attrs):
+        # for s_period in list(self._g_dictPeriod.keys()):
+        for s_period in self._g_dictPeriod:
+            dt_first_date = self._g_dictPeriod[s_period][0]
+            dt_last_date = self._g_dictPeriod[s_period][1]
+            o_ga_media_raw = GaSourceMediaRaw(self._g_oSvDb)
+            o_ga_media_raw.set_period_dict(dt_start=dt_first_date, dt_end=dt_last_date)
+            o_ga_media_raw.set_freq(self._g_sFreqMode)
+            self._g_dictPeriodRaw[s_period] = o_ga_media_raw
+            self._g_dictPeriodRaw[s_period].set_agency_id(self._g_nAgencyId)
+            self._g_dictPeriodRaw[s_period].load_period()
+            self._g_dictPeriodRaw[s_period].compress_data_by_freq_mode()
+            self._g_dictPeriodRaw[s_period].aggregate_data(self._g_dtMtdElapsedDays)
+
+    def get_graph_data(self):
+        """
+        get daily trend by media_source for top n_th
+        :return:
+        """
+        # retrieve x-lbl
+        lst_x_lbl_tm = self._retrieve_x_lbl('tm')
+
+        # 당월 VAT 포함 총 비용(Media)
+        dict_rst_tm = self._get_source_medium_info('tm', 'media_gross_cost_inc_vat')
+        n_max_y = dict_rst_tm['column_max_value']
+        # lst define: 'graph_id', 'data_body', 'series label', 'y max val', 'lst_palette', 'graph_title', 'graph_height'
+        lst_graph_to_draw = [
+            ['media_gross_cost_inc_vat_tm', dict_rst_tm['dict_source_medium'], lst_x_lbl_tm,
+             n_max_y, dict_rst_tm['lst_palette'], '당기 VAT 포함 총 비용(Media)', 210],
+        ]
+        return lst_graph_to_draw
+
+    def retrieve_raw_lst_by_column(self, s_period_window, s_column_title):
+        """
+        provide series values for bokeh
+        :param s_period_window:
+        :param s_column_title:
+        :return:
+        """
+        # 'DataFrame' object has no attribute 'tolist' could be occured if DF has single column
+        # use .squeeze() to avoid the exception
+        # if s_period_window in list(self._g_dictPeriod.keys()):
+        if s_period_window in self._g_dictPeriod:
+            return self._g_dictPeriodRaw[s_period_window].get_period_numeric_by_index(s_column_title).tolist()
+
+    def retrieve_longest_x_lbl(self):
+        """
+        get period of analyzing window
+        :return:
+        """
+        n_longest_days = 0
+        # for s_period_window in list(self._g_dictPeriod.keys()):
+        for s_period_window in self._g_dictPeriod:
+            idx_tmp = self._g_dictPeriodRaw[s_period_window].get_period_numeric_by_index('in_site_tot_session').index
+            n_idx = len(idx_tmp)
+            if n_longest_days < n_idx:
+                n_longest_days = n_idx
+        del idx_tmp
+        lst_x_axis_label = []
+        for n_idx in range(1, n_longest_days + 1):
+            lst_x_axis_label.append(n_idx)
+        return lst_x_axis_label
+
+    def retrieve_mtd_by_column(self, s_period_window):
+        dict_rst = {}
+        # if s_period_window in list(self._g_dictPeriod.keys()):
+        if s_period_window in self._g_dictPeriod:
+            dict_rst = self._g_dictPeriodRaw[s_period_window].get_gross_numeric_by_index_mtd()
+        else:
+            for s_retrieve_attrs in self._g_lstRetrievableNumericalAttrs:
+                dict_rst[s_retrieve_attrs] = 0
+        return dict_rst
+
+    def retrieve_full_by_column(self, s_period_window):
+        dict_rst = {}
+        # if s_period_window in list(self._g_dictPeriod.keys()):
+        if s_period_window in self._g_dictPeriod:
+            dict_rst = self._g_dictPeriodRaw[s_period_window].get_gross_numeric_by_index_full()
+        else:
+            for s_retrieve_attrs in self._g_lstRetrievableNumericalAttrs:
+                dict_rst[s_retrieve_attrs] = 0
+        return dict_rst
+
+    def retrieve_period_by_ua_column(self, s_period_window):
+        """
+        get daily trend by media_ua
+        :return:
+        """
+        # first, get mobile index
+        lst_filter = [{'col_ttl': 'media_ua', 'fil_val': 'M'}]
+        df_daily_by_mob = self._g_dictPeriodRaw[s_period_window].get_gross_filtered_by_index(lst_filter)
+        del lst_filter
+        del df_daily_by_mob['media_brd']
+
+        # begin - gross index by mob
+        df_gross_by_mob = df_daily_by_mob.sum()
+        if df_gross_by_mob['in_site_tot_duration_sec'] > 0 and df_gross_by_mob['in_site_tot_session'] > 0:
+            df_gross_by_mob['avg_dur_sec'] = df_gross_by_mob['in_site_tot_duration_sec'] / \
+                                             df_gross_by_mob['in_site_tot_session']
+        else:
+            df_gross_by_mob['avg_dur_sec'] = 0
+
+        if df_gross_by_mob['in_site_tot_pvs'] > 0 and df_gross_by_mob['in_site_tot_session'] > 0:
+            df_gross_by_mob['avg_pvs'] = df_gross_by_mob['in_site_tot_pvs'] / df_gross_by_mob['in_site_tot_session']
+        else:
+            df_gross_by_mob['avg_pvs'] = 0
+
+        if df_gross_by_mob['media_gross_cost_inc_vat'] > 0 and df_gross_by_mob['media_click'] > 0:
+            df_gross_by_mob['gross_cpc_inc_vat'] = df_gross_by_mob['media_gross_cost_inc_vat'] / \
+                                                   df_gross_by_mob['media_click']
+        else:
+            df_gross_by_mob['gross_cpc_inc_vat'] = 0
+
+        if df_gross_by_mob['media_click'] > 0 and df_gross_by_mob['media_imp'] > 0:
+            df_gross_by_mob['gross_ctr'] = df_gross_by_mob['media_click'] / df_gross_by_mob['media_imp'] * 100
+        else:
+            df_gross_by_mob['gross_ctr'] = 0
+
+        df_gross_by_mob[['effective_session']] = df_gross_by_mob['in_site_tot_session'] - df_gross_by_mob[
+            'in_site_tot_bounce']
+
+        del df_gross_by_mob['in_site_tot_duration_sec']
+        del df_gross_by_mob['in_site_tot_pvs']
+        # end - gross index by mob
+
+        # get full month date range for JS sparkline
+        idx_full_day = self._g_dictPeriodRaw[s_period_window].get_full_period_idx()
+
+        # make full month for js graph library
+        df_daily_by_mob = df_daily_by_mob.reindex(idx_full_day, fill_value=0)
+
+        # second, get pc index; avoid complex and similar calculation
+        df_period_gross = self._g_dictPeriodRaw[s_period_window].get_period_numeric_by_index()
+        df_daily_by_pc = df_period_gross - df_daily_by_mob
+
+        # begin - calculate rate over in_site_tot_session
+        df_daily_by_pc[['avg_dur_sec', 'avg_pvs']] = df_daily_by_pc[['in_site_tot_duration_sec', 'in_site_tot_pvs']]. \
+            div(df_daily_by_pc['in_site_tot_session'].values, axis=0)
+        # calculate gross cpc
+        df_daily_by_pc[['gross_cpc_inc_vat']] = df_daily_by_pc[['media_gross_cost_inc_vat']].div(
+            df_daily_by_pc['media_click'].values, axis=0)
+        # calculate gross ctr
+        df_daily_by_pc[['gross_ctr']] = df_daily_by_pc[['media_click']].div(df_daily_by_pc['media_imp'].values, axis=0)
+        # end - calculate rate over in_site_tot_session
+
+        # begin - gross index by pc
+        df_gross_by_pc = df_daily_by_pc.sum()
+        if df_gross_by_pc['in_site_tot_duration_sec'] > 0 and df_gross_by_pc['in_site_tot_session'] > 0:
+            df_gross_by_pc['avg_dur_sec'] = df_gross_by_pc['in_site_tot_duration_sec'] / \
+                                            df_gross_by_pc['in_site_tot_session']
+        else:
+            df_gross_by_pc['avg_dur_sec'] = 0
+
+        if df_gross_by_pc['in_site_tot_pvs'] > 0 and df_gross_by_pc['in_site_tot_session'] > 0:
+            df_gross_by_pc['avg_pvs'] = df_gross_by_pc['in_site_tot_pvs'] / df_gross_by_pc['in_site_tot_session']
+        else:
+            df_gross_by_pc['avg_pvs'] = 0
+
+        if df_gross_by_pc['media_gross_cost_inc_vat'] > 0 and df_gross_by_pc['media_click'] > 0:
+            df_gross_by_pc['gross_cpc_inc_vat'] = df_gross_by_pc['media_gross_cost_inc_vat'] / \
+                                                  df_gross_by_pc['media_click']
+        else:
+            df_gross_by_pc['gross_cpc_inc_vat'] = 0
+
+        if df_gross_by_pc['media_click'] > 0 and df_gross_by_pc['media_imp'] > 0:
+            df_gross_by_pc['gross_ctr'] = df_gross_by_pc['media_click'] / df_gross_by_pc['media_imp'] * 100
+        else:
+            df_gross_by_pc['gross_ctr'] = 0
+
+        del df_gross_by_pc['in_site_tot_duration_sec']
+        del df_gross_by_pc['in_site_tot_pvs']
+        # end - gross index by pc
+
+        del df_daily_by_mob['in_site_tot_duration_sec']
+        del df_daily_by_mob['in_site_tot_pvs']
+        del df_daily_by_pc['in_site_tot_duration_sec']
+        del df_daily_by_pc['in_site_tot_pvs']
+
+        lst_numeric_idx = []
+        for dt_date in df_daily_by_mob.index.to_list():
+            lst_numeric_idx.append(dt_date.strftime('%d'))
+        df_daily_by_mob = df_daily_by_mob.reset_index()
+        df_daily_by_mob.index = lst_numeric_idx
+        del lst_numeric_idx
+        dict_daily_by_mob = df_daily_by_mob.to_dict()
+        dict_daily_by_mob['gross'] = df_gross_by_mob.to_dict()
+
+        # reset pc numeric index for js graph library
+        # df_daily_by_pc = df_daily_by_pc.reindex(idx_full_day, fill_value=0)
+        df_daily_by_pc.replace(np.nan, 0, inplace=True)
+        lst_numeric_idx = []
+        for dt_date in df_daily_by_pc.index.to_list():
+            lst_numeric_idx.append(dt_date.strftime('%d'))
+        df_daily_by_pc = df_daily_by_pc.reset_index()
+        df_daily_by_pc.index = lst_numeric_idx
+        del lst_numeric_idx
+        dict_daily_by_pc = df_daily_by_pc.to_dict()
+        dict_daily_by_pc['gross'] = df_gross_by_pc.to_dict()
+        del df_daily_by_mob
+        del df_gross_by_mob
+        del df_daily_by_pc
+        return dict_daily_by_mob, dict_daily_by_pc
+
+    # def retrieve_gross_term(self, s_period_window, s_sort_column='in_site_tot_session', n_th_rank=5):
+    #     """
+    #     get summary by term
+    #     :param s_period_window:
+    #     :param s_sort_column:
+    #     :param n_th_rank:
+    #     :return:
+    #     """
+    #     if not s_sort_column:
+    #         raise Exception('invalid sort column')
+
+    #     df_by_term = self._g_dictPeriodRaw[s_period_window].get_gross_group_by_index(['media_term'])
+    #     for s_term in self._g_lstIgnoreTerms:
+    #         df_by_term.drop(df_by_term.loc[df_by_term.index == s_term].index, inplace=True)
+
+    #     # convert df to dict to draw table
+    #     dict_top_kws = {}
+    #     df = df_by_term.sort_values([s_sort_column], ascending=False).head(n_th_rank)
+    #     for i, row in df.iterrows():
+    #         dict_top_kws[row.name] = row.to_dict()
+
+    #     return dict_top_kws, len(df_by_term.index) - n_th_rank
+
+    # def retrieve_gross_source_medium(self, s_period_window, s_sort_column='in_site_tot_session', n_th_rank=5):
+    #     """
+    #     get summary by source; this could be called by view class directly or called by to retrieve daily index by source
+    #     :param s_period_window:
+    #     :param s_sort_column:
+    #     :param n_th_rank:
+    #     :return:
+    #     """
+    #     if not s_sort_column:
+    #         raise Exception('invalid sort column')
+
+    #     # retrieve group by & sum data
+    #     df_by_source = self._g_dictPeriodRaw[s_period_window].get_gross_group_by_index(['media_source', 'media_media'])
+    #     # convert df to dict to draw table
+    #     dict_top_source = {}
+    #     df = df_by_source.sort_values([s_sort_column], ascending=False).head(n_th_rank)
+    #     for i, row in df.iterrows():
+    #         dict_top_source['_'.join(row.name)] = row.to_dict()
+    #     return dict_top_source, len(df_by_source.index) - n_th_rank

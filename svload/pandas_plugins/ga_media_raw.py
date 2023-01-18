@@ -33,7 +33,7 @@ class GaSourceMediaRaw:
         self.__g_dtDesignatedFirstDate = None  # 추출 기간 시작일
         self.__g_dtDesignatedLastDate = None  # 추출 기간 종료일
         self.__g_dfPeriodDataRaw = None  # 추출한 기간 데이터 원본
-        self.__g_nBrandId = -1
+        self.__g_nAgencyId = None
         self.__g_dfCompressedByFreqMode = None  # 빈도에 따라 압축된 데이터
         self.__g_dictBudgetInfo = {}  # 예산과 대행사 수수료 정보
         self.__g_idxFullPeriod = None  # 설정한 기간의 완전한 일자 목록
@@ -51,7 +51,7 @@ class GaSourceMediaRaw:
         self.__g_dtDesignatedFirstDate = None  # 추출 기간 시작일
         self.__g_dtDesignatedLastDate = None  # 추출 기간 종료일
         self.__g_dfPeriodDataRaw = None  # 추출한 기간 데이터 원본
-        self.__g_nBrandId = -1
+        self.__g_nAgencyId = None
         self.__g_dfCompressedByFreqMode = None  # 빈도에 따라 압축된 데이터
         self.__g_dictAggregatedDf = {}  # 지표별 합산 데이터
         self.__g_dictBudgetInfo = {}  # 예산과 대행사 수수료 정보
@@ -73,14 +73,12 @@ class GaSourceMediaRaw:
             self.__g_sFreqMode = s_freq_mode
         else:
             pass  # default is already 'D'
-        ######################
-        self.__g_sFreqMode = 'D'  # for daily debug
-        ######################
+        self.__g_sFreqMode = 'D'  ####################### for daily debug
 
-    def set_brand_id(self, n_brand_id):
-        self.__g_nBrandId = n_brand_id
+    def set_agency_id(self, n_agency_id):
+        self.__g_nAgencyId = n_agency_id
 
-    def load_period(self, lst_retrieve_attrs):
+    def load_period(self):
         if self.__g_dtDesignatedFirstDate is None or self.__g_dtDesignatedLastDate is None:
             raise Exception('not ready to load dataframe to analyze')
         self.__construct_dataframe()  # retrieve raw data
@@ -362,8 +360,13 @@ class GaSourceMediaRaw:
         self.__g_idxFullPeriod = pd.date_range(start=self.__g_dtDesignatedFirstDate, end=dt_last_date_of_month,
                                                freq=self.__g_sFreqMode)
         idx_full_day = self.__g_idxFullPeriod
-        lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByBrandId', self.__g_dtDesignatedFirstDate,
-                                                   self.__g_dtDesignatedLastDate)
+
+        if self.__g_nAgencyId:  # agency view mode
+            lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByPeriodAgencyId', self.__g_dtDesignatedFirstDate,
+                                                        self.__g_dtDesignatedLastDate, self.__g_nAgencyId)
+        else:  # ga media main view mode
+            lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByPeriod', self.__g_dtDesignatedFirstDate,
+                                                        self.__g_dtDesignatedLastDate)
         
         if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
             lst_raw_data = []
@@ -436,7 +439,7 @@ class GaSourceMediaRaw:
             if df_row_sm['media_agency_cost'] > 0:
                 n_agency_fee_inc_vat = df_row_sm['media_agency_cost'] * 1.1  # add VAT
                 self.__g_dictBudgetInfo['_'.join(df_row_sm.name)] = {
-                    's_media_agency_title': 'N/A',
+                    's_media_agency_name': 'N/A',
                     'n_media_agency_id': 0,
                     'n_budget_tgt_amnt_inc_vat': 0,
                     'n_agency_fee_inc_vat': n_agency_fee_inc_vat,
@@ -473,7 +476,7 @@ class GaSourceMediaRaw:
         del o_budget
         for s_sm, dict_budget_single in dict_budget.items():  # sm means source-medium
             if s_sm in self.__g_dictBudgetInfo:  # update existing
-                self.__g_dictBudgetInfo[s_sm]['s_media_agency_title'] = dict_budget_single['s_media_agency_title']
+                self.__g_dictBudgetInfo[s_sm]['s_media_agency_name'] = dict_budget_single['s_media_agency_name']
                 self.__g_dictBudgetInfo[s_sm]['n_media_agency_id'] = dict_budget_single['n_media_agency_id']
 
                 self.__g_dictBudgetInfo[s_sm]['n_budget_tgt_amnt_inc_vat'] = \
@@ -486,7 +489,7 @@ class GaSourceMediaRaw:
                 self.__g_dictBudgetInfo[s_sm]['f_est_factor'] = f_est_factor
             else:  # add new
                 self.__g_dictBudgetInfo[s_sm] = {
-                    's_media_agency_title': dict_budget_single['s_media_agency_title'],
+                    's_media_agency_name': dict_budget_single['s_media_agency_name'],
                     'n_media_agency_id': dict_budget_single['n_media_agency_id'],
                     'n_budget_tgt_amnt_inc_vat': dict_budget_single['n_budget_tgt_amnt_inc_vat'],
                     'n_agency_fee_inc_vat': 0,
@@ -511,7 +514,7 @@ class GaSourceMediaRaw:
                     # else:
                     #     n_agency_fee_inc_vat_est = 0
                     self.__g_dictBudgetInfo[s_sm]['dict_campaign'][s_camp_title] = {
-                        's_media_agency_title': dict_single_campaign['s_media_agency_title'],
+                        's_media_agency_name': dict_single_campaign['s_media_agency_name'],
                         'n_media_agency_id': dict_single_campaign['n_media_agency_id'],
                         'n_budget_tgt_amnt_inc_vat': n_budget_tgt_amnt_inc_vat,
                         'n_agency_fee_inc_vat': n_agency_fee_inc_vat,

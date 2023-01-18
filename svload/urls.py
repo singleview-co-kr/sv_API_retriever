@@ -5,6 +5,7 @@ app_name = 'svload'
 urlpatterns = [
     path('today/<int:sv_brand_id>/', views.GaMedia.as_view(), name='index'),
     path('ga_media/<int:sv_brand_id>/', views.GaMedia.as_view(), name='ga_media'),
+    path('agency_detail/<int:sv_brand_id>/<int:sv_agency_id>/', views.AgencyDetail.as_view(), name='agency_detail'),
     path('ga_source_medium/<int:sv_brand_id>/', views.GaSourceMediumView.as_view(), name='ga_source'),
     path('ga_itemperf/<int:sv_brand_id>/', views.GaItemPerfView.as_view(), name='ga_item'),
     path('edi/<int:sv_brand_id>/', views.FocusTodayEdi.as_view(), name='edi_today'),

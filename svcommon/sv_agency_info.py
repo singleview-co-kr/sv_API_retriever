@@ -135,7 +135,6 @@ class SvAgencyInfo(sv_object.ISvObject):
         with open(self.__sAgencyInfoPath, 'w', encoding='utf8', newline='') as o_csvfile:
             write = csv.writer(o_csvfile, delimiter='\t')
             write.writerows(lst_agency_info_new)
-            print(lst_agency_info_new)
         self.__lstAgencyInfo = lst_agency_info_new
         del lst_agency_info_new
         return True

@@ -65,7 +65,7 @@ class Budget:
     def get_budget_type_dict(self):
         return self.__g_dictBudgetType
 
-    def get_budget_amnt_by_period(self, dt_start, dt_end):
+    def get_budget_amnt_by_period(self, dt_start, dt_end, n_agency_id=None):
         """
         gross budget amnt for GA & Media dashboard
         :param dt_start: dt_req_first_day
@@ -74,13 +74,21 @@ class Budget:
         """
         # begin - construct budget list
         dict_budget = {}
-        lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
+        if n_agency_id:
+            lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
+        else:
+            lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
+        
         if lst_budget_forward_rst and 'err_code' in lst_budget_forward_rst[0].keys():  # for an initial stage; no table
             lst_budget_forward_rst = []
         for dict_row in lst_budget_forward_rst:
             dict_budget[dict_row['id']] = dict_row
         del lst_budget_forward_rst
-        lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
+
+        if n_agency_id:
+            lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
+        else:
+            lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
         if lst_budget_backward_rst and 'err_code' in lst_budget_backward_rst[0].keys():  # for an initial stage; no table
             lst_budget_backward_rst = []
         for dict_row in lst_budget_backward_rst:
@@ -109,7 +117,7 @@ class Budget:
             n_target_amnt_inc_vat_alloc = int(dict_single_budget['target_amnt_inc_vat'] * n_alloc_budget_days / n_full_budget_days)
             # begin - tag a media agency title
             n_media_agency_id = dict_single_budget['media_agency_id']
-            s_media_agency_title = self.__dictAgencyInfo[n_media_agency_id] if n_media_agency_id != 0 else 'N/A'
+            s_media_agency_name = self.__dictAgencyInfo[n_media_agency_id] if n_media_agency_id != 0 else 'N/A'
             # end - tag a media agency title
             n_acct_id = dict_single_budget['acct_id']
             dict_acct_info = self.__g_dictBudgetType[n_acct_id]
@@ -126,7 +134,7 @@ class Budget:
             else:  # add new
                 dict_budget_to_display[s_source_medium] = {'s_source': dict_acct_info['media_source'],
                                                            's_media': dict_acct_info['media_media'],
-                                                           's_media_agency_title': s_media_agency_title,
+                                                           's_media_agency_name': s_media_agency_name,
                                                            'n_media_agency_id': n_media_agency_id,
                                                            'dt_period_start': dt_period_start,
                                                            'dt_period_end': dt_period_end,
@@ -142,7 +150,7 @@ class Budget:
                     dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = {}
                     dict_budget_to_display[s_source_medium]['dict_campaign'][s_campaign_title] = \
                         {'dt_period_start': dt_period_start, 'dt_period_end': dt_period_end,
-                         's_media_agency_title': s_media_agency_title,
+                         's_media_agency_name': s_media_agency_name,
                          'n_media_agency_id': n_media_agency_id,
                          'n_budget_tgt_amnt_inc_vat': n_target_amnt_inc_vat_alloc}
                 else:  # add additional dict_campaign attr
