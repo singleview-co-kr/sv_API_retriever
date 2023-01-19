@@ -138,7 +138,8 @@ class SvGaMediaLog():
                     if not self.__continue_iteration():
                         return
                     o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
-                                            dict_single_log['log_srl'], dict_single_log['media_ua'],
+                                            dict_single_log['log_srl'],
+                                            dict_single_log['media_agency_name'], dict_single_log['media_ua'],
                                             dict_single_log['media_term'], dict_single_log['media_source'],
                                             dict_single_log['media_rst_type'], dict_single_log['media_media'],
                                             dict_single_log['media_brd'], dict_single_log['media_camp1st'],
@@ -204,7 +205,8 @@ class SvGaMediaLog():
                     if not self.__continue_iteration():
                         return
                     o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
-                                            dict_single_log['log_srl'], dict_single_log['media_ua'],
+                                            dict_single_log['log_srl'],
+                                            dict_single_log['media_agency_name'], dict_single_log['media_ua'],
                                             dict_single_log['media_term'], dict_single_log['media_source'],
                                             dict_single_log['media_rst_type'], dict_single_log['media_media'],
                                             dict_single_log['media_brd'], dict_single_log['media_camp1st'],

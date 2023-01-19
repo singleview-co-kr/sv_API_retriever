@@ -1,5 +1,6 @@
 CREATE TABLE `compiled_ga_media_daily_log` (
   `log_srl` bigint(11) NOT NULL,
+  `media_agency_name` varchar(25) NULL,
   `media_ua` char(1) NOT NULL,
   `media_term` varchar(1000) NOT NULL,
   `media_source` varchar(50) NOT NULL,
