@@ -170,15 +170,16 @@ class SvGaMediaLog():
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
             lst_wc_date_range = o_sv_mysql.executeQuery('getCompiledGaMediaDateRange')
-        if lst_wc_date_range[0]['maxdate']:
+        if lst_wc_date_range[0]['maxdate']:  # if table contains data
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
             s_startdate = dt_startdate.strftime('%Y%m%d')
             if int(s_startdate) <= int(self.__g_sYesterday):
                 self.__g_dictDateRange['s_start_date'] = s_startdate
+        else:  # if empty table
+            s_startdate = '20000101'  # begin of the universe
         del lst_wc_date_range
         # end - ext bi denorm ga media date range
-
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
@@ -190,9 +191,11 @@ class SvGaMediaLog():
                 s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('get from ' + s_start_date)
                 lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogFrom', s_start_date)
-            else:
+            elif int(s_startdate) <= int(self.__g_sYesterday):  # stop if execute twice today
                 self.__print_debug('get whole')
                 lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogGross')
+            else:
+                lst_compiled_log = []
         n_idx = 0
         n_sentinel = len(lst_compiled_log)
         if n_sentinel:
