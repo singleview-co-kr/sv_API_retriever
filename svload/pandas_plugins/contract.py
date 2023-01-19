@@ -429,11 +429,20 @@ class NvrBrsInfo:
             dict_rst['s_msg'] = lst_query_title[8] + ' is invalid.'
             return dict_rst
 
-        s_unique_contract_id = 'svmanual-' + self.__get_unique_contract_id(10)
-        self.__g_oSvDb.executeQuery('insertNvrBrsContract', s_unique_contract_id, '집행 중', dt_contract_regdate,
-                                        lst_query_value[1].strip(), lst_query_value[2].strip(),
-                                        lst_query_value[3].strip(), int(s_available_queries), 
-                                        dt_contract_begin, dt_contract_end, int(s_contract_amnt), 0, lst_query_value[8])
+        dict_append_rst = self.__register_contract({'contract_id': 'svmanual-' + self.__get_unique_contract_id(10),
+                                                    'contract_status': '집행 중',
+                                                    'contract_regdate': dt_contract_regdate,
+                                                    'contract_name': lst_query_value[1].strip(),
+                                                    'conntected_ad_group': lst_query_value[2].strip(),
+                                                    'template_name': lst_query_value[3].strip(),
+                                                    'available_queries': s_available_queries,
+                                                    'contract_date_begin': dt_contract_begin,
+                                                    'contract_date_end': dt_contract_end,
+                                                    'contract_amnt': s_contract_amnt,
+                                                    'refund_amnt': 0,
+                                                    'ua': lst_query_value[8]})
+        if dict_append_rst['b_error'] == True:
+            return dict_append_rst    
         del lst_query_value
         del dt_contract_begin
         del dt_contract_end
@@ -482,10 +491,20 @@ class NvrBrsInfo:
             if not str.isdigit(s_refund_amnt):
                 s_refund_amnt = 0
             
-            s_ua = self.__decide_ua(lst_single_line)
-            self.__g_oSvDb.executeQuery('insertNvrBrsContract', lst_single_line[0], lst_single_line[1], dt_regdate,
-                                        lst_single_line[3], lst_single_line[4], lst_single_line[5], s_available_queries,
-                                        dt_contract_begin, dt_contract_end, s_contract_amnt, s_refund_amnt, s_ua)
+            dict_append_rst = self.__register_contract({'contract_id': lst_single_line[0],
+                                                        'contract_status': lst_single_line[1],
+                                                        'contract_regdate': dt_regdate,
+                                                        'contract_name': lst_single_line[3],
+                                                        'conntected_ad_group': lst_single_line[4],
+                                                        'template_name': lst_single_line[5],
+                                                        'available_queries': s_available_queries,
+                                                        'contract_date_begin': dt_contract_begin,
+                                                        'contract_date_end': dt_contract_end,
+                                                        'contract_amnt': s_contract_amnt,
+                                                        'refund_amnt': s_refund_amnt,
+                                                        'ua': self.__decide_ua(lst_single_line)})
+            if dict_append_rst['b_error'] == True:
+                return dict_append_rst
             del lst_single_line
             del dt_regdate
             del dt_contract_begin
@@ -493,6 +512,36 @@ class NvrBrsInfo:
         del lst_line
         # end - construct contract info list
         return dict_rst
+
+    def __register_contract(self, dict_contract_info):
+        dict_rst = {'b_error': False, 's_msg': None}
+        # check contract period duplication
+        lst_contract_rst = self.__g_oSvDb.executeQuery('getNvrBrsContractBackwardByDate', 
+                                                        dict_contract_info['contract_date_begin'],
+                                                        dict_contract_info['contract_date_begin'],
+                                                        dict_contract_info['ua'])
+        if len(lst_contract_rst):
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'conflicted nvr brs contract period'
+            return dict_rst
+        del lst_contract_rst
+        lst_contract_rst = self.__g_oSvDb.executeQuery('getNvrBrsContractForwardByDate', 
+                                                        dict_contract_info['contract_date_end'],
+                                                        dict_contract_info['contract_date_end'],
+                                                        dict_contract_info['ua'])
+        if len(lst_contract_rst):
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'conflicted nvr brs contract period'
+            return dict_rst
+        del lst_contract_rst
+        self.__g_oSvDb.executeQuery('insertNvrBrsContract', 
+                                    dict_contract_info['contract_id'], dict_contract_info['contract_status'],
+                                    dict_contract_info['contract_regdate'], dict_contract_info['contract_name'], 
+                                    dict_contract_info['conntected_ad_group'], dict_contract_info['template_name'],
+                                    dict_contract_info['available_queries'], dict_contract_info['contract_date_begin'], 
+                                    dict_contract_info['contract_date_end'], dict_contract_info['contract_amnt'], 
+                                    dict_contract_info['refund_amnt'], dict_contract_info['ua'])
+        return dict_rst    
 
     def __decide_ua(self, lst_single_line):
         # decide UA as correctly as possible depends on contract context
