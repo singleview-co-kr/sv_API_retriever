@@ -37,7 +37,6 @@ import os
 import shutil
 import csv
 import calendar
-import codecs
 
 # 3rd party library
 
