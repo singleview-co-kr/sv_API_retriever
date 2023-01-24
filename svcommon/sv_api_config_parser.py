@@ -82,6 +82,7 @@ class SvApiConfigParser(sv_object.ISvObject):
         lst_fb_biz_aid = []
         lst_nvr_master_rpt = []
         lst_nvr_stat_rpt = []
+        lst_nvr_search_api_media = []
         dict_other_ads_api_info = {}
         for s_section_title in self.__g_oConfig:
             if s_section_title == 'naver_searchad':
@@ -97,6 +98,10 @@ class SvApiConfigParser(sv_object.ISvObject):
                 for s_value_title in self.__g_oConfig[s_section_title]:
                     if self.__g_oConfig[s_section_title][s_value_title] == '1':
                         lst_nvr_stat_rpt.append(s_value_title)
+            elif s_section_title == 'nvr_search':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    if self.__g_oConfig[s_section_title][s_value_title] == '1':
+                        lst_nvr_search_api_media.append(s_value_title)
             elif s_section_title == 'google_ads':
                 for s_value_title in self.__g_oConfig[s_section_title]:
                     if self.__g_oConfig[s_section_title][s_value_title].lower() == 'on':
@@ -128,6 +133,7 @@ class SvApiConfigParser(sv_object.ISvObject):
         dict_2nd_layer['brand_id'] = self.__g_lstAcctInfo[1]
         dict_2nd_layer['tbl_prefix'] = self.__g_lstAcctInfo[0] + '_' + self.__g_lstAcctInfo[1]
         dict_2nd_layer['nvr_ad_acct'] = dict_nvr_ad_acct
+        dict_2nd_layer['nvr_search'] = lst_nvr_search_api_media
         for s_title in dict_other_ads_api_info:
             dict_2nd_layer[s_title] = dict_other_ads_api_info[s_title]
         return dict_2nd_layer

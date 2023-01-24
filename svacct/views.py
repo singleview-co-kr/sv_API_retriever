@@ -44,7 +44,12 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
                         b_brand_ownership = True
                     break
         if not b_brand_ownership:
-            return render(request, 'svacct/deny.html')
+            dict_context = {'err_msg': 'no permission', 's_return_url': None}
+            return render(request, "svacct/deny.html", context=dict_context)
+
+        if not self.request.user.is_staff:
+            dict_context = {'err_msg': 'no permission', 's_return_url': None}
+            return render(request, "svacct/deny.html", context=dict_context)
 
         s_ga_property_or_view_id, s_nvr_customer_id, lst_google_ads, \
             lst_facebook_biz, lst_kko_moment_aid = self.__get_source_info(n_sv_brand_id)
@@ -55,21 +60,23 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
 
         dict_query_google_ads = {}
         for s_single_google_ads in lst_google_ads:
-            if o_ini_config['google_ads'].get(s_single_google_ads, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
+            if 'google_ads' in o_ini_config and \
+                    o_ini_config['google_ads'].get(s_single_google_ads, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
                 dict_query_google_ads[s_single_google_ads] = o_ini_config['google_ads'][s_single_google_ads]
             else:
                 dict_query_google_ads[s_single_google_ads] = 'off'
 
         dict_query_fb_biz = {}
         for s_single_fb_biz_id in lst_facebook_biz:
-            if o_ini_config['facebook_business'].get(s_single_fb_biz_id, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
+            if 'facebook_business' in o_ini_config and \
+                    o_ini_config['facebook_business'].get(s_single_fb_biz_id, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
                 dict_query_fb_biz[s_single_fb_biz_id] = o_ini_config['facebook_business'][s_single_fb_biz_id]
             else:
                 dict_query_fb_biz[s_single_fb_biz_id] = 'off'
 
         dict_query_kko_moment = {}
         for s_single_kko_moment_aid in lst_kko_moment_aid:
-            print(o_ini_config['others'].get('kko_moment_aid', self.__g_sSvNull))
+            # print(o_ini_config['others'].get('kko_moment_aid', self.__g_sSvNull))
             s_kko_moment_val = o_ini_config['others'].get('kko_moment_aid', self.__g_sSvNull)
             if s_kko_moment_val == '' or s_kko_moment_val == self.__g_sSvNull:  # if value exists
                 dict_query_kko_moment[s_single_kko_moment_aid] = 'off'
@@ -118,19 +125,19 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
 
             for s_key, s_value in request.POST.items():
                 if s_key.startswith('nvr_'):
-                    dict_query_nvr_config[s_key.lstrip('nvr_')] = s_value
+                    dict_query_nvr_config[s_key.replace('nvr_', '')] = s_value
                 if s_key.startswith('ga_'):
                     if s_key == 'ga_version':  # validation
                         if s_value == '':
                             dict_context = {'err_msg': 'Google Analytics version should be choosed', 's_return_url': s_return_url}
                             return render(request, "svacct/deny.html", context=dict_context)
-                    dict_query_ga_config[s_key.lstrip('ga_')] = s_value
+                    dict_query_ga_config[s_key.replace('ga_', '')] = s_value
                 if s_key.startswith('gads_'):
-                    dict_query_gads_config[s_key.lstrip('gads_')] = s_value
+                    dict_query_gads_config[s_key.replace('gads_', '')] = s_value
                 if s_key.startswith('fb_biz_'):
-                    dict_query_fb_biz_config[s_key.lstrip('fb_biz_')] = s_value
+                    dict_query_fb_biz_config[s_key.replace('fb_biz_', '')] = s_value
                 if s_key.startswith('kko_'):
-                    dict_query_kko_config[s_key.lstrip('kko_')] = s_value
+                    dict_query_kko_config[s_key.replace('kko_', '')] = s_value
 
             o_ini_config = configparser.ConfigParser()
             # proc nvr_ad
@@ -172,6 +179,22 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
                     dict_ini_nvr_stat_report[s_report_ttl] = dict_query_nvr_config[s_report_ttl]
             o_ini_config['nvr_stat_report'] = dict_ini_nvr_stat_report  # nvr_stat_report section
 
+            dict_ini_nvr_search = {
+                'blog': 0,
+                'news': 0,
+                'encyc': 0,
+                'cafearticle': 0,
+                'kin': 0,
+                'webkr': 0,
+                'image': 0,
+                'shop': 0,
+                'doc': 0,
+            }
+            for s_report_ttl in dict_ini_nvr_search:
+                if dict_query_nvr_config.get(s_report_ttl, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
+                    dict_ini_nvr_search[s_report_ttl] = dict_query_nvr_config[s_report_ttl]
+            o_ini_config['nvr_search'] = dict_ini_nvr_search  # nvr_search section
+
             # proc google analytics
             dict_ini_google_analytics = {
                 'version': dict_query_ga_config['version'],
@@ -206,19 +229,17 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
             # proc kakao moment
             o_ini_config['others'] = {}
             s_ini_single_kko_aid = ''
-            # print(lst_kko_moment_aid)
             for s_single_kko_aid in lst_kko_moment_aid:
                 print(dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull))
                 if dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
                     s_ini_single_kko_aid = s_single_kko_aid
-            # print(s_ini_single_kko_aid)
             o_ini_config['others']['kko_moment_aid'] = s_ini_single_kko_aid
 
             s_api_info_ini_abs_path = os.path.join(settings.SV_STORAGE_ROOT, str(n_sv_acct_id), str(n_sv_brand_id), 'api_info.ini')
             with open(s_api_info_ini_abs_path, 'w') as configfile:
                 o_ini_config.write(configfile)
 
-        o_redirect = redirect('svacct:brand_conf', sv_brand_id=n_sv_brand_id)
+        o_redirect = redirect('svacct:brand_api_conf', sv_brand_id=n_sv_brand_id)
         return o_redirect
 
     def __get_source_info(self, n_sv_brand_id):

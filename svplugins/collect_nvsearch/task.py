@@ -34,7 +34,6 @@ import shutil
 from datetime import datetime
 
 # # 3rd-party library
-import xmltodict
 
 # singleview library
 if __name__ == '__main__': # for console debugging
