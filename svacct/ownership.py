@@ -28,10 +28,8 @@ def get_owned_brand_list(request, kwargs=None):
             else:
                 dict_owned_account[o_brand_owned.sv_acct_id] = {
                     'n_acct_id': o_brand_owned.sv_acct_id, 's_acct_ttl': str(o_account),
-                    'lst_brand': [{'s_brand_ttl': str(o_brand_owned), 'n_brand_id': o_brand_owned.pk,
+                    'lst_brand': [{ #'s_acct_ttl': str(o_account), 'n_acct_id': o_brand_owned.sv_acct_id,
+                                   's_brand_ttl': str(o_brand_owned), 'n_brand_id': o_brand_owned.pk,
                                    'b_current_brand': b_current_brand}]
                 }
-            # lst_owned_brand.append({'s_acct_ttl': str(o_account), 'n_acct_id': o_brand_owned.sv_acct_id,
-            #                         's_brand_ttl': str(o_brand_owned), 'n_brand_id': o_brand_owned.pk,
-            #                         'b_current_brand': b_current_brand})
     return dict_owned_account

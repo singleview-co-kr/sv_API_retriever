@@ -32,9 +32,12 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         # https://stackoverflow.com/questions/4148923/is-it-possible-to-create-a-custom-admin-view-without-a-model-behind-it
+        lst_owned_brand = []
         dict_owned_brand = get_owned_brand_list(request, kwargs)
+        
         b_brand_ownership = False
         for _, dict_single_acct in dict_owned_brand.items():
+            lst_owned_brand += dict_single_acct['lst_brand']
             for dict_single_brand in dict_single_acct['lst_brand']:
                 if dict_single_brand['b_current_brand']:
                     n_sv_acct_id = dict_single_acct['n_acct_id']
@@ -86,6 +89,7 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
         return render(request, 'svacct/brand_api_info.html', {
             's_brand_name': s_brand_name,
             'n_sv_brand_id': n_sv_brand_id,
+            'lst_owned_brand': lst_owned_brand,  # for global navigation
             's_ga_property_or_view_id': s_ga_property_or_view_id,
             's_nvr_customer_id': s_nvr_customer_id,
             'dict_query_google_ads': dict_query_google_ads,
