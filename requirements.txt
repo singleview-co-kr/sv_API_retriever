@@ -123,6 +123,7 @@ virtualenv==20.8.1
 webencodings==0.5.1
 wordcloud==1.8.1
 xlrd==2.0.1
+xmltodict==0.13.0
 yarl==1.7.0
 zipp==3.6.0
 zope.interface==5.4.0
