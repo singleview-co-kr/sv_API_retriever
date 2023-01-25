@@ -121,7 +121,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_morpheme = dict_single_morpheme['morpheme']
                 n_total_effective_cnt = self.__get_keyword_from_nvsearch(n_morpheme_srl, s_morpheme)
                 self._printDebug(str(n_total_effective_cnt) + ' times retrieved')
-                return  #### limit to first morpheme ##################
+                # return  #### limit to first morpheme ##################
             self._printDebug('-> communication finish')
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
@@ -211,6 +211,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     lst_new_old[0] += 1
             f_new_rate = lst_new_old[0] / (lst_new_old[0] + lst_new_old[1])
+            print(f_new_rate)
         return f_new_rate  # return new item rate
     
     def __is_duplicated(self, o_sv_mysql, n_morpheme_srl, n_media_id, s_link):
@@ -291,7 +292,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __standardize_log(self, n_morpheme_srl, s_media, n_media_id, dict_xml_body):
         lst_log = []
-        if not dict_xml_body['item']:
+        if 'item' not in dict_xml_body or not dict_xml_body['item']:
             return lst_log
 
         for dict_single_item in dict_xml_body['item']:
