@@ -32,6 +32,7 @@ import html
 import time
 import shutil
 from datetime import datetime
+from urllib import parse
 
 # # 3rd-party library
 
@@ -180,7 +181,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         # dict_iter_retrieval = dict_iter_rst['dict_xml_body']
                         if 'item' in dict_iter_retrieval and \
                                 dict_iter_retrieval['item']:
-                            f_new_rate = self.__get_new_rate(o_sv_mysql, n_param_morpheme_srl, n_media_id, dict_iter_retrieval['item'])
+                            f_new_rate = self.__get_new_rate(o_sv_mysql, n_param_morpheme_srl, s_media, n_media_id, dict_iter_retrieval['item'])
                             # print(f_new_rate)
                         if f_new_rate < 0.1:
                             self._printDebug('too many duplicated item')
@@ -200,18 +201,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del dict_media_lbl_id
         return n_total_effective_cnt
 
-    def __get_new_rate(self, o_sv_mysql, n_morpheme_srl, n_media_id, lst_item):
+    def __get_new_rate(self, o_sv_mysql, n_morpheme_srl, s_media, n_media_id, lst_item):
         """ get new API result rate to decide to stop stupid API call """
         f_new_rate = 0.0
         if lst_item:
             lst_new_old = [0, 0]  # new cnt, old cnt
             for dict_single_item in lst_item:
+                if s_media == 'kin':  # naver search API arbirarily changes KIN doc URL
+                    dict_single_item['link'] = self.__cleanup_kin_url(dict_single_item['link'])
+                # print(n_morpheme_srl, n_media_id, dict_single_item['link'])
                 if self.__is_duplicated(o_sv_mysql, n_morpheme_srl, n_media_id, dict_single_item['link']):
                     lst_new_old[1] += 1
                 else:
                     lst_new_old[0] += 1
             f_new_rate = lst_new_old[0] / (lst_new_old[0] + lst_new_old[1])
-            print(f_new_rate)
+            print('')
+            print(n_morpheme_srl, n_media_id, f_new_rate)
+            print('')
         return f_new_rate  # return new item rate
     
     def __is_duplicated(self, o_sv_mysql, n_morpheme_srl, n_media_id, s_link):
@@ -256,7 +262,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lst_standardized_log = self.__standardize_log(s_morpheme_srl, s_media, n_media_id, dict_xml_body)
             del dict_xml_body
             self.__append_into_article_db(o_sv_mysql, lst_standardized_log, s_log_date)
-
             self.__archive_data_file(s_xml_filename)
             self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
             n_idx += 1
@@ -272,8 +277,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.executeQuery('insertSearchLog', dict_single_item['n_morpheme_srl'], dict_single_item['n_media_id'], 
                                         dict_single_item['title'], dict_single_item['link'], dict_single_item['description'], 
                                         dict_single_item['s_jsonfy_extra'], dict_single_item['s_local_time'], s_log_date) 
-            # else:
-            #     self._printDebug('error: deny db registration as duplication')
 
     def __archive_data_file(self, s_current_filename):
         if not os.path.exists(self.__g_sDownloadPath):
@@ -326,7 +329,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             elif s_media == 'image':
                 dict_extra = {'sizeheight': dict_single_item['sizeheight'], 'sizewidth': dict_single_item['sizewidth']}
                 dict_single_item['s_jsonfy_extra'] = json.dumps(dict_extra, ensure_ascii=False).encode('utf8')
-            elif s_media == 'kin' or s_media == 'webkr' or s_media == 'doc':
+            elif s_media == 'kin':
+                dict_single_item['link'] = self.__cleanup_kin_url(dict_single_item['link'])
+            elif s_media == 'webkr' or s_media == 'doc':
                 pass
             elif s_media == 'shop':
                 dict_extra = {'image': dict_single_item['image'], 'lprice': dict_single_item['lprice'],
@@ -339,6 +344,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_single_item['s_jsonfy_extra'] = json.dumps(dict_extra, ensure_ascii=False).encode('utf8')
             lst_log.append(dict_single_item)
         return lst_log
+    
+    def __cleanup_kin_url(self, s_link):
+        # naver search API arbirarily changes KIN doc URL
+        o_link_parsed = parse.urlparse(s_link)
+        dict_query = parse.parse_qs(o_link_parsed.query)
+        s_new_query = 'd1id=' + dict_query['d1id'][0] + '&' + 'dirId=' + dict_query['dirId'][0] + '&' + 'docId=' + dict_query['docId'][0]
+        o_link_parsed = o_link_parsed._replace(query=s_new_query)
+        s_link = parse.urlunparse(o_link_parsed)
+        del o_link_parsed, s_new_query, dict_query
+        return s_link
 
 
 if __name__ == '__main__': # for console debugging
