@@ -22,7 +22,8 @@ from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
 # from .pandas_plugins.contract import PnsInfo
-from .pandas_plugins.brded_term import BrdedTerm
+from .pandas_plugins.term_manager import BrdedTerm
+from .pandas_plugins.term_manager import SeoTrackingTerm
 from .pandas_plugins.campaign_alias import CampaignAliasInfo
 from .visualizer import Visualizer
 
@@ -1107,7 +1108,7 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
 #                        })
 
 
-class BrdedTermView(LoginRequiredMixin, TemplateView):
+class TermManagerView(LoginRequiredMixin, TemplateView):
     __g_oSvDb = None
     __g_dictBrandInfo = {}
 
@@ -1134,7 +1135,26 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
         s_sv_acct_id = str(self.__g_dictBrandInfo['dict_ret']['n_acct_id'])
         s_brand_id = str(self.__g_dictBrandInfo['dict_ret']['n_brand_id'])
         self.__g_sBrandedTruncPath = os.path.join(settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
-        return self.__contract_list(request, *args, **kwargs)
+
+        # begin - retrieve brded terms
+        o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
+        lst_brded_term = o_brded_term.get_list()
+        del o_brded_term
+        # end - retrieve brded terms
+
+        # begin - retrieve SEO monitoring terms
+        o_seo_tracking_term = SeoTrackingTerm(self.__g_oSvDb)
+        lst_seo_monitoring_term = o_seo_tracking_term.get_list()
+        del o_seo_tracking_term
+        # end - retrieve SEO monitoring terms
+        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
+        return render(request, 'svload/brded_term_list.html',
+                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
+                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
+                       'lst_owned_brand': lst_owned_brand,  # for global navigation
+                       'lst_brded_term': lst_brded_term,
+                       'lst_seo_monitoring_term': lst_seo_monitoring_term
+                       })
 
     def post(self, request, *args, **kwargs):
         if not self.__g_oSvDb:
@@ -1155,20 +1175,18 @@ class BrdedTermView(LoginRequiredMixin, TemplateView):
             o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
             o_brded_term.update_list(request, s_config_loc_param)
             del o_brded_term
-            o_redirect = redirect('svload:brded_term_list', sv_brand_id=n_brand_id)
+            o_redirect = redirect('svload:term_manager', sv_brand_id=n_brand_id)
+        elif s_act == 'add_seo_term':
+            o_seo_tracking_term = SeoTrackingTerm(self.__g_oSvDb)
+            o_seo_tracking_term.add_term(request)
+            del o_seo_tracking_term
+            o_redirect = redirect('svload:term_manager', sv_brand_id=n_brand_id)
+        elif s_act == 'toggle_seo_term':
+            o_seo_tracking_term = SeoTrackingTerm(self.__g_oSvDb)
+            o_seo_tracking_term.toggle_term(request)
+            del o_seo_tracking_term
+            o_redirect = redirect('svload:term_manager', sv_brand_id=n_brand_id)
         return o_redirect
-
-    def __contract_list(self, request, *args, **kwargs):
-        o_brded_term = BrdedTerm(self.__g_sBrandedTruncPath)
-        lst_brded_term_list = o_brded_term.get_list()
-        del o_brded_term
-        lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
-        return render(request, 'svload/brded_term_list.html',
-                      {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
-                       'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
-                       'lst_owned_brand': lst_owned_brand,  # for global navigation
-                       'lst_brded_term_list': lst_brded_term_list
-                       })
 
 
 class CampaignAliasView(LoginRequiredMixin, TemplateView):
