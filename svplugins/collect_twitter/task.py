@@ -46,7 +46,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221009)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230129)')
         
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -84,11 +84,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
-        if self.__g_sMode in ['add_keyword']:
-            self._printDebug('-> register new keyword to monitor')
-            n_morpheme_srl = self.__register_new_morpheme()
-            self._printDebug('new morpheme srl: ' + str(n_morpheme_srl))
-        elif self.__g_sMode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
+        if self.__g_sMode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
             self._printDebug('-> retrieve status to extract morpheme')
 
             self.__get_keyword_from_db()
@@ -116,20 +112,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('-> communication finish')
 
         self._task_post_proc(self._g_oCallback)
-    
-    def __register_new_morpheme(self):
-        if len(self.__g_sMorpheme) == 0:
-            return None
-        with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.collect_twitter')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_morpheme = o_sv_mysql.executeQuery('getMorphemeSrl', self.__g_sMorpheme)
-            if len(lst_morpheme) == 0:  # register new morpheme
-                lst_rst = o_sv_mysql.executeQuery('insertMorpheme', self.__g_sMorpheme)
-                return lst_rst[0]['id']
-            else:
-                return lst_morpheme[0]['morpheme_srl']
 
     def __get_keyword_from_twitter(self, n_morpheme_srl, s_morpheme):
         """ retrieve text from twitter API """

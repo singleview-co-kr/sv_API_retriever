@@ -1,3 +1,3 @@
-SELECT morpheme_srl, morpheme
-FROM `twt_morpheme`
-WHERE b_proc = 1
+SELECT `morpheme_srl`, `morpheme`
+FROM `morphemes`
+WHERE b_toggle = 1
