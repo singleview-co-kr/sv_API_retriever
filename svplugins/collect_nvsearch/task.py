@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230122)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230129)')
         
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -110,13 +110,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-
-            with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.set_app_name('svplugins.collect_twitter')
-                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
-                    
+            
             for dict_single_morpheme in lst_morpheme:
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
                 s_morpheme = dict_single_morpheme['morpheme']
@@ -367,4 +362,4 @@ if __name__ == '__main__': # for console debugging
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
-        print('warning! [config_loc] params are required for console execution.')
+        print('warning! [config_loc] [mode] params are required for console execution.')
