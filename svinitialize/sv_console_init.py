@@ -8,7 +8,7 @@ class svInitialize():
     __g_bInitMode = False
     __g_sEnvPath = None
     __g_sRootPath = None
-    __g_lstSystemDirectory = ['conf', 'storage', 'media']  # media will be deprecated
+    __g_lstSystemDirectory = ['conf', 'storage', 'media', 'log']  # media will be deprecated
 
     """
     Encapsulate the logic of the django-admin and manage.py utilities.
