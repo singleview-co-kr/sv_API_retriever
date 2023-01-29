@@ -586,28 +586,28 @@ class SvCampaignParser(sv_object.ISvObject):
         if self.__g_lstBrandedTrunc != None:  # sentinel to prevent duplicated process
             return self.__g_lstBrandedTrunc
         lst_branded_trunc = []
-        if s_brded_terms_path.find('/branded_term.conf') > -1:
+        if s_brded_terms_path.find('branded_term.conf') > -1:
             try:
-                with open(s_brded_terms_path, 'r') as tsvfile:
+                with open(s_brded_terms_path, 'r', encoding='utf8') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t')
                     for lst_term in reader:
                         if len(lst_term):
                             lst_branded_trunc.append(lst_term[0])
             except FileNotFoundError:
                 pass
-        return self.__get_unique_sored_trimmed_list(lst_branded_trunc)
+        return self.__get_unique_sorted_trimmed_list(lst_branded_trunc)
 
     def set_branded_trunc(self, s_brded_terms_path, lst_line):
         """ call from svload.pandas_plugins.brded_term:update_list() """
         dict_rst = {'updated': False}
-        if s_brded_terms_path.find('/branded_term.conf') == -1:
+        if s_brded_terms_path.find('branded_term.conf') == -1:
             return dict_rst
 
         lst_old_branded_term = self.get_branded_trunc(s_brded_terms_path)
-        lst_line = self.__get_unique_sored_trimmed_list(lst_line)
+        lst_line = self.__get_unique_sorted_trimmed_list(lst_line)
         if lst_old_branded_term != lst_line:
             try:
-                with open(s_brded_terms_path, 'w') as fp:
+                with open(s_brded_terms_path, 'w', encoding='utf8') as fp:
                     for s_term in lst_line:
                         if len(s_term):
                             fp.write("%s\n" % s_term.strip())
@@ -616,7 +616,7 @@ class SvCampaignParser(sv_object.ISvObject):
                 pass
         return dict_rst
 
-    def __get_unique_sored_trimmed_list(self, lst_source):
+    def __get_unique_sorted_trimmed_list(self, lst_source):
         lst_source = list(set(lst_source))  # get unique
         lst_source.sort()  # get sorted
         return [s_term.strip() for s_term in lst_source]  # get trimmed
