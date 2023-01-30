@@ -74,6 +74,7 @@ class SvNvsearch(sv_object.ISvObject):
                 o_config.read_file(f)
                 self.__g_bAvailable = True
         except IOError:
+            self.__g_bAvailable = False
             self._printDebug('viral_config.ini does not exist')
 
         if self.__g_bAvailable:

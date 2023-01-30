@@ -50,7 +50,7 @@ class SvTwitter(sv_object.ISvObject):
     def __init__(self):
         o_config = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
-        s_twitter_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'twitter_config.ini')
+        s_twitter_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'viral_config.ini')
         
         try:
             with open(s_twitter_config_file) as f:
@@ -64,9 +64,9 @@ class SvTwitter(sv_object.ISvObject):
 
         try:  # attempt authentication
             # create OAuthHandler object
-            auth = tweepy.OAuthHandler(o_config['COMMON']['consumer_key'], o_config['COMMON']['consumer_secret'])
+            auth = tweepy.OAuthHandler(o_config['TWIITER']['consumer_key'], o_config['TWIITER']['consumer_secret'])
             # set access token and secret
-            auth.set_access_token(o_config['COMMON']['access_token'], o_config['COMMON']['access_token_secret'])
+            auth.set_access_token(o_config['TWIITER']['access_token'], o_config['TWIITER']['access_token_secret'])
             # create tweepy API object to fetch tweets
             self.__g_oTwitterApi = tweepy.API(auth, wait_on_rate_limit=True)
             # dict_rate_limit_context = self.__g_oTwitterApi.rate_limit_status()
