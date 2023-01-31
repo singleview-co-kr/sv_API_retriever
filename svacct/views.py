@@ -144,6 +144,8 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
                     dict_query_kko_config[s_key.replace('kko_', '')] = s_value
 
             o_ini_config = configparser.ConfigParser()
+            o_ini_config.optionxform = lambda optionstr: optionstr  # deactivate optionstr.lower() https://wikidocs.net/13965
+
             # proc nvr_ad
             # o_ini_config['DEFAULT']['DDD'] = 'EEE'  # DEFAULT 섹션은 기본적으로 생성되어 있어 생성없이 쓸 수 있다 
             o_ini_config['naver_searchad'] = {}  # naver_searchad section
@@ -234,10 +236,12 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
             o_ini_config['others'] = {}
             s_ini_single_kko_aid = ''
             for s_single_kko_aid in lst_kko_moment_aid:
-                print(dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull))
+                # print(dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull))
                 if dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
                     s_ini_single_kko_aid = s_single_kko_aid
             o_ini_config['others']['kko_moment_aid'] = s_ini_single_kko_aid
+
+            print(o_ini_config['nvr_stat_report'])
 
             s_api_info_ini_abs_path = os.path.join(settings.SV_STORAGE_ROOT, str(n_sv_acct_id), str(n_sv_brand_id), 'api_info.ini')
             with open(s_api_info_ini_abs_path, 'w') as configfile:
