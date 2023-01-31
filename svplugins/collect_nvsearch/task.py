@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230129)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230131)')
         
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -121,7 +121,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('-> communication finish')
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
-            return
+        else:
+            self._printDebug('mode is not specified.')
+
         self._task_post_proc(self._g_oCallback)
     
     def __get_keyword_from_nvsearch(self, n_param_morpheme_srl, s_param_morpheme):
@@ -258,7 +260,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_xml_body
             self.__append_into_article_db(o_sv_mysql, lst_standardized_log, s_log_date)
             self.__archive_data_file(s_xml_filename)
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register XML file:', suffix = 'Complete', length = 50)
             n_idx += 1
         del dict_media_lbl_id
         del o_sv_nvsearch
