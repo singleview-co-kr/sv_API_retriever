@@ -16,7 +16,8 @@ from svcommon.sv_hypermart_model import BranchType
 from svacct.ownership import get_owned_brand_list
 
 from .pandas_plugins.period_window import PeriodWindow
-from .pandas_plugins.edi_raw import EdiRaw
+from .pandas_plugins.edi_by_branch import EdiBranchRaw
+from .pandas_plugins.edi_by_branch import EdiBranchPerformance
 from .pandas_plugins.edi_filter import EdiFilter
 from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
@@ -405,7 +406,7 @@ class FocusTodayEdi(LoginRequiredMixin, TemplateView):
         del o_filter
         # end - retrieve emart sku info
 
-        o_edi_raw = EdiRaw()
+        o_edi_raw = EdiBranchRaw()
         o_edi_raw.set_period_dict(dt_start=dict_period['dt_first_day_2year_ago'], dt_end=dict_period['dt_today'])
         o_edi_raw.set_freq(dict_sampling_freq_mode)
         o_edi_raw.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
@@ -518,7 +519,7 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
         s_branch_name = dict_single_branch_info['name']
         # end - set branch name for template
 
-        o_edi_raw = EdiRaw()
+        o_edi_raw = EdiBranchRaw()
         o_edi_raw.set_period_dict(dt_start=dict_period['dt_first_day_2year_ago'], dt_end=dict_period['dt_today'])
         o_edi_raw.set_freq(dict_sampling_freq_mode)
         o_edi_raw.set_branch_info(dict_branch_info)
@@ -526,9 +527,9 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
         df_edi_raw = o_edi_raw.load_branch(o_sv_db)
         del o_edi_raw
 
-        from .pandas_plugins.edi_by_branch import Performance
+        # from .pandas_plugins.edi_by_branch import Performance
         # get whole period
-        o_whole_perf_summary = Performance()
+        o_whole_perf_summary = EdiBranchPerformance()
         o_whole_perf_summary.set_period_dict(dict_period)
         o_whole_perf_summary.set_single_branch_info(dict_branch_info)
         o_whole_perf_summary.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
@@ -620,8 +621,8 @@ class ByBranchEdi(LoginRequiredMixin, TemplateView):
             dict_context = {'err_msg': dict_rst['s_msg']}
             return render(request, "svload/analyze_deny.html", context=dict_context)
 
-        from .pandas_plugins.edi_by_branch import Performance
-        o_branch = Performance()
+        # from .pandas_plugins.edi_by_branch import Performance
+        o_branch = EdiBranchPerformance()
         dict_rst = o_branch.add_memo(o_sv_db, int(kwargs['branch_id']), n_brand_id, request)
         del o_branch
         del o_sv_db
@@ -667,7 +668,7 @@ class BySkuEdi(LoginRequiredMixin, TemplateView):
         else:
             s_item_name = 'unknown item'
 
-        o_edi_raw = EdiRaw()
+        o_edi_raw = EdiBranchRaw()
         o_edi_raw.set_period_dict(dt_start=dict_period['dt_first_day_2year_ago'], dt_end=dict_period['dt_today'])
         o_edi_raw.set_freq(dict_sampling_freq_mode)
         o_edi_raw.set_sku_dict(dict_sku_info['dict_sku_info_by_id'])
