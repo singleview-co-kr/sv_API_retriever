@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import date
 from .edi_tools import EdiRanker, EdiSampler
+from .sv_palette import SvPalette
 
 # for logger
 import logging
@@ -145,7 +146,10 @@ class EdiSkuPerformance:
         """
         df_temp = self.__g_dfPeriodDataRaw.set_index('logdate')
         df_period_data_monthly = df_temp.resample(self.__g_sSamplingFreq).sum()  ### sampler로 이동 ################
-        lst_series_color = ['#6CBDAC']
+
+        o_sv_palette = SvPalette()
+        lst_series_color = o_sv_palette.get_single_color_lst()
+        del o_sv_palette
         dict_branch_raw = {'전국': df_period_data_monthly['amnt'].tolist()}
         lst_x_labels = []
         for dt_date in df_period_data_monthly.index.to_list():

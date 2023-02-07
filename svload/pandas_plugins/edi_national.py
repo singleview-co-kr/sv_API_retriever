@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import date
 from .edi_tools import EdiRanker, EdiSampler
+from .sv_palette import SvPalette
 
 # for logger
 import logging
@@ -224,7 +225,9 @@ class EdiNationalPerformance:
         당월 공급액 순위, 당월 출고량 비교 그래프 데이터
         :return:
         """
-        lst_bar_color = ['#D6E2DF', '#A4C8C1', '#6CBDAC', '#079476']
+        o_sv_palette = SvPalette()
+        lst_bar_color = o_sv_palette.get_serial_color_lst()
+        del o_sv_palette
         # refer to lm rank if tm is empty
         if self.__g_dictPeriodSkuRankDf['tm'] is None:  # for an initial stage; no table
             lst_amnt_rank_sku_id = []

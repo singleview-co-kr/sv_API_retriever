@@ -4,6 +4,7 @@ from abc import abstractmethod
 
 from svcommon.sv_nvsearch import SvNvsearch
 from svcommon.sv_campaign_parser import SvCampaignParser
+from .sv_palette import SvPalette
 
 # for logger
 import logging
@@ -20,25 +21,20 @@ class SearchApiVisual(ABC):
     _g_dictSamplingFreq = {'qtr': 'Q', 'mon': 'M', 'day': 'D'}
     _g_sFreqMode = 'D'
     _g_dictPeriodRaw = {'2ly': None, 'ly': None, 'lm': None, 'tm': None}
-    _g_dictSource = {'default': '#000000',   # https://www.color-hex.com/
-                     'youtube': '#960614',
-                     'google': '#6b0000',
-                     'facebook': '#205a86',
-                     'instagram': '#140696',
-                     'naver': '#0099ff',
-                     'twitter': '#798984'}
-    _g_dictMedium = {'blog': '#960614',
-                     'news': '#6b0000',
-                     'cafe': '#205a86',
-                     'kin': '#140696',
-                     'webkr': '#4d6165'}
+    _g_dictSource = {}
+    _g_dictNvrMedium = {}
     
-
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
         if not o_sv_db:  # refer to an external db instance to minimize data class
             raise Exception('invalid db handler')
         self._g_oSvDb = o_sv_db
+
+        o_sv_pallet = SvPalette()
+        self._g_dictSource = o_sv_pallet.get_source_color_dict()
+        self._g_dictNvrMedium = o_sv_pallet.get_naver_mdeium_color_dict()
+        del o_sv_pallet
+
         super().__init__()
 
     def __enter__(self):
