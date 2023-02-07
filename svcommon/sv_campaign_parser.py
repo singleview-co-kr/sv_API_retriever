@@ -69,6 +69,7 @@ class SvCampaignParser(sv_object.ISvObject):
         (9, 'mobon', 'MBO'),
         (10, 'smr', 'SMR'),
         (10, 'signal_play', 'SGP'),
+        (15, 'twitter', 'TWT'),
     ]
     __g_dictSourceIdTitle = None  # {1:'naver'}
     __g_dictSourceTagTitle = None  # {'NV': 'naver'}

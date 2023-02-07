@@ -20,6 +20,55 @@ $(document).ready(function() {
     });
 });
 </script>
+<div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="x_panel">
+            <div class="x_title">
+                <h2>{{s_brand_name}} 바이럴 발생 빈도 <small>지난 24개월</small></h2>
+                <ul class="nav navbar-right panel_toolbox">
+                    <li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Settings 1</a></li>
+                            <li><a href="#">Settings 2</a></li>
+                        </ul>
+                    </li>
+                    <li><a class="close-link"><i class="fa fa-close"></i></a></li>
+                </ul>
+                <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+                <div class="" role="tabpanel" data-example-id="togglable-tabs">
+                    <ul id="myTab" class="nav nav-tabs bar_tabs" role="tablist">
+                        <li role="presentation" class="active">
+                            <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="true">전국</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content2" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">Top {{s_top_branch_cnt}}</a>
+                        </li>
+                    </ul>
+                    <div id="myTabContent" class="tab-content">
+                        <div role="tabpanel" class="tab-pane fade active in" id="tab_content1" aria-labelledby="home-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.morpheme_daily | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content2" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+</div>
+<!-- end - tab daily revenue performance -->
+
 <!-- begin - morpheme search -->
 <div class="row">
     <div class="col-md-12 col-sm-12 col-xs-12">
@@ -49,7 +98,7 @@ $(document).ready(function() {
                             <input type="text" class="form-control col-md-7 col-xs-12" id="morpheme_query" name="morpheme_query" placeholder="여러 단어는 ,로 구분" required="required" value="{{s_morpheme_query}}">
                         </div>
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label class="control-label col-md-3 col-sm-3 col-xs-12">Gender</label>
                         <div class="col-md-6 col-sm-6 col-xs-12">
                             <div id="gender" class="btn-group" data-toggle="buttons">
@@ -61,7 +110,7 @@ $(document).ready(function() {
                                 </label>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="ln_solid"></div>
                     <div class="form-group">
                         <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
@@ -75,7 +124,90 @@ $(document).ready(function() {
 </div>
 <!-- end - morpheme search -->
 
-<!-- begin - daily media performance by ua -->
+<!-- begin - search API result -->
+<div class="row">
+	<div class="col-md-12 col-sm-12 col-xs-12">
+		<div class="x_panel">
+			<div class="x_content">
+                <!----- end - 총유입수 기준 키워드 top 5----->
+                <!----- begin - 총유입수 기준 키워드 top 5----->
+                <div class="row top_tiles" style="margin: 10px 0;">
+					<div class="x_title">
+						<h2>검색 엔진 API 수집 목록 <small></small></h2>
+						<ul class="nav navbar-right panel_toolbox">
+							<li><a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><i class="fa fa-wrench"></i></a>
+								<ul class="dropdown-menu" role="menu">
+									<li><a href="#">Settings 1</a>
+									</li>
+									<li><a href="#">Settings 2</a>
+									</li>
+								</ul>
+							</li>
+							<li><a class="close-link"><i class="fa fa-close"></i></a>
+							</li>
+						</ul>
+						<div class="clearfix"></div>
+					</div>
+                    <!-- <p>방문 고객 언급 명사 Top {{visitor_noun_n_th_rank}}, 외 <code>{{dict_misc_word_cnt.tm|intcomma}} 개 키워드</code>전월,전년이 MTD가 아님</p> -->
+                    <table class="table table-striped responsive-utilities jambo_table bulk_action">
+                       <thead>
+                          <tr class="headings">
+                             <th class="column-title">키워드 </th>
+                             <th class="column-title">수집 소스 </th>
+                             <th class="column-title">수집 매체 </th>
+                             <th class="column-title">제목 </th>
+                             <th class="column-title">요약 </th>
+                             <th class="column-title">발행일 </th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          <!--- odd pointer --->
+                          {% for dict_row in lst_top_word_by_freq_trend %}
+                          <tr class="even pointer">
+                             <td class=" "><a class="lnk_morpheme_chronicle_single" morpheme-srl="{{dict_row.n_word_id}}"><u>{{dict_row.s_word}}</u></a></td>
+                             <td class=" ">{{dict_row.n_tm_freq|intcomma}}</td>
+                             <td class=" ">{{dict_row.n_lm_freq|intcomma}}</td>
+                             <td class=" ">
+{% if dict_row.n_tm_freq|growth_rate:dict_row.n_lm_freq > 0 %}
+                    <i class="green">
+                        <i class="fa fa-sort-asc"></i>
+{% else %}
+                    <i class="red">
+                        <i class="fa fa-sort-desc"></i>
+{% endif %}
+                        {{ dict_row.n_tm_freq | growth_rate:dict_row.n_lm_freq|floatformat:1 }}%
+                    </i>
+                             </td>
+                             <td class=" ">{{dict_row.n_ly_freq|intcomma}}</td>
+                             <td class=" last">
+{% if dict_row.n_tm_freq|growth_rate:dict_row.n_ly_freq > 0 %}
+                    <i class="green">
+                        <i class="fa fa-sort-asc"></i>
+{% else %}
+                    <i class="red">
+                        <i class="fa fa-sort-desc"></i>
+{% endif %}
+                        {{ dict_row.n_tm_freq | growth_rate:dict_row.n_ly_freq|floatformat:1 }}%
+                    </i>
+                             </td>
+                          </tr>
+                          {% endfor %}
+                       </tbody>
+                    </table>
+                    <img src="{{dict_word_cloud_img_url.tm}}" width="100%">
+				</div>
+				<div class="clearfix"></div>
+                <!----- end - 총유입수 기준 키워드 top 5----->
+			</div>
+		</div>
+	</div>
+</div>
+<!-- end - search API result  -->
+
+<!-- begin - in-site commented words -->
 <div class="row">
 	<div class="col-md-12 col-sm-12 col-xs-12">
 		<div class="x_panel">
@@ -178,7 +310,7 @@ $(document).ready(function() {
 		</div>
 	</div>
 </div>
-<!-- end - daily media performance by ua  -->
+<!-- end - in-site commented words  -->
 
 <script type="text/javascript">
 jQuery('.lnk_morpheme_chronicle_multi').bind('click', function () {

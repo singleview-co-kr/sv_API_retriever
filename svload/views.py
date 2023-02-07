@@ -21,7 +21,6 @@ from .pandas_plugins.edi_filter import EdiFilter
 from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
-# from .pandas_plugins.contract import PnsInfo
 from .pandas_plugins.term_manager import BrdedTerm
 from .pandas_plugins.term_manager import SeoTrackingTerm
 from .pandas_plugins.campaign_alias import CampaignAliasInfo
@@ -992,122 +991,6 @@ class NvrBrsContractView(LoginRequiredMixin, TemplateView):
                        })
 
 
-# class PnsContractView(LoginRequiredMixin, TemplateView):
-#     __g_oSvDb = None
-#     __g_dictBrandInfo = {}
-#
-#     def __init__(self):
-#         self.__g_oSvDb = SvMySql()
-#         if not self.__g_oSvDb:
-#             raise Exception('invalid db handler')
-#         return
-#
-#     def __del__(self):
-#         if self.__g_oSvDb:
-#             del self.__g_oSvDb
-#         if self.__g_dictBrandInfo:
-#             del self.__g_dictBrandInfo
-#
-#     def get(self, request, *args, **kwargs):
-#         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
-#         if self.__g_dictBrandInfo['b_error']:
-#             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
-#             return render(request, "svload/analyze_deny.html", context=dict_context)
-#
-#         if 'contract_id' in kwargs:
-#             return self.__contract_detail(request, *args, **kwargs)
-#         else:
-#             return self.__contract_list(request, *args, **kwargs)
-#
-#     def post(self, request, *args, **kwargs):
-#         if not self.__g_oSvDb:
-#             raise Exception('invalid db handler')
-#
-#         self.__g_dictBrandInfo = get_brand_info(self.__g_oSvDb, request, kwargs)
-#         if self.__g_dictBrandInfo['b_error']:
-#             dict_context = {'err_msg': self.__g_dictBrandInfo['s_msg']}
-#             return render(request, "svload/analyze_deny.html", context=dict_context)
-#
-#         n_brand_id = self.__g_dictBrandInfo['dict_ret']['n_brand_id']
-#         s_act = request.POST.get('act')
-#         s_return_url = request.META.get('HTTP_REFERER')
-#         if s_act == 'add_contract_bulk':
-#             o_pns_info = PnsInfo(self.__g_oSvDb)
-#             dict_rst = o_pns_info.add_contract_bulk(request)
-#             del o_pns_info
-#             if dict_rst['b_error']:
-#                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
-#                 return render(request, "svload/deny.html", context=dict_context)
-#             o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
-#         elif s_act == 'add_contract_single':
-#             o_pns_info = PnsInfo(self.__g_oSvDb)
-#             o_pns_info.add_contract_single(request)
-#             del o_pns_info
-#             if dict_rst['b_error']:
-#                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
-#                 return render(request, "svload/deny.html", context=dict_context)
-#             o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
-#         elif s_act == 'update_contract':
-#             if request.POST['contract_id'] == '':
-#                 dict_context = {'err_msg': dict_rst['s_msg'], 's_return_url': s_return_url}
-#                 return render(request, "svload/deny.html", context=dict_context)
-#             o_pns_info = PnsInfo(self.__g_oSvDb)
-#             o_pns_info.update_contract(request)
-#             del o_pns_info
-#             o_redirect = redirect('svload:pns_contract_list', sv_brand_id=n_brand_id)
-#         elif s_act == 'inquiry_contract':
-#             s_period_from = request.POST.get('contract_period_from')
-#             s_period_to = request.POST.get('contract_period_to')
-#             o_redirect = redirect('svload:pns_contract_list_period',
-#                                   sv_brand_id=n_brand_id, period_from=s_period_from, period_to=s_period_to)
-#         return o_redirect
-#
-#     def __contract_list(self, request, *args, **kwargs):
-#         if 'period_from' in kwargs:
-#             s_period_from = kwargs['period_from']
-#         else:
-#             s_period_from = None
-#         if 'period_to' in kwargs:
-#             s_period_to = kwargs['period_to']
-#         else:
-#             s_period_to = None
-#         o_pns_info = PnsInfo(self.__g_oSvDb)
-#         dict_contract_info = o_pns_info.get_list_by_period(s_period_from, s_period_to)
-#         dict_source_type = o_pns_info.get_source_type_dict()
-#         dict_contract_type = o_pns_info.get_contract_type_dict()
-#         del o_pns_info
-#         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
-#         return render(request, 'svload/pns_contract_list.html',
-#                       {'s_brand_name': self.__g_dictBrandInfo['dict_ret']['s_brand_name'],
-#                        'n_brand_id': self.__g_dictBrandInfo['dict_ret']['n_brand_id'],
-#                        'lst_owned_brand': lst_owned_brand,  # for global navigation
-#                        'dict_contract_period': dict_contract_info['dict_contract_period'],
-#                        'dict_source_type': dict_source_type,
-#                        'dict_contract_type': dict_contract_type,
-#                        'lst_contract_table': dict_contract_info['lst_contract_rst'],
-#                        })
-#
-#     def __contract_detail(self, request, *args, **kwargs):
-#         if 'contract_id' not in kwargs:
-#             raise Exception('invalid contract id')
-#
-#         n_contract_id = int(kwargs['contract_id'])
-#         o_pns_info = PnsInfo(self.__g_oSvDb)
-#         dict_contract_info = o_pns_info.get_detail_by_id(n_contract_id)
-#         dict_source_type = o_pns_info.get_source_type_dict()
-#         dict_contract_type = o_pns_info.get_contract_type_dict()
-#         del o_pns_info
-#         s_brand_name = self.__g_dictBrandInfo['dict_ret']['s_brand_name']
-#         lst_owned_brand = self.__g_dictBrandInfo['dict_ret']['lst_owned_brand']  # for global navigation
-#         return render(request, 'svload/pns_contract_detail.html',
-#                       {'s_brand_name': s_brand_name,
-#                        'lst_owned_brand': lst_owned_brand,  # for global navigation
-#                        'dict_source_type': dict_source_type,
-#                        'dict_contract_type': dict_contract_type,
-#                        'dict_contract_info': dict_contract_info,
-#                        })
-
-
 class TermManagerView(LoginRequiredMixin, TemplateView):
     __g_oSvDb = None
     __g_dictBrandInfo = {}
@@ -1341,9 +1224,73 @@ class Morpheme(LoginRequiredMixin, TemplateView):
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
 
+        lst_period = ['ly', 'lm', 'tm']
+        # begin - naver search API result
+        from .pandas_plugins.search_api import SearcgApiFreqTrendVisual
+        o_search_api_freq_trend = SearcgApiFreqTrendVisual(o_sv_db)
+        o_search_api_freq_trend.set_period_dict(dict_period, lst_period)
+        o_search_api_freq_trend.load_df()
+
+        # dict_plots = {}  # graph dict to draw
+        # dict_multi_line = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_ml('lm')
+        # del o_search_api_freq_trend
+        # # end - naver search API result
+        # o_graph = Visualizer()
+        # o_graph.set_height(170)
+        # o_graph.set_x_labels(dict_multi_line['lst_x_label'])
+        # n_source_cnt = len(dict_multi_line['lst_line_label'])
+        # n_gross_freq = 0
+        # for n_idx in range(0, n_source_cnt):
+        #     o_graph.append_series(dict_multi_line['lst_line_label'][n_idx],
+        #                           dict_multi_line['lst_line_color'][n_idx],
+        #                           dict_multi_line['lst_series_cnt'][n_idx])
+        #     n_gross_freq = n_gross_freq + sum(dict_multi_line['lst_series_cnt'][n_idx])
+        # o_graph.set_title('총 ' + "{:,}".format(n_gross_freq) + '회의 바이럴 발생함')
+        # dict_plots['morpheme_daily'] = o_graph.draw_multi_line()
+
+        dict_plots = {}  # graph dict to draw
+        dict_stacked_bar = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_sb('lm')
+        del o_search_api_freq_trend
+
+        # end - naver search API result
+        o_graph = Visualizer()
+        o_graph.set_title('소스별 일별 바이럴 발생 빈도')
+        o_graph.set_height(170)
+        o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
+        # n_source_cnt = len(dict_stacked_bar['lst_line_label'])
+        # n_gross_freq = 0
+        for s_source_name, lst_series_val in dict_stacked_bar['data_body'].items():
+                s_series_color = dict_stacked_bar['lst_palette'].pop(0)
+                o_graph.append_series(s_source_name, s_series_color, lst_series_val)
+
+        # for n_idx in range(0, n_source_cnt):
+        #     o_graph.append_series(dict_stacked_bar['lst_line_label'][n_idx],
+        #                           dict_stacked_bar['lst_line_color'][n_idx],
+        #                           dict_stacked_bar['lst_series_cnt'][n_idx])
+            # n_gross_freq = n_gross_freq + sum(dict_stacked_bar['lst_series_cnt'][n_idx])
+        dict_plots['morpheme_daily'] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['y_max_val'])
+        
+        del o_graph
+
+        # lst_graph_to_draw = o_visualize.get_graph_data()
+        # dict_plots = {}
+        # for lst_graph in lst_graph_to_draw:
+        #     o_graph = Visualizer()
+        #     o_graph.set_title(lst_graph[5])
+        #     o_graph.set_height(lst_graph[6])
+        #     o_graph.set_x_labels(lst_graph[2])
+        #     for s_source_medium_name, lst_series_val in lst_graph[1].items():
+        #         s_series_color = lst_graph[4].pop(0)
+        #         o_graph.append_series(s_source_medium_name, s_series_color, lst_series_val)
+        #     dict_plots[lst_graph[0]] = o_graph.draw_vertical_bar(n_max_y_axis=lst_graph[3])
+        #     del o_graph
+            
+        # end -
+
+        # begin - in-site viral result
         from .pandas_plugins.word_cloud import WcMainVisual
         o_word_cloud = WcMainVisual(o_sv_db)
-        lst_period = ['ly', 'lm', 'tm']
+        # lst_period = ['ly', 'lm', 'tm']
         o_word_cloud.set_period_dict(dict_period, lst_period)
         o_word_cloud.load_df()
 
@@ -1354,10 +1301,11 @@ class Morpheme(LoginRequiredMixin, TemplateView):
                        'lst_period': lst_period, 'n_th_rank': self.__g_nCntToVisitorNounRank}
         dict_wc_rst = o_word_cloud.get_top_ranker(dict_config)
         del o_word_cloud, dict_config
+        # end - in-site viral result
 
-        # script, div = components(dict(dict_plots))
-        return render(request, 'svload/morpheme.html',
-                      {  # 'script': script, 'div': div,
+        script, div = components(dict(dict_plots))
+        return render(request, 'svload/morpheme.html', { 
+                          'script': script, 'div': div,
                           'dict_sampling_freq_mode': dict_sampling_freq_mode,
                           's_cur_period_window': dict_period['s_cur_period_window'],
                           'dict_period_date': {'from': dict_period['dt_first_day_this_month'].strftime("%Y%m%d"),
@@ -1370,6 +1318,7 @@ class Morpheme(LoginRequiredMixin, TemplateView):
                           'dict_misc_word_cnt': dict_wc_rst['dict_misc_word_cnt'],
                           'dict_word_cloud_img_url': dict_wc_rst['dict_word_cloud_img_url']
                       })
+
 
     def post(self, request, *args, **kwargs):
         o_sv_db = SvMySql()
@@ -1465,7 +1414,8 @@ class MorphemeChronicle(LoginRequiredMixin, TemplateView):
 
         dict_plots = {}  # graph dict to draw
         dict_4_multi_line = o_morpheme_chronicle.retrieve_daily_chronicle_by_morpheme_ml(lst_item_line_color)
-
+        del o_morpheme_chronicle
+        
         o_graph = Visualizer()
         o_graph.set_height(170)
         o_graph.set_x_labels(dict_4_multi_line['lst_x_label'])

@@ -12,7 +12,8 @@ CREATE TABLE `nvsearch_log` (
   `regdate` DATETIME DEFAULT NOW(),
   PRIMARY KEY (`log_srl`),
   KEY `idx_morpheme_srl` (`morpheme_srl`),
-  KEY `idx_pubdate` (`logdate`),
+  KEY `idx_logdate` (`logdate`),
+  KEY `idx_regdate` (`regdate`),
   KEY `idx_morpheme_srl_media_id_link` (`morpheme_srl`, `media_id`, `link`),
   KEY `idx_b_crawled` (`b_crawled`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
