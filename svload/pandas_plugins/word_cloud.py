@@ -17,15 +17,15 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
 class SvPallet:
-    __g_dictSourceMedium = {'default': '#000000',   # https://www.color-hex.com/
-                            'youtube_display': '#960614',
-                            'google_cpc': '#6b0000',
-                            'facebook_cpi': '#205a86',
-                            'facebook_cpc': '#140696',
-                            'naver_cpc': '#4d6165',
-                            'naver_organic': '#798984',
-                            'naver_display': '#8db670',
-                            'kakao_cpc': '#ffad60'}
+    # __g_dictSourceMedium = {'default': '#000000',   # https://www.color-hex.com/
+    #                         'youtube_display': '#960614',
+    #                         'google_cpc': '#6b0000',
+    #                         'facebook_cpi': '#205a86',
+    #                         'facebook_cpc': '#140696',
+    #                         'naver_cpc': '#4d6165',
+    #                         'naver_organic': '#798984',
+    #                         'naver_display': '#8db670',
+    #                         'kakao_cpc': '#ffad60'}
     __g_dictPeriodWindow = {'tm': '#2ABA9C',  # this period
                             'lm': '#A0DBCF',  # last period
                             'ly': '#D6E2DF',  # year ago period
@@ -52,17 +52,17 @@ class SvPallet:
         # logger.debug('__exit__')
         pass
 
-    def get_word_color(self, s_source_medium=None):
-        """
-        :param s_source_medium:
-        :return:
-        """
-        if s_source_medium is None:
-            return self.__g_dictSourceMedium
-        elif s_source_medium in self.__g_dictSourceMedium:  # list(self.__g_dictSourceMedium.keys()):
-            return self.__g_sDefaultColor
-        else:
-            return self.__g_dictSourceMedium[s_source_medium]
+    # def get_word_color(self, s_source_medium=None):
+    #     """
+    #     :param s_source_medium:
+    #     :return:
+    #     """
+    #     if s_source_medium is None:
+    #         return self.__g_dictSourceMedium
+    #     elif s_source_medium in self.__g_dictSourceMedium:  # list(self.__g_dictSourceMedium.keys()):
+    #         return self.__g_sDefaultColor
+    #     else:
+    #         return self.__g_dictSourceMedium[s_source_medium]
 
     def get_period_window_color(self, s_period_window=None):
         """
@@ -96,7 +96,7 @@ class WordCloudVisual(ABC):
         self._g_oSvDb = o_sv_db
 
         o_sv_pallet = SvPallet()
-        self._g_dictPalletSourceMedium = o_sv_pallet.get_word_color()
+        # self._g_dictPalletSourceMedium = o_sv_pallet.get_word_color()
         del o_sv_pallet
         super().__init__()
 
@@ -276,7 +276,7 @@ class MorphemeVisual(WordCloudVisual):
     https://hyunlee103.tistory.com/91  추상성 다형성
     """
     __g_DictMorphemeInfo = None
-    __g_dfPeriodDataRaw = None
+    # __g_dfPeriodDataRaw = None
 
     def set_morpheme_lst(self, lst_morpheme_id):
         dict_tmp = {}
