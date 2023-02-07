@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
 # pd.set_option('display.max_columns', None) 후에 print(df)하면 모든 컬럼명이 출력됨
-class Performance:
+class EdiSkuPerformance:
     __g_dictPeriodRankDf = {'2ly': None, 'ly': None, 'lm': None, 'tm': None}
     __g_dictPeriod = {'2ly': [], 'ly': [], 'lm': [], 'tm': []}
     __g_dictEdiSku = {}  # SKU 정보 저장
