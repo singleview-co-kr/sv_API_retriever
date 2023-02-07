@@ -18,7 +18,7 @@ from svacct.ownership import get_owned_brand_list
 from .pandas_plugins.period_window import PeriodWindow
 from .pandas_plugins.edi_by_branch import EdiBranchRaw
 from .pandas_plugins.edi_by_branch import EdiBranchPerformance
-from .pandas_plugins.edi_filter import EdiFilter
+from .pandas_plugins.edi_tools import EdiFilter
 from .pandas_plugins.budget import Budget
 from .pandas_plugins.ga_item import GaItem
 from .pandas_plugins.contract import NvrBrsInfo
