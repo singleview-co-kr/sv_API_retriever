@@ -13,67 +13,6 @@ import logging
 logger = logging.getLogger(__name__)  # __file__ # logger.debug('debug msg')
 
 
-class SvPallet:
-    # __g_dictSourceMedium = {'default': '#000000',   # https://www.color-hex.com/
-    #                         'youtube_display': '#960614',
-    #                         'google_cpc': '#6b0000',
-    #                         'facebook_cpi': '#205a86',
-    #                         'facebook_cpc': '#140696',
-    #                         'naver_cpc': '#4d6165',
-    #                         'naver_organic': '#798984',
-    #                         'naver_display': '#8db670',
-    #                         'kakao_cpc': '#ffad60'}
-    __g_dictPeriodWindow = {'tm': '#2ABA9C',  # this period
-                            'lm': '#A0DBCF',  # last period
-                            'ly': '#D6E2DF',  # year ago period
-                            '2ly': '#e7298a'}  # 2 years ago period
-    __g_sDefaultColor = '#000000'
-
-    def __new__(cls):
-        # print(__file__ + ':' + sys._getframe().f_code.co_name)  # turn to decorator
-        return super().__new__(cls)
-
-    def __init__(self):
-        # print(__file__ + ':' + sys._getframe().f_code.co_name)
-        super().__init__()
-
-    def __enter__(self):
-        """ grammtical method to use with "with" statement """
-        return self
-
-    def __del__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """ unconditionally calling desctructor """
-        # logger.debug('__exit__')
-        pass
-
-    # def get_word_color(self, s_source_medium=None):
-    #     """
-    #     :param s_source_medium:
-    #     :return:
-    #     """
-    #     if s_source_medium is None:
-    #         return self.__g_dictSourceMedium
-    #     elif s_source_medium in self.__g_dictSourceMedium:  # list(self.__g_dictSourceMedium.keys()):
-    #         return self.__g_sDefaultColor
-    #     else:
-    #         return self.__g_dictSourceMedium[s_source_medium]
-
-    def get_period_window_color(self, s_period_window=None):
-        """
-        :param s_period_window:
-        :return:
-        """
-        if s_period_window is None:
-            return self.__g_dictPeriodWindow
-        elif s_period_window in self.__g_dictPeriodWindow:  # list(self.__g_dictPeriodWindow.keys()):
-            return self.__g_sDefaultColor
-        else:
-            return self.__g_dictPeriodWindow[s_period_window]
-
-
 class WordCloudVisual(ABC):
     """
     https://hyunlee103.tistory.com/91  추상성 다형성
@@ -91,10 +30,6 @@ class WordCloudVisual(ABC):
         if not o_sv_db:  # refer to an external db instance to minimize data class
             raise Exception('invalid db handler')
         self._g_oSvDb = o_sv_db
-
-        o_sv_pallet = SvPallet()
-        # self._g_dictPalletSourceMedium = o_sv_pallet.get_word_color()
-        del o_sv_pallet
         super().__init__()
 
     def __enter__(self):
