@@ -32,13 +32,77 @@
                 <div class="" role="tabpanel" data-example-id="togglable-tabs">
                     <ul id="myTab" class="nav nav-tabs bar_tabs" role="tablist">
                         <li role="presentation" class="active">
-                            <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="true">소스별</a>
+                            <a href="#tab_content1" id="home-tab" role="tab" data-toggle="tab" aria-expanded="true">블로그</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content2" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">뉴스</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content3" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">백과사전</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content4" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">카페</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content5" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">지식인</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content6" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">웹문서</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content7" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">이미지</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content8" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">쇼핑</a>
+                        </li>
+                        <li role="presentation" class="">
+                            <a href="#tab_content9" role="tab" id="profile-tab1" data-toggle="tab" aria-expanded="false">전문자료</a>
                         </li>
                     </ul>
                     <div id="myTabContent" class="tab-content">
                         <div role="tabpanel" class="tab-pane fade active in" id="tab_content1" aria-labelledby="home-tab">
                             <div style="height: 330px; width: 100%;">
                                 {{ div.blog | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content2" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.news | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content3" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.encyc | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content4" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.cafearticle | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content5" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.kin | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content6" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.webkr | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content7" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.image | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content8" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.shop | safe }}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade" id="tab_content9" aria-labelledby="profile-tab">
+                            <div style="height: 330px; width: 100%;">
+                                {{ div.doc | safe }}
                             </div>
                         </div>
                     </div>
@@ -49,7 +113,6 @@
     </div>
 </div>
 <!-- end - tab daily revenue performance -->
-
 <script type="text/javascript">
 jQuery('button.clickable').on('click', function(){
     let aCurUrl = window.location.href.split('?');

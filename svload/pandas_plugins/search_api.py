@@ -164,15 +164,20 @@ class SearchApiFreqTrendVisual(SearchApiVisual):
                 lst_x_label.append(str(pd_dt)[:10])
             del dict_freq_by_media_kw['idx_full_period']
 
+            lst_daily_max = [0 for _ in lst_x_label]
             for s_media, dict_kw_daily_freq in dict_freq_by_media_kw.items():
                 n_y_max_val = 0
                 lst_palette_tmp = self._g_dictSerialColor.copy()
-                # print(self._g_dictSerialColor)
+                # print(s_media)
+                lst_daily_max_by_media = lst_daily_max.copy()
                 for s_kw, lst_daily_freq in dict_kw_daily_freq.items():
-                    n_y_max_val += max(lst_daily_freq)
-                    # print(n_y_max_val)
+                    lst_daily_max_by_media = [x+y for x,y in zip(lst_daily_freq,lst_daily_max_by_media)]
                     lst_bar_color.append(lst_palette_tmp.pop(0))
+                # print(lst_daily_max_by_media)
+                n_y_max_val = max(lst_daily_max_by_media)
                 n_final_axis_max = n_y_max_val if n_final_axis_max < n_y_max_val else n_final_axis_max
+            del lst_daily_max
+            del lst_daily_max_by_media
         return {'data_body': dict_freq_by_media_kw, 'y_label': lst_x_label,
                 'n_final_axis_max': int(n_final_axis_max*1.01), 'lst_x_label': lst_x_label, 'lst_palette': lst_bar_color}
 
@@ -297,9 +302,7 @@ class SearchApiRaw:
 
         if 'naver' in lst_source_to_retrieve:
             # begin - Retrieve naver search API collection count
-            o_sv_nvsearch = SvNvsearch()
-            dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
-            del o_sv_nvsearch
+            dict_media_lbl_id = self.__get_nvr_media_info()
             lst_gross_naver_raw_data = []
             for s_media_lbl, n_media_id in dict_media_lbl_id.items():
                 if s_media_lbl == 'blog' or s_media_lbl == 'news':  # news blog > logdate, 
@@ -383,9 +386,7 @@ class SearchApiRaw:
 
         dict_freq_by_media_kw = {}
         dict_morpheme_srl_morpheme = self.__get_morpheme_id_lbl_dict()
-        o_sv_nvsearch = SvNvsearch()
-        dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
-        del o_sv_nvsearch
+        dict_media_lbl_id = self.__get_nvr_media_info()
         for s_media_lbl, n_media_id in dict_media_lbl_id.items():
             # print(s_media_lbl)
             if s_media_lbl not in dict_freq_by_media_kw:  # register new sub dict
@@ -407,6 +408,14 @@ class SearchApiRaw:
         del dict_morpheme_srl_morpheme
         # print(dict_freq_by_media_kw)
         return dict_freq_by_media_kw
+
+    def __get_nvr_media_info(self):
+        o_sv_nvsearch = SvNvsearch()
+        dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
+        
+        del o_sv_nvsearch
+
+        return dict_media_lbl_id
 
     def __get_morpheme_id_lbl_dict(self):
         lst_raw_data = self.__g_oSvDb.executeQuery('getSeoTrackingTermList')

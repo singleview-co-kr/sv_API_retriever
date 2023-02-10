@@ -1243,7 +1243,6 @@ class Viral(LoginRequiredMixin, TemplateView):
 
     def __viral_source_media_kw_level(self, request, *args, **kwargs):
         # begin - search API result
-        # print(kwargs['sv_source_name'])
         o_search_api_freq_trend = SearchApiFreqTrendVisual(self.__g_oSvDb)
         o_search_api_freq_trend.set_period_dict(self.__g_dictPeriod, self.__g_lstPeriod)
         o_search_api_freq_trend.load_df([kwargs['sv_source_name']])
@@ -1251,7 +1250,6 @@ class Viral(LoginRequiredMixin, TemplateView):
         
         if kwargs['sv_source_name'] == 'naver':
             dict_stacked_bar = o_search_api_freq_trend.retrieve_source_media_kw_level_sb('lm')
-            # print(dict_stacked_bar['n_final_axis_max'])
             for s_media, dict_kw_daily_freq in dict_stacked_bar['data_body'].items():
                 o_graph = Visualizer()
                 o_graph.set_title(s_media + '의 키워드별 일별 바이럴 발생 빈도')
@@ -1261,10 +1259,8 @@ class Viral(LoginRequiredMixin, TemplateView):
                 for s_morpheme, lst_series_val in dict_kw_daily_freq.items():
                     s_series_color = lst_palette_tmp.pop(0)
                     o_graph.append_series(s_morpheme, s_series_color, lst_series_val)
-                    # print(s_morpheme, s_series_color, lst_series_val)
                 dict_plots[s_media] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['n_final_axis_max'])
                 del o_graph
-            # print(dict_plots)
             s_template_name = 'viral_source_media_kw_level_nvr'
         else:
             o_graph = Visualizer()
@@ -1387,9 +1383,7 @@ class Morpheme(LoginRequiredMixin, TemplateView):
         del o_word_cloud, dict_config
         # end - in-site viral result
 
-        # script, div = components(dict(dict_plots))
         return render(request, 'svload/morpheme.html', { 
-                        #   'script': script, 'div': div,
                           'dict_sampling_freq_mode': dict_sampling_freq_mode,
                           's_cur_period_window': dict_period['s_cur_period_window'],
                           'dict_period_date': {'from': dict_period['dt_first_day_this_month'].strftime("%Y%m%d"),
