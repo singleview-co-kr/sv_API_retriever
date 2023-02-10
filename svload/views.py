@@ -27,6 +27,7 @@ from .pandas_plugins.contract import NvrBrsInfo
 from .pandas_plugins.term_manager import BrdedTerm
 from .pandas_plugins.term_manager import SeoTrackingTerm
 from .pandas_plugins.campaign_alias import CampaignAliasInfo
+from .pandas_plugins.search_api import SearchApiFreqTrendVisual
 from .visualizer import Visualizer
 
 # dash plotly visualiztion with AI ML
@@ -1072,13 +1073,14 @@ class TermManagerView(LoginRequiredMixin, TemplateView):
 
 
 class CampaignAliasView(LoginRequiredMixin, TemplateView):
-    __g_oSvDb = None
-    __g_dictBrandInfo = {}
+    # __g_oSvDb = None
+    # __g_dictBrandInfo = {}
 
     def __init__(self):
         self.__g_oSvDb = SvMySql()
         if not self.__g_oSvDb:
             raise Exception('invalid db handler')
+        self.__g_dictBrandInfo = {}
         return
 
     def __del__(self):
@@ -1197,11 +1199,157 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
                        })
 
 
+class Viral(LoginRequiredMixin, TemplateView):
+    # template_name = 'analyze/index.html'
+    __g_lstPeriod = ['ly', 'lm', 'tm']
+
+    def __init__(self):
+        self.__g_oSvDb = SvMySql()
+        if not self.__g_oSvDb:
+            raise Exception('invalid db handler')
+        self.__g_dictPeriod = {}
+        self.__g_dictSamplingFreqMode = {}
+        self.__g_sBrandName = None
+        self.__g_lstOwnedBrand = []
+        return
+
+    def __del__(self):
+        if self.__g_oSvDb:
+            del self.__g_oSvDb
+        if self.__g_dictPeriod:
+            del self.__g_dictPeriod
+        if self.__g_sBrandName:
+            del self.__g_sBrandName
+        if self.__g_lstOwnedBrand:
+            del self.__g_lstOwnedBrand
+
+    def get(self, request, *args, **kwargs):
+        o_window = PeriodWindow()
+        self.__g_dictPeriod = o_window.get_period_range(request)
+        self.__g_dictSamplingFreqMode = o_window.get_sampling_freq_ui()  # sampling freq btn UI
+        del o_window
+
+        dict_rst = get_brand_info(self.__g_oSvDb, request, kwargs)
+        if dict_rst['b_error']:
+            dict_context = {'err_msg': dict_rst['s_msg']}
+            return render(request, "svload/analyze_deny.html", context=dict_context)
+        self.__g_sBrandName = dict_rst['dict_ret']['s_brand_name']
+        self.__g_lstOwnedBrand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
+
+        if 'sv_source_name' in kwargs:
+            return self.__viral_source_media_kw_level(request, *args, **kwargs)
+        else:
+            return self.__viral_source_level(request)
+
+    def __viral_source_media_kw_level(self, request, *args, **kwargs):
+        # begin - search API result
+        # print(kwargs['sv_source_name'])
+        o_search_api_freq_trend = SearchApiFreqTrendVisual(self.__g_oSvDb)
+        o_search_api_freq_trend.set_period_dict(self.__g_dictPeriod, self.__g_lstPeriod)
+        o_search_api_freq_trend.load_df([kwargs['sv_source_name']])
+        dict_plots = {}  # graph dict to draw
+        
+        if kwargs['sv_source_name'] == 'naver':
+            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_media_kw_level_sb('lm')
+            # print(dict_stacked_bar['n_final_axis_max'])
+            for s_media, dict_kw_daily_freq in dict_stacked_bar['data_body'].items():
+                o_graph = Visualizer()
+                o_graph.set_title(s_media + '의 키워드별 일별 바이럴 발생 빈도')
+                o_graph.set_height(170)
+                o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
+                lst_palette_tmp = dict_stacked_bar['lst_palette'].copy()
+                for s_morpheme, lst_series_val in dict_kw_daily_freq.items():
+                    s_series_color = lst_palette_tmp.pop(0)
+                    o_graph.append_series(s_morpheme, s_series_color, lst_series_val)
+                    # print(s_morpheme, s_series_color, lst_series_val)
+                dict_plots[s_media] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['n_final_axis_max'])
+                del o_graph
+            # print(dict_plots)
+            s_template_name = 'viral_source_media_kw_level_nvr'
+        else:
+            o_graph = Visualizer()
+            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_kw_level_sb('lm')
+            o_graph.set_title('소스별 키워드별 일별 바이럴 발생 빈도')
+            o_graph.set_height(170)
+            o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
+            for s_morpheme, lst_series_val in dict_stacked_bar['data_body'].items():
+                    s_series_color = dict_stacked_bar['lst_palette'].pop(0)
+                    o_graph.append_series(s_morpheme, s_series_color, lst_series_val)
+            dict_plots['viral_daily'] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['y_max_val'])
+            s_template_name = 'viral_source_media_kw_level'
+            del o_graph
+        del o_search_api_freq_trend
+        # end - search API result
+        
+        script, div = components(dict(dict_plots))
+        return render(request, 'svload/'+s_template_name+'.html', { 
+                          'script': script, 'div': div,
+                          'dict_sampling_freq_mode': self.__g_dictSamplingFreqMode,
+                          's_cur_period_window': self.__g_dictPeriod['s_cur_period_window'],
+                          'dict_period_date': {'from': self.__g_dictPeriod['dt_first_day_this_month'].strftime("%Y%m%d"),
+                                               'to': self.__g_dictPeriod['dt_today'].strftime("%Y%m%d")},
+                          's_bokeh_version': bokeh_version.get_versions()['version'],
+                          's_brand_name': self.__g_sBrandName,
+                          'lst_owned_brand': self.__g_lstOwnedBrand,  # for global navigation
+                          's_source_lbl': kwargs['sv_source_name']
+                      })
+    
+    def __viral_source_level(self, request):
+        """ viral main UX """
+        # begin - search API result
+        o_search_api_freq_trend = SearchApiFreqTrendVisual(self.__g_oSvDb)
+        o_search_api_freq_trend.set_period_dict(self.__g_dictPeriod, self.__g_lstPeriod)
+        o_search_api_freq_trend.load_df()
+        dict_plots = {}  # graph dict to draw
+        o_graph = Visualizer()
+        # dict_multi_line = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_ml('lm')
+        # del o_search_api_freq_trend
+        # o_graph.set_height(170)
+        # o_graph.set_x_labels(dict_multi_line['lst_x_label'])
+        # n_source_cnt = len(dict_multi_line['lst_line_label'])
+        # n_gross_freq = 0
+        # for n_idx in range(0, n_source_cnt):
+        #     o_graph.append_series(dict_multi_line['lst_line_label'][n_idx],
+        #                           dict_multi_line['lst_line_color'][n_idx],
+        #                           dict_multi_line['lst_series_cnt'][n_idx])
+        #     n_gross_freq = n_gross_freq + sum(dict_multi_line['lst_series_cnt'][n_idx])
+        # o_graph.set_title('총 ' + "{:,}".format(n_gross_freq) + '회의 바이럴 발생함')
+        # dict_plots['morpheme_daily'] = o_graph.draw_multi_line()
+
+        dict_stacked_bar = o_search_api_freq_trend.retrieve_source_level_sb('lm')
+        del o_search_api_freq_trend
+        
+        lst_effectuve_source = []
+        o_graph.set_title('소스별 일별 바이럴 발생 빈도')
+        o_graph.set_height(170)
+        o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
+        for s_source_name, lst_series_val in dict_stacked_bar['data_body'].items():
+                s_series_color = dict_stacked_bar['lst_palette'].pop(0)
+                o_graph.append_series(s_source_name, s_series_color, lst_series_val)
+                lst_effectuve_source.append(s_source_name)
+        dict_plots['viral_daily'] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['y_max_val'])
+        del o_graph
+        # end - search API result
+        script, div = components(dict(dict_plots))
+        return render(request, 'svload/viral_main.html', { 
+                          'script': script, 'div': div,
+                          'dict_sampling_freq_mode': self.__g_dictSamplingFreqMode,
+                          's_cur_period_window': self.__g_dictPeriod['s_cur_period_window'],
+                          'dict_period_date': {'from': self.__g_dictPeriod['dt_first_day_this_month'].strftime("%Y%m%d"),
+                                               'to': self.__g_dictPeriod['dt_today'].strftime("%Y%m%d")},
+                          's_bokeh_version': bokeh_version.get_versions()['version'],
+                          's_brand_name': self.__g_sBrandName,
+                          'lst_owned_brand': self.__g_lstOwnedBrand,  # for global navigation
+                          'lst_effectuve_source': lst_effectuve_source
+                      })
+
+
 class Morpheme(LoginRequiredMixin, TemplateView):
+    # http://192.168.0.24:8002/load/morpheme/1/
     # template_name = 'analyze/index.html'
     __g_nCntToVisitorNounRank = 100  # 추출할 순위 수
-    __g_nCntToInboundKeywordRank = 10  # 추출할 순위 수
-    __g_nCntToSourceMediumRank = 10  # 추출할 순위 수
+    # __g_nCntToInboundKeywordRank = 10  # 추출할 순위 수
+    # __g_nCntToSourceMediumRank = 10  # 추출할 순위 수
 
     def __init__(self):
         return
@@ -1223,73 +1371,10 @@ class Morpheme(LoginRequiredMixin, TemplateView):
         s_brand_name = dict_rst['dict_ret']['s_brand_name']
         lst_owned_brand = dict_rst['dict_ret']['lst_owned_brand']  # for global navigation
 
-        lst_period = ['ly', 'lm', 'tm']
-        # begin - naver search API result
-        from .pandas_plugins.search_api import SearcgApiFreqTrendVisual
-        o_search_api_freq_trend = SearcgApiFreqTrendVisual(o_sv_db)
-        o_search_api_freq_trend.set_period_dict(dict_period, lst_period)
-        o_search_api_freq_trend.load_df()
-
-        # dict_plots = {}  # graph dict to draw
-        # dict_multi_line = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_ml('lm')
-        # del o_search_api_freq_trend
-        # # end - naver search API result
-        # o_graph = Visualizer()
-        # o_graph.set_height(170)
-        # o_graph.set_x_labels(dict_multi_line['lst_x_label'])
-        # n_source_cnt = len(dict_multi_line['lst_line_label'])
-        # n_gross_freq = 0
-        # for n_idx in range(0, n_source_cnt):
-        #     o_graph.append_series(dict_multi_line['lst_line_label'][n_idx],
-        #                           dict_multi_line['lst_line_color'][n_idx],
-        #                           dict_multi_line['lst_series_cnt'][n_idx])
-        #     n_gross_freq = n_gross_freq + sum(dict_multi_line['lst_series_cnt'][n_idx])
-        # o_graph.set_title('총 ' + "{:,}".format(n_gross_freq) + '회의 바이럴 발생함')
-        # dict_plots['morpheme_daily'] = o_graph.draw_multi_line()
-
-        dict_plots = {}  # graph dict to draw
-        dict_stacked_bar = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_sb('lm')
-        del o_search_api_freq_trend
-
-        # end - naver search API result
-        o_graph = Visualizer()
-        o_graph.set_title('소스별 일별 바이럴 발생 빈도')
-        o_graph.set_height(170)
-        o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
-        # n_source_cnt = len(dict_stacked_bar['lst_line_label'])
-        # n_gross_freq = 0
-        for s_source_name, lst_series_val in dict_stacked_bar['data_body'].items():
-                s_series_color = dict_stacked_bar['lst_palette'].pop(0)
-                o_graph.append_series(s_source_name, s_series_color, lst_series_val)
-
-        # for n_idx in range(0, n_source_cnt):
-        #     o_graph.append_series(dict_stacked_bar['lst_line_label'][n_idx],
-        #                           dict_stacked_bar['lst_line_color'][n_idx],
-        #                           dict_stacked_bar['lst_series_cnt'][n_idx])
-            # n_gross_freq = n_gross_freq + sum(dict_stacked_bar['lst_series_cnt'][n_idx])
-        dict_plots['morpheme_daily'] = o_graph.draw_vertical_bar(n_max_y_axis=dict_stacked_bar['y_max_val'])
-        
-        del o_graph
-
-        # lst_graph_to_draw = o_visualize.get_graph_data()
-        # dict_plots = {}
-        # for lst_graph in lst_graph_to_draw:
-        #     o_graph = Visualizer()
-        #     o_graph.set_title(lst_graph[5])
-        #     o_graph.set_height(lst_graph[6])
-        #     o_graph.set_x_labels(lst_graph[2])
-        #     for s_source_medium_name, lst_series_val in lst_graph[1].items():
-        #         s_series_color = lst_graph[4].pop(0)
-        #         o_graph.append_series(s_source_medium_name, s_series_color, lst_series_val)
-        #     dict_plots[lst_graph[0]] = o_graph.draw_vertical_bar(n_max_y_axis=lst_graph[3])
-        #     del o_graph
-            
-        # end -
-
         # begin - in-site viral result
         from .pandas_plugins.word_cloud import WcMainVisual
         o_word_cloud = WcMainVisual(o_sv_db)
-        # lst_period = ['ly', 'lm', 'tm']
+        lst_period = ['ly', 'lm', 'tm']
         o_word_cloud.set_period_dict(dict_period, lst_period)
         o_word_cloud.load_df()
 
@@ -1302,9 +1387,9 @@ class Morpheme(LoginRequiredMixin, TemplateView):
         del o_word_cloud, dict_config
         # end - in-site viral result
 
-        script, div = components(dict(dict_plots))
+        # script, div = components(dict(dict_plots))
         return render(request, 'svload/morpheme.html', { 
-                          'script': script, 'div': div,
+                        #   'script': script, 'div': div,
                           'dict_sampling_freq_mode': dict_sampling_freq_mode,
                           's_cur_period_window': dict_period['s_cur_period_window'],
                           'dict_period_date': {'from': dict_period['dt_first_day_this_month'].strftime("%Y%m%d"),
@@ -1317,7 +1402,6 @@ class Morpheme(LoginRequiredMixin, TemplateView):
                           'dict_misc_word_cnt': dict_wc_rst['dict_misc_word_cnt'],
                           'dict_word_cloud_img_url': dict_wc_rst['dict_word_cloud_img_url']
                       })
-
 
     def post(self, request, *args, **kwargs):
         o_sv_db = SvMySql()

@@ -28,7 +28,7 @@ class SvPalette:
         return ['#6CBDAC']
 
     def get_serial_color_lst(self):
-        return ['#D6E2DF', '#A4C8C1', '#6CBDAC', '#079476']
+        return ['#D6E2DF', '#A4C8C1', '#6CBDAC', '#079476', '#960614', '#6b0000', '#205a86']
 
     def get_source_medium_color_dict(self):
         return {'default': '#000000',  
