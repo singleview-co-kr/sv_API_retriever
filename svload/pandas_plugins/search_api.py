@@ -2,7 +2,7 @@ import pandas as pd
 from abc import ABC
 from abc import abstractmethod
 
-from svcommon.sv_search_api import SvNvsearch
+from svcommon.sv_search_api import SvNvSearch
 from svcommon.sv_campaign_parser import SvCampaignParser
 from .sv_palette import SvPalette
 
@@ -410,7 +410,7 @@ class SearchApiRaw:
         return dict_freq_by_media_kw
 
     def __get_nvr_media_info(self):
-        o_sv_nvsearch = SvNvsearch()
+        o_sv_nvsearch = SvNvSearch()
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
         
         del o_sv_nvsearch
