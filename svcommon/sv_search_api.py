@@ -41,7 +41,7 @@ elif __name__ == '__main__': # for class console debugging
     import sv_object
 
     
-class SvNvsearch(sv_object.ISvObject):
+class SvNvSearch(sv_object.ISvObject):
     """  """
     __g_sApiReqUrl = "https://openapi.naver.com/v1/search/"
     __g_lstMediaInfo = [
@@ -165,14 +165,7 @@ class SvNvsearch(sv_object.ISvObject):
         else:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = "Error Code:" + rescode
-        # print('##########################')
-        # print('##########################')
-        # print('##########################')
-        # print(dict_rst['s_plain_resp'])
-        # print('##########################')
-        # print('##########################')
-        # print('##########################')
-
+        
         # if self.__g_sCurMedia == 'blog':
         #     ddd = """"""
         # else:

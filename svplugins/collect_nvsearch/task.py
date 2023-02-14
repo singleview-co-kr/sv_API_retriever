@@ -128,7 +128,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __get_keyword_from_nvsearch(self, n_param_morpheme_srl, s_param_morpheme):
         """ retrieve text from naver search API """        
-        o_sv_nvsearch = sv_search_api.SvNvsearch()
+        o_sv_nvsearch = sv_search_api.SvNvSearch()
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
 
         o_sv_mysql = sv_mysql.SvMySql()
@@ -139,6 +139,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_base_tsv_filename = datetime.now().strftime('%Y%m%d') + '_' + str(n_param_morpheme_srl)
         n_total_effective_cnt = 0
 
+        self._printDebug(s_param_morpheme + ' will be retrieved')
         n_idx = 0
         n_sentinel = len(self.__g_lstMedia)
         for s_media in self.__g_lstMedia:
@@ -162,28 +163,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_iter_rst = o_sv_nvsearch.search_query(s_morpheme=s_param_morpheme)
                         n_media_retrieval_cnt += 1
                         dict_iter_retrieval = dict_iter_rst['dict_xml_body']
-                        # print(dict_1st_retrieval['total'],  n_media_retrieval_cnt * n_display_cnt)
                         if 'total' in dict_iter_retrieval and \
                                 dict_iter_retrieval['total'] < n_media_retrieval_cnt * n_display_cnt:  # 'total' attr changes randomly if media is webkr
-                            self._printDebug('called requests exceeds API result count')
+                            # self._printDebug('called requests exceeds API result count')
                             break
 
                         n_total_effective_cnt += 1
                         if dict_iter_rst['b_error']:
-                            self._printDebug(dict_iter_rst['s_msg'])
+                            # self._printDebug(dict_iter_rst['s_msg'])
                             break
                         
                         s_tsv_filename = s_base_tsv_filename + '_' + s_media + '_' + str(n_media_retrieval_cnt)
                         self.__write_into_file(s_tsv_filename, dict_iter_rst['s_plain_resp'])
-                        # dict_iter_retrieval = dict_iter_rst['dict_xml_body']
                         if 'item' in dict_iter_retrieval and \
                                 dict_iter_retrieval['item']:
                             f_new_rate = self.__get_new_rate(o_sv_mysql, n_param_morpheme_srl, s_media, n_media_id, dict_iter_retrieval['item'])
-                            # print(f_new_rate)
                         if f_new_rate < 0.1:
-                            self._printDebug('too many duplicated item')
+                            # self._printDebug('too many duplicated item')
                             break
-                        # print(n_media_retrieval_cnt)
                         del dict_iter_retrieval
                         del dict_iter_rst
                 else:
@@ -193,6 +190,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 del dict_1st_rst
             self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Collect XML data:', suffix = 'Complete', length = 50)
             n_idx += 1
+        self._printDebug(s_param_morpheme + ' has been retrieved')
         del o_sv_mysql
         del o_sv_nvsearch
         del dict_media_lbl_id
@@ -206,15 +204,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             for dict_single_item in lst_item:
                 if s_media == 'kin':  # naver search API arbirarily changes KIN doc URL
                     dict_single_item['link'] = self.__cleanup_kin_url(dict_single_item['link'])
-                # print(n_morpheme_srl, n_media_id, dict_single_item['link'])
                 if self.__is_duplicated(o_sv_mysql, n_morpheme_srl, n_media_id, dict_single_item['link']):
                     lst_new_old[1] += 1
                 else:
                     lst_new_old[0] += 1
             f_new_rate = lst_new_old[0] / (lst_new_old[0] + lst_new_old[1])
-            print('')
-            print(n_morpheme_srl, n_media_id, f_new_rate)
-            print('')
         return f_new_rate  # return new item rate
     
     def __is_duplicated(self, o_sv_mysql, n_morpheme_srl, n_media_id, s_link):
@@ -235,7 +229,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
-        o_sv_nvsearch = sv_search_api.SvNvsearch()
+        o_sv_nvsearch = sv_search_api.SvNvSearch()
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
 
         # traverse directory and collect xml data files
