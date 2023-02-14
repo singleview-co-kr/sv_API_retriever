@@ -43,13 +43,13 @@ if __name__ == '__main__': # for console debugging
     import sv_mysql
     import sv_object
     import sv_plugin
-    import sv_nvsearch
+    import sv_search_api
     import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
-    from svcommon import sv_nvsearch
+    from svcommon import sv_search_api
     from django.conf import settings
 
 
@@ -59,7 +59,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230131)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230214)')
         
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -103,7 +103,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if not os.path.isdir(self.__g_sConfPath):
             os.makedirs(self.__g_sConfPath)
         # end - set important folder
-
+        
         if self.__g_sMode == 'collect_api':
             self._printDebug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql:
@@ -128,7 +128,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __get_keyword_from_nvsearch(self, n_param_morpheme_srl, s_param_morpheme):
         """ retrieve text from naver search API """        
-        o_sv_nvsearch = sv_nvsearch.SvNvsearch()
+        o_sv_nvsearch = sv_search_api.SvNvsearch()
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
 
         o_sv_mysql = sv_mysql.SvMySql()
@@ -235,7 +235,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
-        o_sv_nvsearch = sv_nvsearch.SvNvsearch()
+        o_sv_nvsearch = sv_search_api.SvNvsearch()
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
 
         # traverse directory and collect xml data files
