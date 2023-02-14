@@ -2,7 +2,7 @@ import pandas as pd
 from abc import ABC
 from abc import abstractmethod
 
-from svcommon.sv_nvsearch import SvNvsearch
+from svcommon.sv_search_api import SvNvsearch
 from svcommon.sv_campaign_parser import SvCampaignParser
 from .sv_palette import SvPalette
 

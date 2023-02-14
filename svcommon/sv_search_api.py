@@ -33,9 +33,9 @@ from decouple import config
 import xmltodict
 
 # singleview config
-if __name__ == 'svcommon.sv_nvsearch': # for platform running
+if __name__ == 'svcommon.sv_search_api': # for platform running
     from svcommon import sv_object
-elif __name__ == 'sv_nvsearch': # for plugin console debugging
+elif __name__ == 'sv_search_api': # for plugin console debugging
     import sv_object
 elif __name__ == '__main__': # for class console debugging
     import sv_object
