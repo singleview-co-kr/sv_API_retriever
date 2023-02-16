@@ -300,6 +300,23 @@ class SearchApiRaw:
         else:
             df_period_data_raw_twt = pd.DataFrame()
 
+        if 'youtube' in lst_source_to_retrieve:
+            # begin - Retrieve youtube search API collection count
+            lst_raw_data = self.__g_oSvDb.executeQuery('getYoutubeApiCntByLogdatePeriod',
+                                                        self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+            if len(lst_raw_data) == 0:
+                df_period_data_raw_yt = self.__set_nullify_dataframe(dict_source_title_id['youtube'])
+            else:
+                for dict_single_row in lst_raw_data:
+                    dict_single_row['source_srl'] = dict_source_title_id['youtube']
+                    dict_single_row['media_id'] = 0
+                df_period_data_raw_yt = pd.DataFrame(lst_raw_data)    
+            # ensure logdate field to datetime format
+            df_period_data_raw_yt['logdate'] = pd.to_datetime(df_period_data_raw_yt['logdate'])
+            # end - Retrieve twitter API collection count
+        else:
+            df_period_data_raw_yt = pd.DataFrame()
+
         if 'naver' in lst_source_to_retrieve:
             # begin - Retrieve naver search API collection count
             dict_media_lbl_id = self.__get_nvr_media_info()
@@ -334,7 +351,7 @@ class SearchApiRaw:
             df_period_data_raw_nvr = pd.DataFrame()
 
         del dict_source_title_id
-        self.__g_dictStatus[self.__g_sClassId] = pd.concat([df_period_data_raw_twt, df_period_data_raw_nvr]) 
+        self.__g_dictStatus[self.__g_sClassId] = pd.concat([df_period_data_raw_twt, df_period_data_raw_yt, df_period_data_raw_nvr]) 
     
     def get_sampling_by_source_srl(self, s_freq='D'):
         """ source level retrieval """
@@ -366,8 +383,9 @@ class SearchApiRaw:
         df_grouper = self.__g_dictStatus[self.__g_sClassId].groupby([pd.Grouper(freq='D'), 'morpheme_srl'])
         dict_freq_by_kw = {}
         for n_morpheme_srl, pd_series in df_grouper['morpheme_srl'].count().unstack().items():
-            dict_freq_by_kw[dict_morpheme_srl_morpheme[n_morpheme_srl]] = \
-                pd_series.to_frame().fillna(0).reindex(idx_full_period, fill_value=0)[n_morpheme_srl].values.tolist()
+            if n_morpheme_srl:
+                dict_freq_by_kw[dict_morpheme_srl_morpheme[n_morpheme_srl]] = \
+                    pd_series.to_frame().fillna(0).reindex(idx_full_period, fill_value=0)[n_morpheme_srl].values.tolist()
         dict_freq_by_kw['idx_full_period'] = idx_full_period.to_list()
         del idx_full_period
         del df_grouper

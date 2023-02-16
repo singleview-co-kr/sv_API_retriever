@@ -1249,7 +1249,7 @@ class Viral(LoginRequiredMixin, TemplateView):
         dict_plots = {}  # graph dict to draw
         
         if kwargs['sv_source_name'] == 'naver':
-            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_media_kw_level_sb('lm')
+            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_media_kw_level_sb('tm')
             for s_media, dict_kw_daily_freq in dict_stacked_bar['data_body'].items():
                 o_graph = Visualizer()
                 o_graph.set_title(s_media + '의 키워드별 일별 바이럴 발생 빈도')
@@ -1264,7 +1264,7 @@ class Viral(LoginRequiredMixin, TemplateView):
             s_template_name = 'viral_source_media_kw_level_nvr'
         else:
             o_graph = Visualizer()
-            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_kw_level_sb('lm')
+            dict_stacked_bar = o_search_api_freq_trend.retrieve_source_kw_level_sb('tm')
             o_graph.set_title('소스별 키워드별 일별 바이럴 발생 빈도')
             o_graph.set_height(170)
             o_graph.set_x_labels(dict_stacked_bar['lst_x_label'])
@@ -1298,7 +1298,7 @@ class Viral(LoginRequiredMixin, TemplateView):
         o_search_api_freq_trend.load_df()
         dict_plots = {}  # graph dict to draw
         o_graph = Visualizer()
-        # dict_multi_line = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_ml('lm')
+        # dict_multi_line = o_search_api_freq_trend.retrieve_daily_chronicle_by_source_ml(self.__g_lstPeriod)
         # del o_search_api_freq_trend
         # o_graph.set_height(170)
         # o_graph.set_x_labels(dict_multi_line['lst_x_label'])
@@ -1312,7 +1312,7 @@ class Viral(LoginRequiredMixin, TemplateView):
         # o_graph.set_title('총 ' + "{:,}".format(n_gross_freq) + '회의 바이럴 발생함')
         # dict_plots['morpheme_daily'] = o_graph.draw_multi_line()
 
-        dict_stacked_bar = o_search_api_freq_trend.retrieve_source_level_sb('lm')
+        dict_stacked_bar = o_search_api_freq_trend.retrieve_source_level_sb('tm')
         del o_search_api_freq_trend
         
         lst_effectuve_source = []
