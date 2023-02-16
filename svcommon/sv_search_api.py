@@ -31,6 +31,7 @@ import configparser # https://docs.python.org/3/library/configparser.html
 # 3rd party library
 from decouple import config
 import xmltodict
+from googleapiclient.discovery import build
 
 # singleview config
 if __name__ == 'svcommon.sv_search_api': # for platform running
@@ -55,16 +56,16 @@ class SvNvSearch(sv_object.ISvObject):
         (8, 'shop', 'naver shopping'),  # asc: 가격순으로 오름차순 정렬
         (9, 'doc', 'naver professional document'),  # useless, date sort unavailable
     ]
-    
     __g_lstMedia = None
     __g_dictMediaLblId = None
-    __g_nDisplayCnt = 100  # maximum number of results to retrieve from API
-    __g_nIterationCnt = 0
     __g_sClientId = None
     __g_sClientSecret = False
 
     def __init__(self):
         self.__g_sCurMedia = None
+        self.__g_nIterationCnt = 0
+        self.__g_nDisplayCnt = 100  # maximum number of results to retrieve from API
+
         o_config = configparser.ConfigParser()
         self._g_oLogger = logging.getLogger(__file__)
         s_viral_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'viral_config.ini')
@@ -95,6 +96,8 @@ class SvNvSearch(sv_object.ISvObject):
         self.__g_sCurMedia = None
         self.__g_lstMedia = None
         self.__g_dictMediaLblId = None
+        self.__g_nIterationCnt = 0
+        self.__g_nDisplayCnt = 0
 
     def get_media_lbl_id_dict(self):
         return self.__g_dictMediaLblId
@@ -139,7 +142,7 @@ class SvNvSearch(sv_object.ISvObject):
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invaid morpheme'
             return dict_rst
-        if self.__g_nIterationCnt >= 10:
+        if self.__g_nIterationCnt >= 10:  # means 1,000 records
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'too many iteration'
             return dict_rst
@@ -176,7 +179,111 @@ class SvNvSearch(sv_object.ISvObject):
         return dict_rst
 
 
+class SvYtSearch(sv_object.ISvObject):
+    """ https://medium.com/google-cloud/youtube-api-cloud-run-41109db98584 """
+    __g_oYoutubeApi = None
+    __g_nIterationCntLimit = 10  # means retrieving latest 500 records at maxium in Feb 2023
+
+    def __init__(self):
+        self.__g_nDisplayCnt = 50  # maximum number of results to retrieve from API
+        self.__g_nIterationCnt = 0
+        self.__g_dictNextPageToken = {}  # special token for search pagination: {n_page_no: s_token}
+
+        o_config = configparser.ConfigParser()
+        self._g_oLogger = logging.getLogger(__file__)
+        s_viral_config_file = os.path.join(config('ABSOLUTE_PATH_BOT'), 'conf', 'viral_config.ini')
+        
+        try:
+            with open(s_viral_config_file) as f:
+                o_config.read_file(f)
+                self.__g_bAvailable = True
+        except IOError:
+            self.__g_bAvailable = False
+            self._printDebug('viral_config.ini does not exist')
+
+        if self.__g_bAvailable:
+            o_config.read(s_viral_config_file)
+                
+        try:  # attempt to read API key
+            s_api_key = o_config['YT_SEARCH']['api_key']
+        except:
+            self._printDebug('Error: Invalid Youtube Search API info')
+        finally:
+            del o_config
+
+        # https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=[query]&order=date&type=video&key=[developerKey]
+        self.__g_oYoutubeApi = build('youtube', 'v3', developerKey=s_api_key)
+
+    def __del__(self):
+        self.__g_nDisplayCnt = 0
+        self.__g_nIterationCnt = 0
+        self.__g_oYoutubeApi = None
+        
+    def set_display_cnt(self, n_cnt):
+        if n_cnt > 5:  # no reason to request less than 5; default list count is 5, consumes one API daily hit regardless requested list count
+            self.__g_nDisplayCnt = n_cnt
+
+    def set_retrieval_cnt_limit(self, n_cnt):
+        if n_cnt > 0:
+            self.__g_nIterationCntLimit = n_cnt
+
+    def search_query(self, s_morpheme):
+        """ https://medium.com/google-cloud/youtube-api-cloud-run-41109db98584 """
+        dict_rst = {'b_error': False, 's_msg': None, 's_plain_resp': None, 'dict_body': {}}
+
+        if len(s_morpheme) == 0:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'invaid morpheme'
+            return dict_rst
+
+        if self.__g_nIterationCnt > self.__g_nIterationCntLimit:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'too many iteration'
+            return dict_rst
+
+        # Get YouTube API results
+        if len(self.__g_dictNextPageToken) > 0:
+            if self.__g_dictNextPageToken.get(self.__g_nIterationCnt, None) is None:
+                dict_rst['b_error'] = True
+                dict_rst['s_msg'] = 'Youtube restricts more retrievals'
+                return dict_rst
+
+        dict_search_response = self.__g_oYoutubeApi.search().list(
+            q=s_morpheme,  # request.args.get('q') or 'cats',
+            type='video',
+            part='id,snippet',
+            order='date',
+            pageToken=self.__g_dictNextPageToken.get(self.__g_nIterationCnt, None),
+            maxResults=self.__g_nDisplayCnt  # 10
+        ).execute()
+
+        if dict_search_response['kind'] != 'youtube#searchListResponse':
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'Weird YouTube results'
+            return dict_rst
+
+        lst_items = dict_search_response['items']
+        if not lst_items:
+            dict_rst['b_error'] = True
+            dict_rst['s_msg'] = 'No YouTube results'
+            return dict_rst
+        del lst_items
+        
+        self.__g_nIterationCnt += 1
+        if 'nextPageToken' in dict_search_response:
+            self.__g_dictNextPageToken[self.__g_nIterationCnt] = dict_search_response['nextPageToken']
+        
+        dict_rst['dict_body'] = dict_search_response
+        del dict_search_response
+        return dict_rst
+
+
 # if __name__ == '__main__': # for console debugging
-#     o_sv_nvsearch = SvNvsearch()
-#     o_sv_nvsearch.set_media('blog')
-#     o_sv_nvsearch.search_query(s_morpheme='유한락스')
+#     o_sv_ytsearch = SvYtSearch()
+#     dict_rst = o_sv_ytsearch.search_query(s_morpheme='유한락스')
+#     print(dict_rst['dict_body'])
+#     dict_rst = o_sv_ytsearch.search_query(s_morpheme='유한락스')
+#     print(dict_rst['dict_body'])
+    # o_sv_nvsearch = SvNvsearch()
+    # o_sv_nvsearch.set_media('blog')
+    # o_sv_nvsearch.search_query(s_morpheme='유한락스')
