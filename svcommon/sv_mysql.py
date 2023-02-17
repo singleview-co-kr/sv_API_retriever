@@ -271,6 +271,7 @@ class SvMySql(sv_object.ISvObject):
         :param params: None if dynamic query
         :return:
         """
+        self.__g_tupErrorCode = None
         try:
             if params:
                 self.__g_oCursor.execute(s_sql_compiled, params)
