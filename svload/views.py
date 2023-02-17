@@ -1201,7 +1201,7 @@ class CampaignAliasView(LoginRequiredMixin, TemplateView):
 
 class Viral(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
-    __g_lstPeriod = ['ly', 'lm', 'tm']
+    __g_lstPeriod = ['tm']  # ['ly', 'lm', 'tm']
 
     def __init__(self):
         self.__g_oSvDb = SvMySql()
