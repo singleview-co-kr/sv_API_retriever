@@ -287,6 +287,9 @@ class SearchApiRaw:
             # begin - Retrieve twitter API collection count
             lst_raw_data = self.__g_oSvDb.executeQuery('getTwitterApiCntByLogdatePeriod',
                                                         self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+            if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
+                lst_raw_data = []
+
             if len(lst_raw_data) == 0:
                 df_period_data_raw_twt = self.__set_nullify_dataframe(dict_source_title_id['twitter'])
             else:
@@ -304,6 +307,9 @@ class SearchApiRaw:
             # begin - Retrieve youtube search API collection count
             lst_raw_data = self.__g_oSvDb.executeQuery('getYoutubeApiCntByLogdatePeriod',
                                                         self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+            if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
+                lst_raw_data = []
+
             if len(lst_raw_data) == 0:
                 df_period_data_raw_yt = self.__set_nullify_dataframe(dict_source_title_id['youtube'])
             else:
