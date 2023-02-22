@@ -225,11 +225,21 @@ class SvCampaignParser(sv_object.ISvObject):
 
     def __init__(self):
         self._g_oLogger = logging.getLogger('sv_campaign_parser')
-        logging.basicConfig(
-            filename= self.__g_sAbsRootPath + '/log/sv_campaign_parser.' + str(datetime.today().strftime('%Y%m%d')) + '.log',
-            level=logging.ERROR, format='%(name)s [%(levelname)s] %(message)s @ %(asctime)s',
-        )
+        self._g_oLogger.setLevel(logging.ERROR)
 
+        # log format
+        formatter = logging.Formatter('%(name)s [%(levelname)s] %(message)s @ %(asctime)s')
+        # log output format
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        self._g_oLogger.addHandler(stream_handler)
+        # log output to file stream
+        file_handler = logging.FileHandler(self.__g_sAbsRootPath + '/log/sv_campaign_parser.' + str(datetime.today().strftime('%Y%m%d')) + '.log')
+        file_handler.setFormatter(formatter)
+        self._g_oLogger.addHandler(file_handler)
+
+        self._g_oLogger.error('logger test')
+        
         self.__g_dictSourceIdTitle = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstSourceInfo}
         self.__g_dictSourceTagTitle = {tup_single[2]: tup_single[1] for tup_single in self.__g_lstSourceInfo}
         self.__g_dictSourceIdTag = {tup_single[0]: tup_single[2] for tup_single in self.__g_lstSourceInfo}
@@ -469,6 +479,7 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_sv_campaign_code == '(not set)':
             return dict_rst
         
+        self._g_oLogger.error('parse_campaign_code')
         try:
             s_sv_campaign_code = s_sv_campaign_code.upper()
             b_latest_sv_campaign_found = False
@@ -476,43 +487,51 @@ class SvCampaignParser(sv_object.ISvObject):
                 if s_sv_campaign_code.find(sCampaignPrefix) > -1:
                     b_latest_sv_campaign_found = True
                     break
-
-            if b_latest_sv_campaign_found:  # latest version of SV campaign code
-                dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
-                dict_rst['brd'] = dict_tmp_rst['brd']
-                list_campaign_code = dict_tmp_rst['sv_code']
-                del dict_tmp_rst
-
-                if list_campaign_code[0] == 'OLD':  # first of all, process OLD prefix
-                    del list_campaign_code[0]
-                    n_elem_cnt = len(list_campaign_code)
-                    list_campaign_code[n_elem_cnt - 1] = list_campaign_code[n_elem_cnt - 1] + '_OLD'
-                # set source tag
-                dict_rst['source'] = self.get_source_tag(list_campaign_code[0])
-                dict_rst['source_code'] = list_campaign_code[0]
-                # set search result type tag
-                dict_rst['rst_type'] = self.validate_search_rst_tag(list_campaign_code[1])
-                # set media tag
-                dict_rst['medium'] = self.get_sv_medium_tag(list_campaign_code[2])
-                dict_rst['medium_code'] = list_campaign_code[2]
-                if dict_rst['source'] != 'unknown':  # handle no sv campaign code data
-                    dict_rst['campaign1st'] = list_campaign_code[3]
-                    try:
-                        dict_rst['campaign2nd'] = list_campaign_code[4]
-                        dict_rst['campaign3rd'] = list_campaign_code[5]
-                    except IndexError:
-                        pass
-                    n_campaign_elem = len(list_campaign_code)
-                    if n_campaign_elem > 6:  # to handle more than 6 chunks properly
-                        for n_idx in range(6, n_campaign_elem):
-                            dict_rst['campaign3rd'] += '-' + list_campaign_code[n_idx]
-                    dict_rst['detected'] = True
         except Exception as err:
-            self._g_oLogger.error('1111')
+            self._g_oLogger.error('1-parse_campaign_code')
+            self._g_oLogger.error(err)
             self._g_oLogger.error(s_sv_campaign_code)
-            # self._g_oLogger.error(dict_tmp_rst)
-            self._g_oLogger.error(list_campaign_code)
-            self._g_oLogger.error(dict_rst)
+            self._g_oLogger.error(dddd)
+
+        if b_latest_sv_campaign_found:  # latest version of SV campaign code
+            try:
+                dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
+            except Exception as err:
+                self._g_oLogger.error('2-parse_campaign_code')
+                self._g_oLogger.error(err)
+                self._g_oLogger.error(s_sv_campaign_code)
+                self._g_oLogger.error(dict_tmp_rst)
+                self._g_oLogger.error(dddd)
+
+            dict_rst['brd'] = dict_tmp_rst['brd']
+            list_campaign_code = dict_tmp_rst['sv_code']
+            del dict_tmp_rst
+
+            if list_campaign_code[0] == 'OLD':  # first of all, process OLD prefix
+                del list_campaign_code[0]
+                n_elem_cnt = len(list_campaign_code)
+                list_campaign_code[n_elem_cnt - 1] = list_campaign_code[n_elem_cnt - 1] + '_OLD'
+            # set source tag
+            dict_rst['source'] = self.get_source_tag(list_campaign_code[0])
+            dict_rst['source_code'] = list_campaign_code[0]
+            # set search result type tag
+            dict_rst['rst_type'] = self.validate_search_rst_tag(list_campaign_code[1])
+            # set media tag
+            dict_rst['medium'] = self.get_sv_medium_tag(list_campaign_code[2])
+            dict_rst['medium_code'] = list_campaign_code[2]
+            if dict_rst['source'] != 'unknown':  # handle no sv campaign code data
+                dict_rst['campaign1st'] = list_campaign_code[3]
+                try:
+                    dict_rst['campaign2nd'] = list_campaign_code[4]
+                    dict_rst['campaign3rd'] = list_campaign_code[5]
+                except IndexError:
+                    pass
+                n_campaign_elem = len(list_campaign_code)
+                if n_campaign_elem > 6:  # to handle more than 6 chunks properly
+                    for n_idx in range(6, n_campaign_elem):
+                        dict_rst['campaign3rd'] += '-' + list_campaign_code[n_idx]
+                dict_rst['detected'] = True
+        
         # else:  # process old style SV campaign code; this section will be deprecated after balanceseat complete analysis
         #     b_obsolete_sv_campaign_found = False
         #     for sCampaignPrefix in self.__g_lstObsoleteSvCampaignPrefix:
