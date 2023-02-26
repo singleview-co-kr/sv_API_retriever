@@ -479,25 +479,36 @@ class SvCampaignParser(sv_object.ISvObject):
         if s_sv_campaign_code == '(not set)':
             return dict_rst
         
-        self._g_oLogger.error('parse_campaign_code')
         try:
             s_sv_campaign_code = s_sv_campaign_code.upper()
-            b_latest_sv_campaign_found = False
+        except Exception as err:
+            self._g_oLogger.error('1-parse_campaign_code err?')
+            self._g_oLogger.error(err)
+            self._g_oLogger.error(s_sv_campaign_code)
+            self._g_oLogger.error('1-parse_campaign_code err?')
+            self._g_oLogger.error(dddd)
+
+        b_latest_sv_campaign_found = False
+        try:
             for sCampaignPrefix in self.__g_lstLatestSvCampaignPrefix:
+                self._g_oLogger.info(sCampaignPrefix)
                 if s_sv_campaign_code.find(sCampaignPrefix) > -1:
                     b_latest_sv_campaign_found = True
                     break
         except Exception as err:
-            self._g_oLogger.error('1-parse_campaign_code')
+            self._g_oLogger.error('2-parse_campaign_code err?')
             self._g_oLogger.error(err)
+            self._g_oLogger.error('2-parse_campaign_code err?')
+            self._g_oLogger.error(self.__g_lstLatestSvCampaignPrefix)
             self._g_oLogger.error(s_sv_campaign_code)
+            self._g_oLogger.error(sCampaignPrefix)
             self._g_oLogger.error(dddd)
 
         if b_latest_sv_campaign_found:  # latest version of SV campaign code
             try:
                 dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
             except Exception as err:
-                self._g_oLogger.error('2-parse_campaign_code')
+                self._g_oLogger.error('3-parse_campaign_code')
                 self._g_oLogger.error(err)
                 self._g_oLogger.error(s_sv_campaign_code)
                 self._g_oLogger.error(dict_tmp_rst)
