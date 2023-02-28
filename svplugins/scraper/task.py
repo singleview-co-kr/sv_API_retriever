@@ -25,8 +25,10 @@
 # standard library
 import logging
 import os
-import configparser  # https://docs.python.org/3/library/configparser.html
+# import configparser  # https://docs.python.org/3/library/configparser.html
 import sys
+import csv
+import shutil
 import scrapy
 from scrapy.spiders import CrawlSpider
 from scrapy.crawler import CrawlerProcess
@@ -34,18 +36,20 @@ from scrapy.crawler import CrawlerProcess
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
-    # sys.path.append('../../svdjango')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_object
     import sv_plugin
+    import settings
 else:  # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_oConfig = configparser.ConfigParser()
+    # __g_oConfig = configparser.ConfigParser()
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -58,11 +62,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
         self.__g_sTblPrefix = None
+        self.__g_sStoragePath = None
 
     def __del__(self):
         """ never place self._task_post_proc() here 
             __del__() is not executed if try except occurred """
-        pass
+        self.__g_sTblPrefix = None
+        self.__g_sStoragePath = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -77,70 +83,98 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 return
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        self.__g_sStoragePath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_search')
+        s_kin_html_path = os.path.join(self.__g_sStoragePath, 'kin_html')
+        if not os.path.isdir(s_kin_html_path):
+            os.makedirs(s_kin_html_path)
 
-        with sv_mysql.SvMySql() as oSvMysql:  # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
-            oSvMysql.set_app_name('svplugins.scraper')
-            oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lst_stat_date = oSvMysql.executeQuery('getStatDateList')
-            print(lst_stat_date)
-            # for dictDate in lstStatDate:
-            #     sCompileDate = datetime.strptime(str(dictDate['date']), '%Y-%m-%d').strftime('%Y%m%d')
-            #     self.__g_lstDatadateToCompile.append(int(sCompileDate))
-
-        # self.__g_sTargetUrl = self._g_dictParam['target_host_url']
-        # if self._g_dictParam['mode'] != None:
-        #     self.__g_sMode = self._g_dictParam['mode']
-
-        c = CrawlerProcess({
+        with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.scraper')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
+        
+        s_conf_path = os.path.join(self.__g_sStoragePath, 'conf')
+        s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
+        s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
+        
+        o_scraper = CrawlerProcess({
             'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36',
             'FEED_FORMAT': 'csv',
-            'FEED_URI': 'naver_news.csv',
+            'FEED_URI': s_csv_path,  #  'naver_news.csv',
             'DEPTH_LIMIT': 2,
             'CLOSESPIDER_PAGECOUNT': 3,
             'ROBOTSTXT_OBEY': False,
+            # Minimum seconds to wait between 2 consecutive requests to the same domain.
+            'DOWNLOAD_DELAY': 10,
         })
-        # c.crawl(QuotesSpider, urls_file='input.txt')
-        # c.start()
+        o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
+        o_scraper.start()
+        del o_scraper
+
+        f = open(s_csv_path,'r')
+        o_rdr = csv.reader(f)
+        next(o_rdr, None)  # skip the headers
+        with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.scraper')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            for lst_line in o_rdr:
+                print(lst_line[1], lst_line[0])
+                o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', lst_line[1], lst_line[0])
+        del o_rdr
+        f.close()
+
+        self.__archive_file(s_conf_path, s_conf_file_path)
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
 
+    def __archive_file(self, s_data_path, s_cur_filename):
+        if not os.path.exists(s_data_path):
+            self._printDebug('error: naver API raw directory does not exist!' )
+            return
+        s_data_archive_path = os.path.join(s_data_path, 'archive')
+        if not os.path.exists(s_data_archive_path):
+            os.makedirs(s_data_archive_path)
+        s_source_filepath = os.path.join(s_data_path, s_cur_filename)
+        sArchiveDataFilePath = os.path.join(s_data_archive_path, s_cur_filename)
+        shutil.move(s_source_filepath, sArchiveDataFilePath)
 
-class QuotesSpider(CrawlSpider):
-    name = "naver_newsbot"
-    allowed_domains = ["news.naver.com"]
+
+class NvrKinSpider(CrawlSpider):
+    name = "nvr_kin_publish_date_bot"
+    allowed_domains = ["kin.naver.com"]
     # start_urls = ['http://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001']
 
-    def __init__(self, urls_file, *a, **kw):
-        super(QuotesSpider, self).__init__(*a, **kw)
-        # print(urls_file)
+    def __init__(self, s_kin_html_path, lst_urls, *a, **kw):
+        super(NvrKinSpider, self).__init__(*a, **kw)
+        self.__g_lstUrl = lst_urls
+        self.__g_sKinHtmlPath = s_kin_html_path
 
+    def __del__(self):
+        """ __del__() is not executed if try except occurred """
+        self.__g_lstUrl = None
+        self.__g_sKinHtmlPath = None
+        
     def start_requests(self):
-        urls = [
-            'https://news.naver.com/main/list.naver?mode=LSD&mid=sec&sid1=001'
-        ]
-        for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+        # https://stackoverflow.com/questions/32252201/passing-a-argument-to-a-callback-function
+        for dict_record in self.__g_lstUrl:
+            yield scrapy.Request(url=dict_record['link'], callback=self.parse, 
+                                 cb_kwargs=dict(n_log_srl=dict_record['log_srl']))
 
-    def parse(self, response):
-        # page = response.url.split("/")[-2]
-        # filename = 'quotes-%s.html' % page
-        # with open(filename, 'wb') as f:
-        #     f.write(response.body)
-        # self.log('Saved file %s' % filename)
-        titles = response.xpath('//*[@id="main_content"]/div[2]/ul/li/dl/dt[2]/a/text()').extract()
-        authors = response.css('.writing::text').extract()
-        previews = response.css('.lede::text').extract()
-
-        for item in zip(titles, authors, previews):
-            # print(item)
-            scraped_info = {
-                'title': item[0].strip(),
-                'author': item[1].strip(),
-                'preview': item[2].strip(),
-            }
-            yield scraped_info
+    def parse(self, response, n_log_srl):
+        # backup scrapped HTML source
+        with open(os.path.join(self.__g_sKinHtmlPath, str(n_log_srl) + '.html'), 'w', encoding='utf-8') as out:
+            out.write(response.text)
+        s_pub_date = response.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/span[1]/text()').extract_first()
+        scraped_info = {
+            'n_log_srl': n_log_srl,
+            's_pub_date': s_pub_date.strip(),  # 2023.02.02
+        }
+        yield scraped_info
 
 
 if __name__ == '__main__': # for console debugging
