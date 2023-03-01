@@ -25,7 +25,6 @@
 # standard library
 import logging
 import os
-# import configparser  # https://docs.python.org/3/library/configparser.html
 import sys
 import csv
 import shutil
@@ -54,7 +53,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230128)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230301)')
         
         # self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -89,45 +88,45 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_kin_html_path = os.path.join(self.__g_sStoragePath, 'kin_html')
         if not os.path.isdir(s_kin_html_path):
             os.makedirs(s_kin_html_path)
-
-        with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.scraper')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
-        
         s_conf_path = os.path.join(self.__g_sStoragePath, 'conf')
-        s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
-        s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
-        
-        o_scraper = CrawlerProcess({
-            'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36',
-            'FEED_FORMAT': 'csv',
-            'FEED_URI': s_csv_path,  #  'naver_news.csv',
-            'DEPTH_LIMIT': 2,
-            'CLOSESPIDER_PAGECOUNT': 3,
-            'ROBOTSTXT_OBEY': False,
-            # Minimum seconds to wait between 2 consecutive requests to the same domain.
-            'DOWNLOAD_DELAY': 10,
-        })
-        o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
-        o_scraper.start()
-        del o_scraper
 
-        f = open(s_csv_path,'r')
-        o_rdr = csv.reader(f)
-        next(o_rdr, None)  # skip the headers
-        with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.scraper')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+        o_sv_mysql = sv_mysql.SvMySql()
+        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+        o_sv_mysql.set_app_name('svplugins.scraper')
+        o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+        lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
+        n_url_cnt = len(lst_nvsearch_log)
+        if n_url_cnt:  # limit 300 urls per a trial
+            self._printDebug(n_url_cnt + 'urls will be scrapped')
+            s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
+            s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
+
+            o_scraper = CrawlerProcess({
+                'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36',
+                'FEED_FORMAT': 'csv',
+                'FEED_URI': s_csv_path,
+                # 'DEPTH_LIMIT': 2,
+                'CLOSESPIDER_PAGECOUNT': 300,  # limit 300 urls per a trial
+                'ROBOTSTXT_OBEY': False,
+                # Minimum seconds to wait between 2 consecutive requests to the same domain.
+                'DOWNLOAD_DELAY': 10,
+                'LOG_LEVEL': 'INFO',
+            })
+            o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
+            o_scraper.start()
+            del o_scraper
+
+            f = open(s_csv_path,'r')
+            o_rdr = csv.reader(f)
+            next(o_rdr, None)  # skip the headers
             for lst_line in o_rdr:
-                print(lst_line[1], lst_line[0])
+                # print(lst_line[1], lst_line[0])
                 o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', lst_line[1], lst_line[0])
-        del o_rdr
-        f.close()
+            del o_rdr
+            f.close()
 
-        self.__archive_file(s_conf_path, s_conf_file_path)
+            self.__archive_file(s_conf_path, s_conf_file_path)
+        del o_sv_mysql
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
@@ -178,11 +177,11 @@ class NvrKinSpider(CrawlSpider):
 
 
 if __name__ == '__main__': # for console debugging
-    # python task.py config_loc=1/1 target_host_url=http://localhost/devel/modules/svestudio/b2c.php
+    # python task.py config_loc=1/1
     nCliParams = len(sys.argv)
     if nCliParams > 1:
         with svJobPlugin() as oJob:  # to enforce to call plugin destructor
-            oJob.set_my_name('client_serve')
+            oJob.set_my_name('scraper')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
     else:
