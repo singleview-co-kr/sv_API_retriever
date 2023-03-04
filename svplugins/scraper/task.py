@@ -99,7 +99,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
         n_url_cnt = len(lst_nvsearch_log)
-        self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/60)) + ' secs at most')
+        self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/3600)) + ' mins at most')
         if n_url_cnt:  # limit 300 urls per a trial
             self._printDebug(n_url_cnt + 'urls will be scrapped')
             s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
@@ -147,8 +147,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if not os.path.exists(s_data_archive_path):
             os.makedirs(s_data_archive_path)
         s_source_filepath = os.path.join(s_data_path, s_cur_filename)
-        sArchiveDataFilePath = os.path.join(s_data_archive_path, s_cur_filename)
-        shutil.move(s_source_filepath, sArchiveDataFilePath)
+        s_archive_data_file_path = os.path.join(s_data_archive_path, s_cur_filename)
+        shutil.move(s_source_filepath, s_archive_data_file_path)
 
 
 class NvrKinSpider(CrawlSpider):
