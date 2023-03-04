@@ -40,20 +40,23 @@ if __name__ == '__main__': # for console debugging
     import sv_object
     import sv_plugin
     import settings
+    import sv_slack
 else:  # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
+    from svcommon import sv_slack
     from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    # __g_oConfig = configparser.ConfigParser()
+    __g_nDelaySec = 10
+
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230301)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230304)')
         
         # self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -96,6 +99,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
         n_url_cnt = len(lst_nvsearch_log)
+        self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/60)) + ' secs at most')
         if n_url_cnt:  # limit 300 urls per a trial
             self._printDebug(n_url_cnt + 'urls will be scrapped')
             s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
@@ -109,7 +113,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 'CLOSESPIDER_PAGECOUNT': 300,  # limit 300 urls per a trial
                 'ROBOTSTXT_OBEY': False,
                 # Minimum seconds to wait between 2 consecutive requests to the same domain.
-                'DOWNLOAD_DELAY': 10,
+                'DOWNLOAD_DELAY': self.__g_nDelaySec,
                 'LOG_LEVEL': 'INFO',
             })
             o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
@@ -127,6 +131,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             self.__archive_file(s_conf_path, s_conf_file_path)
         del o_sv_mysql
+
+        o_slack = sv_slack.SvSlack('dbs')
+        o_slack.sendMsg(dict_acct_info['brand_name'] + ' scraping has been finished successfully')
+        del o_slack
 
         self._printDebug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
