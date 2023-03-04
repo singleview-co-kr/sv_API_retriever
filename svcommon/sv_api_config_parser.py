@@ -69,7 +69,7 @@ class SvApiConfigParser(sv_object.ISvObject):
 
     def getConfig(self):
         s_err_msg = 'no_api_info_ini'
-        dict_2nd_layer = {'sv_account_id': s_err_msg, 'brand_id': s_err_msg, 'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
+        dict_2nd_layer = {'brand_name': s_err_msg, 'sv_account_id': s_err_msg, 'brand_id': s_err_msg, 'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
         try:
             with open(self.__g_sApiConfigFile) as f:
                 self.__g_oConfig.read_file(f)
@@ -77,6 +77,7 @@ class SvApiConfigParser(sv_object.ISvObject):
             self._printDebug('api_info.ini not exist')
             return dict_2nd_layer
 
+        s_brand_name = None
         dict_nvr_ad_acct = {}
         lst_googleads_acct = []
         lst_fb_biz_aid = []
@@ -85,7 +86,10 @@ class SvApiConfigParser(sv_object.ISvObject):
         lst_nvr_search_api_media = []
         dict_other_ads_api_info = {}
         for s_section_title in self.__g_oConfig:
-            if s_section_title == 'naver_searchad':
+            if s_section_title == 'general':
+                for s_value_title in self.__g_oConfig[s_section_title]:
+                    s_brand_name = self.__g_oConfig[s_section_title][s_value_title]
+            elif s_section_title == 'naver_searchad':
                 for s_value_title in self.__g_oConfig[s_section_title]:
                     if s_value_title == 'api_key' or s_value_title == 'secret_key' or s_value_title == 'manager_login_id' or \
                      s_value_title == 'customer_id':
@@ -129,6 +133,7 @@ class SvApiConfigParser(sv_object.ISvObject):
         dict_nvr_ad_acct['nvr_master_report'] = lst_nvr_master_rpt
         dict_nvr_ad_acct['nvr_stat_report'] = lst_nvr_stat_rpt
 
+        dict_2nd_layer['brand_name'] = s_brand_name
         dict_2nd_layer['sv_account_id'] = self.__g_lstAcctInfo[0]
         dict_2nd_layer['brand_id'] = self.__g_lstAcctInfo[1]
         dict_2nd_layer['tbl_prefix'] = self.__g_lstAcctInfo[0] + '_' + self.__g_lstAcctInfo[1]

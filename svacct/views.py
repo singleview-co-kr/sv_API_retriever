@@ -117,10 +117,10 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
 
         s_act = request.POST.get('act')        
         if s_act == 'update_brd_api_info':
-
             s_ga_property_or_view_id, s_nvr_customer_id, lst_google_ads, \
             lst_facebook_biz, lst_kko_moment_aid = self.__get_source_info(n_sv_brand_id)
 
+            dict_query_general_config = {}  # general API config
             dict_query_nvr_config = {}  # naver ads API config
             dict_query_ga_config = {}  # naver google analytics API config
             dict_query_gads_config = {}  # naver google ads API config
@@ -128,26 +128,34 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
             dict_query_kko_config = {}  # naver kakao moment API config
 
             for s_key, s_value in request.POST.items():
-                if s_key.startswith('nvr_'):
+                if s_key.startswith('gen_'):
+                    if s_key == 'gen_brand_name':
+                        if not s_value.isalnum():
+                            dict_context = {'err_msg': 'brand name should be alphanumeric', 's_return_url': s_return_url}
+                            return render(request, "svacct/deny.html", context=dict_context)
+                    dict_query_general_config[s_key.replace('gen_', '')] = s_value
+                elif s_key.startswith('nvr_'):
                     dict_query_nvr_config[s_key.replace('nvr_', '')] = s_value
-                if s_key.startswith('ga_'):
+                elif s_key.startswith('ga_'):
                     if s_key == 'ga_version':  # validation
                         if s_value == '':
                             dict_context = {'err_msg': 'Google Analytics version should be choosed', 's_return_url': s_return_url}
                             return render(request, "svacct/deny.html", context=dict_context)
                     dict_query_ga_config[s_key.replace('ga_', '')] = s_value
-                if s_key.startswith('gads_'):
+                elif s_key.startswith('gads_'):
                     dict_query_gads_config[s_key.replace('gads_', '')] = s_value
-                if s_key.startswith('fb_biz_'):
+                elif s_key.startswith('fb_biz_'):
                     dict_query_fb_biz_config[s_key.replace('fb_biz_', '')] = s_value
-                if s_key.startswith('kko_'):
+                elif s_key.startswith('kko_'):
                     dict_query_kko_config[s_key.replace('kko_', '')] = s_value
 
             o_ini_config = configparser.ConfigParser()
             o_ini_config.optionxform = lambda optionstr: optionstr  # deactivate optionstr.lower() https://wikidocs.net/13965
 
-            # proc nvr_ad
             # o_ini_config['DEFAULT']['DDD'] = 'EEE'  # DEFAULT 섹션은 기본적으로 생성되어 있어 생성없이 쓸 수 있다 
+            o_ini_config['general'] = {}  # general section
+            o_ini_config['general']['brand_name'] = dict_query_general_config['brand_name']
+
             o_ini_config['naver_searchad'] = {}  # naver_searchad section
             o_ini_config['naver_searchad']['manager_login_id'] = dict_query_nvr_config['manager_login_id']
             o_ini_config['naver_searchad']['api_key'] = dict_query_nvr_config['api_key']
@@ -240,8 +248,6 @@ class BrandConfView(LoginRequiredMixin, TemplateView):
                 if dict_query_kko_config.get(s_single_kko_aid, self.__g_sSvNull) != self.__g_sSvNull:  # if value exists
                     s_ini_single_kko_aid = s_single_kko_aid
             o_ini_config['others']['kko_moment_aid'] = s_ini_single_kko_aid
-
-            print(o_ini_config['nvr_stat_report'])
 
             s_api_info_ini_abs_path = os.path.join(settings.SV_STORAGE_ROOT, str(n_sv_acct_id), str(n_sv_brand_id), 'api_info.ini')
             with open(s_api_info_ini_abs_path, 'w') as configfile:

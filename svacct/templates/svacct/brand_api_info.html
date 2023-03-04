@@ -30,7 +30,12 @@
           <input type="hidden" id="act" name="act" value="update_brd_api_info" />
           <input type="hidden" id="n_sv_brand_id" name="n_sv_brand_id" value="{{n_sv_brand_id}}" />
           {% csrf_token %}
-
+          <div class="form-group">
+            <label class="control-label col-md-3 col-sm-3 col-xs-12">브랜드명</label>
+            <div class="col-md-9 col-sm-9 col-xs-12">
+              <input type="text" class="form-control" placeholder="brand_name" name="gen_brand_name" value="{{o_config.general.brand_name}}">
+            </div>
+          </div>
             <div class="form-group">
               <label class="control-label col-md-3 col-sm-3 col-xs-12">네이버 광고 API<br>
                 <small class="text-navy">사용자 계정</small>
