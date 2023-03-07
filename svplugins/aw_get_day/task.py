@@ -62,12 +62,12 @@ else:
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sGoogleAdsApiVersion = 'v10'
+    __g_sGoogleAdsApiVersion = 'v11'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230307)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230308)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first,
         # whenever you create new objects it will reuse this same dict.
