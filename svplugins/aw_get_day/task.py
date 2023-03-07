@@ -31,6 +31,7 @@
 
 # standard library
 import logging
+# from datetime import date
 from datetime import datetime
 from datetime import timedelta
 import time
@@ -66,7 +67,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20221021)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230307)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first,
         # whenever you create new objects it will reuse this same dict.
@@ -138,32 +139,93 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             f.close()
         else:
             dt_start_retrieval = datetime.now() - timedelta(days=1)
-        self._printDebug('start date :' + dt_start_retrieval.strftime('%Y-%m-%d'))
+        self._printDebug(s_googleads_cid + ' -> start date :' + dt_start_retrieval.strftime('%Y-%m-%d'))
 
         # requested report date should not be later than today
-        dt_date_end_retrieval = datetime.now() - timedelta(days=1)  # yesterday
+        dt_yesterday = datetime.now() - timedelta(days=1)
+        dt_date_end_retrieval = dt_yesterday
         dt_date_diff = dt_date_end_retrieval - dt_start_retrieval
         n_num_days = int(dt_date_diff.days) + 1
-
+        s_google_ads_cid = s_googleads_cid.replace('-', '')
+        
         dict_date_queue = {}
-        for x in range(0, n_num_days):
-            dt_element = dt_start_retrieval + timedelta(days=x)
-            dict_date_queue[dt_element] = 0
+        lst_effective_yrmo = []
+        n_start_yyyymm = int(dt_start_retrieval.strftime('%Y%m'))
+        n_yesterday_yyyymm = int(dt_yesterday.strftime('%Y%m'))
+        if n_num_days > 10 and n_start_yyyymm < n_yesterday_yyyymm:  # bypass long resting period
+            self._printDebug('remove resting days')
+            dict_resting_yr_mo = {}
+            for x in range(0, n_num_days):
+                dt_element = dt_start_retrieval + timedelta(days=x)
+                s_yrmo = dt_element.strftime('%Y%m')
+                if s_yrmo not in dict_resting_yr_mo:
+                    dict_resting_yr_mo[dt_element.strftime('%Y%m')] = []
+                dict_resting_yr_mo[dt_element.strftime('%Y%m')].append(dt_element.day)
+
+            for s_yrmo, lst_days in dict_resting_yr_mo.items():
+                s_check_query = """SELECT
+                                        metrics.cost_micros
+                                    FROM campaign
+                                    WHERE metrics.cost_micros > 0 AND segments.date >= """ + \
+                                s_yrmo+'{0:02d}'.format(lst_days[0]) + " AND segments.date <= " + \
+                                s_yrmo+'{0:02d}'.format(lst_days[-1])
+                try:  # Issues a search request using streaming.
+                    o_check_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
+                                                                             query=s_check_query)
+                except Exception as e:
+                    self._printDebug('unknown exception occured while access googleads API')
+                    self._printDebug(e)
+                    if self._g_bDaemonEnv:  # for running on dbs.py only
+                        raise Exception('remove')
+                    else:
+                        return
+                n_cost = 0
+                for disp_check_batch in o_check_resp:
+                    for o_check_row in disp_check_batch.results:
+                        n_cost += o_check_row.metrics.cost_micros
+                if n_cost:
+                    lst_effective_yrmo.append((s_yrmo+'{0:02d}'.format(lst_days[0]), s_yrmo+'{0:02d}'.format(lst_days[-1])))
+                else:  # update general.latest for CID
+                    try:
+                        f = open(s_latest_filepath, 'w')
+                        f.write(s_yrmo+'{0:02d}'.format(lst_days[-1]))
+                        f.close()
+                    except PermissionError:
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            raise Exception('remove')
+                        else:
+                            return
+        
+            for tup_month in lst_effective_yrmo:
+                dt_start = datetime.strptime(tup_month[0], '%Y%m%d')
+                dt_end = datetime.strptime(tup_month[-1], '%Y%m%d')
+                dict_date_queue[dt_start] = 0
+
+                while self._continue_iteration():
+                    dt_start = dt_start + timedelta(days=1)
+                    dict_date_queue[dt_start] = 0
+                    if dt_start == dt_end:
+                        break
+        else:  # daily retrieving
+            for x in range(0, n_num_days):
+                dt_element = dt_start_retrieval + timedelta(days=x)
+                dict_date_queue[dt_element] = 0
 
         if len(dict_date_queue) == 0:
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('stop')
             else:
                 return
+
         # set device dictionary
         dict_googleads_v10_device = {i.value: i.name for i in DeviceEnum.Device}
-        s_google_ads_cid = s_googleads_cid.replace('-', '')
 
         # set report header rows
         lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
         lst_report_header_2 = ['Campaign', 'Ad group', 'Keyword / Placement', 'Impressions', 'Clicks', 'Cost', 'Device',
                                'Conversions', 'Total conv. value', 'Day']
 
+        # https://developers.google.com/google-ads/api/fields/v12/query_validator
         while self._continue_iteration():  # loop for each report date
             try:  # find unhandled report task
                 dt_retrieval = list(dict_date_queue.keys())[list(dict_date_queue.values()).index(0)]
@@ -173,7 +235,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_data_date_for_mysql = dt_retrieval.strftime('%Y%m%d')
             s_tsv_filename = s_data_date_for_mysql + '_general.tsv'
             self._printDebug('--> ' + s_googleads_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
-            # notice! this query does not retrieve OFF campaign
+            # notice! this GAQL query does not retrieve OFF campaign
             s_disp_campaign_query = """
                 SELECT
                     campaign.id,
