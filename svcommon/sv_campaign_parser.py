@@ -237,8 +237,6 @@ class SvCampaignParser(sv_object.ISvObject):
         file_handler = logging.FileHandler(self.__g_sAbsRootPath + '/log/sv_campaign_parser.' + str(datetime.today().strftime('%Y%m%d')) + '.log')
         file_handler.setFormatter(formatter)
         self._g_oLogger.addHandler(file_handler)
-
-        self._g_oLogger.error('logger test')
         
         self.__g_dictSourceIdTitle = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstSourceInfo}
         self.__g_dictSourceTagTitle = {tup_single[2]: tup_single[1] for tup_single in self.__g_lstSourceInfo}
