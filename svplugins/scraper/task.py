@@ -56,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230304)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230308)')
         
         # self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -101,7 +101,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_url_cnt = len(lst_nvsearch_log)
         self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/3600)) + ' mins at most')
         if n_url_cnt:  # limit 300 urls per a trial
-            self._printDebug(n_url_cnt + 'urls will be scrapped')
+            self._printDebug(str(n_url_cnt) + 'urls will be scrapped')
             s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
             s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
 
@@ -124,16 +124,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_rdr = csv.reader(f)
             next(o_rdr, None)  # skip the headers
             for lst_line in o_rdr:
-                # print(lst_line[1], lst_line[0])
-                o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', lst_line[1], lst_line[0])
+                if len(lst_line[1]):
+                    o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', lst_line[1], lst_line[0])
             del o_rdr
             f.close()
 
             self.__archive_file(s_conf_path, s_conf_file_path)
         del o_sv_mysql
 
+        s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
         o_slack = sv_slack.SvSlack('dbs')
-        o_slack.sendMsg(dict_acct_info['brand_name'] + ' scraping has been finished successfully')
+        o_slack.sendMsg(s_brand_name + ' scraping has been finished successfully')
         del o_slack
 
         self._printDebug('-> communication finish')
@@ -177,9 +178,14 @@ class NvrKinSpider(CrawlSpider):
         with open(os.path.join(self.__g_sKinHtmlPath, str(n_log_srl) + '.html'), 'w', encoding='utf-8') as out:
             out.write(response.text)
         s_pub_date = response.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/span[1]/text()').extract_first()
+        try:
+            s_pub_date_stripped = s_pub_date.strip()  # 2023.02.02
+        except AttributeError as err:  # adult only kin posting has been restricted
+            # print(str(n_log_srl) + ' can\'t extract pub_date from adult only kin posting')
+            s_pub_date_stripped = ''
         scraped_info = {
             'n_log_srl': n_log_srl,
-            's_pub_date': s_pub_date.strip(),  # 2023.02.02
+            's_pub_date': s_pub_date_stripped,  # 2023.02.02
         }
         yield scraped_info
 
