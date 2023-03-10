@@ -56,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230308)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230310)')
         
         # self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -99,7 +99,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
         n_url_cnt = len(lst_nvsearch_log)
-        self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/3600)) + ' mins at most')
+        self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/60)) + ' mins at most')
         if n_url_cnt:  # limit 300 urls per a trial
             self._printDebug(str(n_url_cnt) + 'urls will be scrapped')
             s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
