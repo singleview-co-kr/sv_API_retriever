@@ -38,7 +38,7 @@ import sys
 
 # 3rd party library
 import google.auth.exceptions  # to catch google.auth.exceptions.RefreshError
-from google.ads.googleads.v10.enums.types.device import DeviceEnum
+from google.ads.googleads.v12.enums.types.device import DeviceEnum
 from google.ads.googleads.client import GoogleAdsClient
 
 # https://developers.google.com/google-ads/api/fields/v6/segments
@@ -60,12 +60,12 @@ else:
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     # MCC = My Customer Center
-    __g_sGoogleAdsApiVersion = 'v11'
+    __g_sGoogleAdsApiVersion = 'v12'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230308)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230317)')
 
         self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -162,7 +162,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_data_date_for_mysql = dt_date_data_retrieval.strftime('%Y%m%d')
         self._printDebug('--> ' + s_googleads_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
         # set device dictionary
-        dict_googleads_v10_device = {i.value: i.name for i in DeviceEnum.Device}
+        dict_googleads_v12_device = {i.value: i.name for i in DeviceEnum.Device}
         s_google_ads_cid = s_googleads_cid.replace('-', '')
         # set report header rows
         lst_report_header_1 = ['google_ads_api (' + self.__g_sGoogleAdsApiVersion + ')']
@@ -238,7 +238,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dict_disp_campaign['Clicks'] = o_txt_campaign_row.metrics.clicks
                             dict_disp_campaign['Cost'] = o_txt_campaign_row.metrics.cost_micros
                             # refer to o_disp_campaign_row because [search_term_view] does not provide
-                            dict_disp_campaign['Device'] = dict_googleads_v10_device[o_disp_campaign_row.segments.device]
+                            dict_disp_campaign['Device'] = dict_googleads_v12_device[o_disp_campaign_row.segments.device]
                             dict_disp_campaign['Conversions'] = o_txt_campaign_row.metrics.all_conversions
                             dict_disp_campaign['ConversionValue'] = o_txt_campaign_row.metrics.all_conversions_value
                             dict_disp_campaign['Date'] = o_txt_campaign_row.segments.date
@@ -251,7 +251,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dict_disp_campaign['Impressions'] = o_disp_campaign_row.metrics.impressions
                     dict_disp_campaign['Clicks'] = o_disp_campaign_row.metrics.clicks
                     dict_disp_campaign['Cost'] = o_disp_campaign_row.metrics.cost_micros
-                    dict_disp_campaign['Device'] = dict_googleads_v10_device[o_disp_campaign_row.segments.device]
+                    dict_disp_campaign['Device'] = dict_googleads_v12_device[o_disp_campaign_row.segments.device]
                     dict_disp_campaign['Conversions'] = o_disp_campaign_row.metrics.all_conversions
                     dict_disp_campaign['ConversionValue'] = o_disp_campaign_row.metrics.all_conversions_value
                     dict_disp_campaign['Date'] = o_disp_campaign_row.segments.date

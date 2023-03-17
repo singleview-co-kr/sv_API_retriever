@@ -36,8 +36,8 @@ docutils==0.17.1
 et-xmlfile==1.1.0
 facebook-business==12.0.0
 filelock==3.3.0
-google-ads==18.1.0
-google-api-core==2.11.0
+google-ads==20.0.0
+google-api-core==2.10.1
 google-api-python-client==2.62.0
 google-auth==2.3.0
 google-auth-httplib2==0.1.0
@@ -80,7 +80,7 @@ Pillow==8.3.2
 pkginfo==1.7.1
 platformdirs==2.4.0
 Protego==0.2.1
-proto-plus==1.22.0
+proto-plus==1.22.2
 protobuf==4.21.6
 psutil==5.9.0
 py==1.10.0
