@@ -101,7 +101,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_url_cnt = len(lst_nvsearch_log)
         self._printDebug('crawling task will take ' + str(int(n_url_cnt*self.__g_nDelaySec/60)) + ' mins at most')
         if n_url_cnt:  # limit 300 urls per a trial
-            self._printDebug(str(n_url_cnt) + 'urls will be scrapped')
+            self._printDebug(str(n_url_cnt) + ' urls will be scrapped')
             s_conf_file_path = 'naver_kin_'+ str(lst_nvsearch_log[0]['log_srl'])+'_'+str(lst_nvsearch_log[-1]['log_srl'])+'.csv'
             s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
 
