@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-# pip install xlrd
-import xlrd  # openpyxl does not support the old .xls file format
+from openpyxl import load_workbook
+
+# to prevent warn("Workbook contains no default style, apply openpyxl's default"
+import warnings
+warnings.simplefilter("ignore")
+
 import csv
 from datetime import datetime
 
@@ -30,8 +34,8 @@ class SvEdiExcel:
 
         s_excel_filename = os.path.join(s_unzip_path, s_unzipped_file)
         # load edi excel file
-        o_book = xlrd.open_workbook(s_excel_filename)
-        self.__g_oActiveSheet = o_book.sheet_by_index(0)
+        o_wb = load_workbook(s_excel_filename, data_only=True)  # data_only=True; 수식이 아닌 값으로 받아온다.
+        self.__g_oActiveSheet = o_wb.worksheets[0]
 
         n_hyper_mart = sv_hypermart_model.SvHyperMartType.NOT_SURE
         n_edi_data_type = None
@@ -66,28 +70,16 @@ class SvEdiExcel:
         return dict_rst
 
     def __is_emart(self):
-        n_tried_row_cnt = 0
-        for n_row_idx in range(self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_row_idx)
-            if lst_col_info.pop(0) == '상품코드' and lst_col_info.pop(0) == '상품명' and \
-                    lst_col_info.pop(0) == '점포코드' and lst_col_info.pop(0) == '점포명':
+        for o_row in self.__g_oActiveSheet.rows:
+            if o_row[0].value == '상품코드' and o_row[1].value == '상품명' and \
+                o_row[2].value == '점포코드' and o_row[3].value == '점포명':
                 return True  # 헤더를 확인했으므로 중단
-            if n_tried_row_cnt > self.N_MAX_LOOKUP_ROWS:
-                return False
-            else:
-                n_tried_row_cnt = n_tried_row_cnt + 1
         return False
 
     def __is_lotte_mart(self):
-        n_tried_row_cnt = 0
-        for n_row_idx in range(self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_row_idx)
-            if lst_col_info.pop(0) == '매출정보 상품상세별 현황표':
+        for o_row in self.__g_oActiveSheet.rows:
+            if o_row[0].value == '매출정보 상품상세별 현황표':
                 return True  # 헤더를 확인했으므로 중단
-            if n_tried_row_cnt > self.N_MAX_LOOKUP_ROWS:
-                return False
-            else:
-                n_tried_row_cnt = n_tried_row_cnt + 1
         return False
 
 
@@ -168,8 +160,7 @@ class LotteMartEdiExcel:
         if self.__g_nDataYear is None:
             print('LotteMartDataYear is none')
             return
-
-        # https://datascienceschool.net/view-notebook/5524dd924b9e4a3399a33b5e70269458/
+        
         lst_edi_data_body = []
         # 데이터 컬럼 헤더 찾기
         for n_data_header_row_idx in range(self.__g_nDataRowIdx, self.__g_oActiveSheet.nrows):
@@ -251,17 +242,6 @@ class EmartEdiExcel:
         """ unconditionally calling desctructor """
         return self
 
-    # from openpyxl import load_workbook
-    # data_only=Ture로 해줘야 수식이 아닌 값으로 받아온다.
-    # load_wb = load_workbook("D:\이마트 200101_16.xls", data_only=True)
-    # 시트 이름으로 불러오기
-    # load_ws = load_wb['일자상품별상세리스트(0033200000228)']
-
-    # 셀 주소로 값 출력
-    # print(load_ws['A1'].value)
-
-    # 셀 좌표로 값 출력
-    # print(load_ws.cell(1, 2).value)
     def set_edi_data_year(self, n_edi_data_year):
         self.__g_nDataYear = n_edi_data_year
 
@@ -297,156 +277,108 @@ class EmartEdiExcel:
         # lookup edi year info from each filename - end
         # load edi excel file
         s_excel_filename = os.path.join(s_unzip_path, s_unzipped_file)
-        o_book = xlrd.open_workbook(s_excel_filename)
-        self.__g_oActiveSheet = o_book.sheet_by_index(0)
-        # print(o_book.sheet_names())
-        # print(oActiveSheet.ncols)
-        # print(oActiveSheet.nrows)
-        # print(oActiveSheet.name)
-        # print(oActiveSheet.row(5))
-
+        o_wb = load_workbook(s_excel_filename, data_only=True)  # data_only=True; 수식이 아닌 값으로 받아온다.
+        self.__g_oActiveSheet = o_wb.worksheets[0]
+        
     def to_csv(self, s_full_path_csv_file):
         """
         이마트 금액은 공급가 표시(VAT제외)
         :param s_full_path_csv_file:
         :return:
         """
-        # nHighestRow = oActiveSheet.nrows  # 마지막 행
-        # nHighestColumn = oActiveSheet.ncols  # 마지막 컬럼
         if self.__g_nDataYear is None:
             print('EmartDataYear is none')
             return
 
-        # https://datascienceschool.net/view-notebook/5524dd924b9e4a3399a33b5e70269458/
+        # print(load_ws.cell(1, 2).value)  # 셀 좌표로 값 출력
         # 헤더 찾기
         dict_default_col_info = {}
         dict_data_col_info = {}  # 연월 데이터 컬럼의 위치 저장
-        for n_header_row_idx in range(self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_header_row_idx)
-            lst_tmp_col_info = lst_col_info.copy()
-            if lst_tmp_col_info.pop(0) == '상품코드' and lst_tmp_col_info.pop(0) == '상품명' and \
-                    lst_tmp_col_info.pop(0) == '점포코드' and lst_tmp_col_info.pop(0) == '점포명':
-                del lst_tmp_col_info  # 헤더를 확인했으므로 임시 복사한 행 정보를 제거함
 
-                # 추출 컬럼 분석
-                n_col_seq = 0
-                for sColTitle in lst_col_info:
-                    if sColTitle.find('월') != -1 and sColTitle.find('일') != -1:
-                        lst_tmp_column = sColTitle.split('월 ')
+        # 추출 컬럼 분석
+        first_row = self.__g_oActiveSheet['1']
+        for o_row in self.__g_oActiveSheet.rows:
+            n_col_seq = 0
+            # catch header
+            if o_row[0].value == '상품코드' and o_row[1].value == '상품명' and \
+                o_row[2].value == '점포코드' and o_row[3].value == '점포명':
+                # Print the contents
+                for n_idx in range(len(first_row)): 
+                    # print(first_row[n_idx].value)
+                    s_col_title = first_row[n_idx].value
+                    if s_col_title.find('월') != -1 and s_col_title.find('일') != -1:
+                        lst_tmp_column = s_col_title.split('월')
                         s_formatted_month = lst_tmp_column.pop(0).rjust(2, '0')
                         s_formatted_day = lst_tmp_column.pop(0).replace('일', '').rjust(2, '0')
                         dict_data_col_info[n_col_seq] = s_formatted_month + s_formatted_day
-                    elif sColTitle.find('합계') != -1 or sColTitle.find('평균') != -1:
+                    elif s_col_title.find('합계') != -1 or s_col_title.find('평균') != -1:
                         pass
                     else:  # 기본 추출 컬럼 식별
-                        dict_default_col_info[n_col_seq] = sColTitle
-                    n_col_seq = n_col_seq + 1
+                        dict_default_col_info[n_col_seq] = s_col_title
+                    n_col_seq += 1
                 break
 
         f = open(s_full_path_csv_file, 'a+', newline=''""'')
         writer = csv.writer(f)
         lst_header_col_info = []
-        for nIdx, sValue in dict_default_col_info.items():
+        for n_idx, sValue in dict_default_col_info.items():
             lst_header_col_info.append(self.__g_dictColTitleTranslation[sValue])
         lst_header_col_info.append(self.__g_sDeterminedDataType)
         lst_header_col_info.append('log_date')
         if not self.__g_bCsvHeaderPrinted:
             self.__g_bCsvHeaderPrinted = True
 
-        # lst_default_col_key = list(dict_default_col_info.keys())
-        # lst_data_col_key =  list(dict_data_col_info.keys())
         # 데이터 한줄씩 읽기;
-        for n_data_row_idx in range(n_header_row_idx + 1, self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_data_row_idx)
+        for o_row in self.__g_oActiveSheet.rows:
             n_col_seq = 0
             lst_single_row = []
+            # ignore header
+            if o_row[0].value == '상품코드' and o_row[1].value == '상품명' and \
+                o_row[2].value == '점포코드' and o_row[3].value == '점포명':
+                continue
+            
             # set default column
-            for s_col in lst_col_info:
-                if n_col_seq in dict_default_col_info:  # lst_default_col_key:
-                    lst_single_row.append(s_col)
-                else:
-                    break
-                n_col_seq += 1
+            for n_idx in dict_default_col_info.keys():
+                lst_single_row.append(o_row[n_idx].value)
             # set data column
-            n_col_seq = 0
-            for sCol in lst_col_info:
-                if n_col_seq in dict_data_col_info:  # lst_data_col_key:
-                    # 필수 기본 컬럼에 날짜와 수량 컬럼 추가
-                    s_log_date = str(self.__g_nDataYear) + dict_data_col_info[n_col_seq]
-                    n_perf_val = int(sCol)
-                    if n_perf_val != 0:  # minus qty amnt exists
-                        s_qty = str(n_perf_val)
-                        lst_single_row.append(s_qty)
-                        lst_single_row.append(s_log_date)
-                        # 작성된 single rec을 CSV로 변형하여 출력 list에 추가
-                        # lstCsvData.append(','.join(lstSingleRow))
-                        # 필수 기본 컬럼에 날짜와 수량 컬럼 제거
-                        writer.writerow(lst_single_row)
-                        del lst_single_row[4:6]
-                else:
-                    pass
-                n_col_seq += 1
-            # if nRowIdx == 8: # break for shorten test
-            #    break
+            for n_idx in dict_data_col_info.keys():
+                # 필수 기본 컬럼에 날짜와 수량 컬럼 추가
+                s_log_date = str(self.__g_nDataYear) + dict_data_col_info[n_idx]
+                n_perf_val = int(o_row[n_idx].value)
+                if n_perf_val != 0:  # minus qty amnt exists
+                    s_qty = str(n_perf_val)
+                    lst_single_row.append(s_qty)
+                    lst_single_row.append(s_log_date)
+                    # 작성된 single rec을 CSV로 변형하여 출력 list에 추가
+                    writer.writerow(lst_single_row)
+                    del lst_single_row[4:6]  # 필수 기본 컬럼에 날짜와 수량 컬럼 제거
         f.close
         return
 
     def lookup_edi_data_type(self):
         dict_edifile_data_type_col_info = {}  # emart edi 파일이 수량인지 금액인 판별하기 위한 [합계] [평균] 컬럼 위치 저장
-        # lst_edifile_date_col_info = []  # 업로드된 emart edi 파일 중 중복된 일자가 있는지 검토
-
-        for n_row_idx in range(self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_row_idx)
-            lst_tmp_col_info = lst_col_info.copy()
-            if lst_tmp_col_info.pop(0) == '상품코드' and lst_tmp_col_info.pop(0) == '상품명' and \
-                    lst_tmp_col_info.pop(0) == '점포코드' and lst_tmp_col_info.pop(0) == '점포명':
-                del lst_tmp_col_info  # 헤더를 확인했으므로 임시 복사한 행 정보를 제거함
-
-                # 추출 컬럼 분석
-                n_col_seq = 0
-                for s_col_title in lst_col_info:
-                    if s_col_title.find('합계') != -1 or s_col_title.find('평균') != -1:
-                        dict_edifile_data_type_col_info[s_col_title] = n_col_seq
-                    """else:  # edi date 추출 컬럼 식별
-                        if s_col_title.find('상품코드') == -1 and s_col_title.find('상품명') == -1 and \
-                                s_col_title.find('점포코드') == -1 and s_col_title.find('점포명') == -1:
-                            lst_date = s_col_title.split('월')
-                            n_col_date = int(str(self.__g_nDataYear) + str(lst_date[0]).zfill(2) + \
-                                         str(lst_date[1]).replace('일', '').strip().zfill(2))
-                            # print(s_col_date)  # day
-                            lst_edifile_date_col_info.append(n_col_date)
-                        pass"""
-                    n_col_seq = n_col_seq + 1
-                break
         # 5개의 [합계] [평균] 값을 통해 edi 파일이 수량인지 금액인지 판단
         n_detect_cnt = 0
         dict_vote = {'qty': 0, 'amnt': 0}
-        for n_data_row_idx in range(n_row_idx + 1, self.__g_oActiveSheet.nrows):
-            lst_col_info = self.__g_oActiveSheet.row_values(n_data_row_idx)
+        for o_row in self.__g_oActiveSheet.rows:
+            # ignore header
+            if o_row[0].value == '상품코드' and o_row[1].value == '상품명' and \
+                o_row[2].value == '점포코드' and o_row[3].value == '점포명':
+                continue
+            
             if n_detect_cnt < 5:
-                for s_col_title in dict_edifile_data_type_col_info:
-                    if s_col_title == '합계':
-                        n_col_seq = dict_edifile_data_type_col_info[s_col_title]
-                        n_sum = lst_col_info[n_col_seq]
-                        if n_sum <= 0:  # pass if zero; no information to decide
-                            continue
-                        else:
-                            # print('함계:' + str(lst_col_info[n_col_seq]))
-                            if n_sum < 1500:
-                                dict_vote['qty'] = dict_vote['qty'] + 1
-                            else:
-                                dict_vote['amnt'] = dict_vote['amnt'] + 1
-                            n_detect_cnt = n_detect_cnt + 1
-                    elif s_col_title == '평균':
-                        # n_col_seq = dict_edifile_data_type_col_info[s_col_title]
-                        # print('평균:' + str(lst_col_info[n_col_seq]))
-                        pass
+                n_sum = o_row[-2].value  # 합계 column
+                if n_sum <= 0:  # pass if zero; no information to decide
+                    continue
+                else:
+                    if n_sum < 1500:
+                        dict_vote['qty'] = dict_vote['qty'] + 1
+                    else:
+                        dict_vote['amnt'] = dict_vote['amnt'] + 1
+                    n_detect_cnt = n_detect_cnt + 1
             else:
                 break
-        # dict_edifile_data_type_col_info.clear()
         del dict_edifile_data_type_col_info
-        # dict_edifile_lookup_rst = {'n_emart_edi_data_type': None, 'lst_date_range': lst_edifile_date_col_info}
-        # print(lst_edifile_date_col_info)
 
         if dict_vote['qty'] > dict_vote['amnt']:
             return sv_hypermart_model.EdiDataType.QTY
