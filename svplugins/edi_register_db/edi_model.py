@@ -155,8 +155,6 @@ class LotteMartEdiExcel:
         :param s_full_path_csv_file:
         :return:
         """
-        # nHighestRow = oActiveSheet.nrows  # 마지막 행
-        # nHighestColumn = oActiveSheet.ncols  # 마지막 컬럼
         if self.__g_nDataYear is None:
             print('LotteMartDataYear is none')
             return
