@@ -44,7 +44,7 @@ class SvEdiLog():
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -70,8 +70,7 @@ class SvEdiLog():
         self.__g_dictSvAcctInfo = None
         self.__g_dictDateRange = None
 
-    def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
-                    f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_info, s_tbl_prefix, f_print_debug, f_print_progress_bar, f_continue_iteration):
         self.__g_dictSvAcctInfo = dict_sv_acct_info
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -231,18 +230,17 @@ class SvEdiLog():
                         else:
                             s_latitude_longitude = None
                         o_sv_mysql.executeQuery('insertEdiDailyLogDenorm',
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                                                    self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                                                    dict_single_log['qty'], n_amnt,
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
-                                                    self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
-                                                    s_latitude_longitude,
-                                                    dict_single_log['logdate'])
-                        self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer EDI data:', suffix = 'Complete', length = 50)
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
+                                                self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
+                                                dict_single_log['qty'], n_amnt,
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
+                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
+                                                s_latitude_longitude, dict_single_log['logdate'])
+                        self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer EDI data:', suffix='Complete', length = 50)
                         n_idx += 1
                 del lst_log_period
         del dict_date_range

@@ -42,7 +42,7 @@ class SvGaIntSearchLog():
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -66,8 +66,7 @@ class SvGaIntSearchLog():
         self.__g_dictDateRange = None
         self.__g_sTopNcnt = None
 
-    def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
-                    f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_info, s_tbl_prefix, f_print_debug, f_print_progress_bar, f_continue_iteration):
         self.__g_dictSvAcctInfo = dict_sv_acct_info
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -156,11 +155,11 @@ class SvGaIntSearchLog():
                         return
                     if dict_dictionary[dict_single_int_search['word_srl']]['b_ignore'] == '0':
                         if dict_single_int_search['word_srl'] in lst_word_srl_to_trans:
-                            o_sv_mysql.executeQuery('insertGaIntSearchDenormDailyLog', 
-                                                dict_dictionary[dict_single_int_search['word_srl']]['word'],
-                                                dict_single_int_search['ua'], dict_single_int_search['cnt'], 
-                                                dict_single_int_search['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga intsearch data:', suffix = 'Complete', length = 50)
+                            o_sv_mysql.executeQuery('insertGaIntSearchDenormDailyLog',
+                                                    dict_dictionary[dict_single_int_search['word_srl']]['word'],
+                                                    dict_single_int_search['ua'], dict_single_int_search['cnt'],
+                                                    dict_single_int_search['logdate'])
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer ga intsearch data:', suffix='Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
             self.__print_debug('stop transferring - no more data to update')

@@ -53,10 +53,11 @@ class SvMorphRetriever():
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
+        self.__g_dictSvAcctInfo = None
         self.__continue_iteration = None
         self.__print_debug = None
         self.__print_progress_bar = None
@@ -79,6 +80,7 @@ class SvMorphRetriever():
         self.__o_lambda_is_noun = lambda pos: pos[:2] == 'NN'
 
     def __del__(self):
+        self.__g_dictSvAcctInfo = None
         self.__continue_iteration = None
         self.__print_debug = None
         self.__print_progress_bar = None
@@ -170,13 +172,8 @@ class SvMorphRetriever():
             n_noun_cnt = len(lst_noun)
             if n_noun_cnt:
                 s_font_file_path_abs = os.path.join(self.__g_sAbsRootPath, 'svplugins', 'collect_svdoc', 'fonts', 'godoMaum.ttf')
-                wc = WordCloud(font_path=s_font_file_path_abs, \
-                    background_color="white", \
-                    width=1000, \
-                    height=1000, \
-                    max_words=100, \
-                    max_font_size=300)
-                    
+                wc = WordCloud(font_path=s_font_file_path_abs,
+                               background_color="white", width=1000, height=1000, max_words=100, max_font_size=300)
                 # wc.generate(news)
                 wc.generate_from_frequencies(dict(lst_noun))
                 s_wc_file_path_abs = os.path.join(self.__g_sAbsRootPath, self.__g_sSvStorageRoot , s_sv_acct_id, s_brand_id, 'keyword.png')

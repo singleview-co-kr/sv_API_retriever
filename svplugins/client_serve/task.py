@@ -77,7 +77,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self._g_oLogger = logging.getLogger(s_plugin_name+'(20230119)')
         
         self._g_dictParam.update({'target_host_url':None, 'mode':None, 'yyyymm':None, 'top_n_cnt':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -99,7 +99,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         self.__g_sTargetUrl = self._g_dictParam['target_host_url']
-        if self._g_dictParam['mode'] != None:
+        if self._g_dictParam['mode'] is not None:
             self.__g_sMode = self._g_dictParam['mode']
         if self._g_dictParam['mode'] in ['update_ga_media_sql', 'update_ga_media_encrypted']:
             self.__g_sReplaceYearMonth = self._g_dictParam['yyyymm']
@@ -107,10 +107,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_top_n_cnt = self._g_dictParam['top_n_cnt']
 
         # begin - get Protocol message dictionary
-        oSvHttp = sv_http.SvHttpCom('')
-        self.__g_dictMsg = oSvHttp.getMsgDict()
-        oSvHttp.close()
-        del oSvHttp
+        o_sv_http = sv_http.SvHttpCom('')
+        self.__g_dictMsg = o_sv_http.getMsgDict()
+        o_sv_http.close()
+        del o_sv_http
         # end - get Protocol message dictionary
 
         self._printDebug('-> send new data')

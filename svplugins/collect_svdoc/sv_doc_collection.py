@@ -47,7 +47,7 @@ class SvDocCollection():
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.

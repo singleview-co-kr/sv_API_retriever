@@ -64,7 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     'words': None, 'start_yyyymmdd': None, 'end_yyyymmdd': None,  # for morpeheme analysis
                                     'module_srl': None  # for module-level retrieval
                                 })
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -86,7 +86,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'nvr_ad_acct' not in dict_acct_info:
+                'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only

@@ -44,7 +44,7 @@ class SvKeywordQi():
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         # print('item:__init__')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -66,8 +66,7 @@ class SvKeywordQi():
         self.__g_dictSvAcctInfo = None
         self.__g_dictDateRange = None
 
-    def init_var(self, dict_sv_acct_info, s_tbl_prefix, 
-                    f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_info, s_tbl_prefix, f_print_debug, f_print_progress_bar, f_continue_iteration):
         self.__g_dictSvAcctInfo = dict_sv_acct_info
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -157,6 +156,6 @@ class SvKeywordQi():
                     o_sv_mysql.executeQuery('insertNvadMasterQiDenorm', 'naver', 
                                                 dict_single_qi['ad_group_name'], dict_single_qi['ad_keyword'], 
                                                 dict_single_qi['quality_index'], dict_single_qi['check_date'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer naver master QI data:', suffix = 'Complete', length = 50)
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer naver master QI data:', suffix='Complete', length = 50)
                     n_idx += 1
         del lst_nvad_master_qi

@@ -132,7 +132,6 @@ class SvMySql(sv_object.ISvObject):
             s_brand_db_config_path = os.path.join(settings.SV_STORAGE_ROOT, str(dict_brand_info['n_acct_id']),
                                                   str(dict_brand_info['n_brand_id']), 'database.config.ini')
             if os.path.isfile(s_brand_db_config_path):
-                o_config = configparser.ConfigParser()
                 o_config.read(s_brand_db_config_path)
                 # self.__g_sDbMode = 'pymysql'
         if s_ext_target_host is None:
