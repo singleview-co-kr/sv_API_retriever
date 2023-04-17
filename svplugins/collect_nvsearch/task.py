@@ -25,6 +25,7 @@
 # standard library
 import logging
 import sys
+import csv
 import os
 import re
 import json
@@ -34,7 +35,10 @@ import shutil
 from datetime import datetime
 from urllib import parse
 
-# # 3rd-party library
+# 3rd-party library
+import scrapy
+from scrapy.spiders import CrawlSpider
+from scrapy.crawler import CrawlerProcess
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -44,25 +48,28 @@ if __name__ == '__main__': # for console debugging
     import sv_object
     import sv_plugin
     import sv_search_api
+    import sv_slack
     import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
     from svcommon import sv_search_api
+    from svcommon import sv_slack
     from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oHtmlRemover = re.compile(r"<[^<]+?>")
+    __g_nDelaySec = 10
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230214)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230417)')
         
-        self._g_dictParam.update({'mode':None, 'morpheme':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'mode': None, 'morpheme': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -70,12 +77,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sConfPath = None
         self.__g_sTblPrefix = None
         self.__g_lstMedia = []
+        self.__g_sStoragePath = None
+        self.__g_sMode = None
 
     def __del__(self):
         """ never place self._task_post_proc() here 
             __del__() is not executed if try except occurred """
+        self.__g_sDownloadPath = None
+        self.__g_sConfPath = None
         self.__g_sTblPrefix = None
-        self.__g_sMode = {}
+        self.__g_lstMedia = []
+        self.__g_sStoragePath = None
+        self.__g_sMode = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -83,7 +96,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'nvr_ad_acct' not in dict_acct_info:
+                'nvr_ad_acct' not in dict_acct_info:
             self._printDebug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
@@ -94,12 +107,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_lstMedia = dict_acct_info['nvr_search']
 
         # begin - set important folder
-        self.__g_sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, dict_acct_info['sv_account_id'], 
-                                                dict_acct_info['brand_id'], 'naver_search', 'data')
+        self.__g_sDownloadPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+                                              dict_acct_info['sv_account_id'], dict_acct_info['brand_id'],
+                                              'naver_search', 'data')
         if not os.path.isdir(self.__g_sDownloadPath):
             os.makedirs(self.__g_sDownloadPath)
-        self.__g_sConfPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, dict_acct_info['sv_account_id'], 
-                                            dict_acct_info['brand_id'], 'naver_search', 'conf')
+        self.__g_sConfPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+                                          dict_acct_info['sv_account_id'], dict_acct_info['brand_id'],
+                                          'naver_search', 'conf')
         if not os.path.isdir(self.__g_sConfPath):
             os.makedirs(self.__g_sConfPath)
         # end - set important folder
@@ -121,6 +136,65 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('-> communication finish')
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
+        elif self.__g_sMode == 'update_kin_date':
+            s_sv_acct_id = dict_acct_info['sv_account_id']
+            s_brand_id = dict_acct_info['brand_id']
+            self.__g_sStoragePath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
+                                                 s_brand_id, 'naver_search')
+            s_kin_html_path = os.path.join(self.__g_sStoragePath, 'kin_html')
+            if not os.path.isdir(s_kin_html_path):
+                os.makedirs(s_kin_html_path)
+            s_conf_path = os.path.join(self.__g_sStoragePath, 'conf')
+
+            o_sv_mysql = sv_mysql.SvMySql()
+            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
+
+            n_url_cnt = len(lst_nvsearch_log)
+            self._printDebug('crawling task will take ' + str(int(n_url_cnt * self.__g_nDelaySec / 60)) + ' mins at most')
+            if n_url_cnt:  # limit 300 urls per a trial
+                self._printDebug(str(n_url_cnt) + ' urls will be scrapped')
+                s_conf_file_path = 'naver_kin_' + str(lst_nvsearch_log[0]['log_srl']) + '_' + str(
+                    lst_nvsearch_log[-1]['log_srl']) + '.csv'
+                s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
+
+                o_scraper = CrawlerProcess({
+                    'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36',
+                    'FEED_FORMAT': 'csv',
+                    'FEED_URI': s_csv_path,
+                    # 'DEPTH_LIMIT': 2,
+                    'CLOSESPIDER_PAGECOUNT': 300,  # limit 300 urls per a trial
+                    'ROBOTSTXT_OBEY': False,
+                    # Minimum seconds to wait between 2 consecutive requests to the same domain.
+                    'DOWNLOAD_DELAY': self.__g_nDelaySec,
+                    'LOG_LEVEL': 'INFO',
+                })
+                o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
+                o_scraper.start()
+                del o_scraper
+
+                f = open(s_csv_path, 'r')
+                o_rdr = csv.reader(f)
+                next(o_rdr, None)  # skip the headers
+                for lst_line in o_rdr:
+                    if len(lst_line[1]):  # available to access and get post date
+                        if lst_line[1].find('시간') == -1:  # 2023.03.19
+                            s_logdate = lst_line[1]
+                        else:  # 15시간 전
+                            s_logdate = datetime.today().strftime('%Y.%m.%d')
+                        o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_logdate, lst_line[0])
+                    else:  # not available to access and get post date
+                        o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', lst_line[0])
+                del o_rdr
+                f.close()
+                self.__archive_kin_html_file(s_conf_path, s_conf_file_path)
+            del o_sv_mysql
+            s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
+            o_slack = sv_slack.SvSlack('dbs')
+            # o_slack.sendMsg(s_brand_name + ' scraping has been finished successfully')
+            del o_slack
         else:
             self._printDebug('mode is not specified.')
 
@@ -188,7 +262,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         
                 del dict_1st_retrieval
                 del dict_1st_rst
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Collect XML data:', suffix = 'Complete', length = 50)
+            self._printProgressBar(n_idx + 1, n_sentinel, prefix='Collect XML data:', suffix='Complete', length=50)
             n_idx += 1
         self._printDebug(s_param_morpheme + ' has been retrieved')
         del o_sv_mysql
@@ -253,8 +327,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lst_standardized_log = self.__standardize_log(s_morpheme_srl, s_media, n_media_id, dict_xml_body)
             del dict_xml_body
             self.__append_into_article_db(o_sv_mysql, lst_standardized_log, s_log_date)
-            self.__archive_data_file(s_xml_filename)
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register XML file:', suffix = 'Complete', length = 50)
+            self.__archive_xml_file(s_xml_filename)
+            self._printProgressBar(n_idx + 1, n_sentinel, prefix='Register XML file:', suffix='Complete', length=50)
             n_idx += 1
         del dict_media_lbl_id
         del o_sv_nvsearch
@@ -269,7 +343,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                         dict_single_item['title'], dict_single_item['link'], dict_single_item['description'], 
                                         dict_single_item['s_jsonfy_extra'], dict_single_item['s_local_time'], s_log_date) 
 
-    def __archive_data_file(self, s_current_filename):
+    def __archive_xml_file(self, s_current_filename):
         if not os.path.exists(self.__g_sDownloadPath):
             self._printDebug('error: naver search source directory does not exist!')
             if self._g_bDaemonEnv:  # for running on dbs.py only
@@ -283,6 +357,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_source_filepath = os.path.join(self.__g_sDownloadPath, s_current_filename)
         s_archive_filepath = os.path.join(s_archive_path, s_current_filename)		
         shutil.move(s_source_filepath, s_archive_filepath)
+
+    def __archive_kin_html_file(self, s_data_path, s_cur_filename):
+        if not os.path.exists(s_data_path):
+            self._printDebug('error: naver API raw directory does not exist!' )
+            return
+        s_data_archive_path = os.path.join(s_data_path, 'archive')
+        if not os.path.exists(s_data_archive_path):
+            os.makedirs(s_data_archive_path)
+        s_source_filepath = os.path.join(s_data_path, s_cur_filename)
+        s_archive_data_file_path = os.path.join(s_data_archive_path, s_cur_filename)
+        shutil.move(s_source_filepath, s_archive_data_file_path)
 
     def __standardize_log(self, n_morpheme_srl, s_media, n_media_id, dict_xml_body):
         lst_log = []
@@ -345,6 +430,45 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_link = parse.urlunparse(o_link_parsed)
         del o_link_parsed, s_new_query, dict_query
         return s_link
+
+
+class NvrKinSpider(CrawlSpider):
+    name = "nvr_kin_publish_date_bot"
+    allowed_domains = ["kin.naver.com"]
+
+    # start_urls = ['http://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001']
+
+    def __init__(self, s_kin_html_path, lst_urls, *a, **kw):
+        super(NvrKinSpider, self).__init__(*a, **kw)
+        self.__g_lstUrl = lst_urls
+        self.__g_sKinHtmlPath = s_kin_html_path
+
+    def __del__(self):
+        """ __del__() is not executed if try except occurred """
+        self.__g_lstUrl = None
+        self.__g_sKinHtmlPath = None
+
+    def start_requests(self):
+        # https://stackoverflow.com/questions/32252201/passing-a-argument-to-a-callback-function
+        for dict_record in self.__g_lstUrl:
+            yield scrapy.Request(url=dict_record['link'], callback=self.parse,
+                                 cb_kwargs=dict(n_log_srl=dict_record['log_srl']))
+
+    def parse(self, response, n_log_srl):
+        # backup scrapped HTML source
+        with open(os.path.join(self.__g_sKinHtmlPath, str(n_log_srl) + '.html'), 'w', encoding='utf-8') as out:
+            out.write(response.text)
+        s_pub_date = response.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/span[1]/text()').extract_first()
+        try:
+            s_pub_date_stripped = s_pub_date.strip()  # 2023.02.02
+        except AttributeError as err:  # adult only kin posting has been restricted
+            # print(str(n_log_srl) + ' can\'t extract pub_date from adult only kin posting')
+            s_pub_date_stripped = ''
+        scraped_info = {
+            'n_log_srl': n_log_srl,
+            's_pub_date': s_pub_date_stripped,  # 2023.02.02
+        }
+        yield scraped_info
 
 
 if __name__ == '__main__': # for console debugging
