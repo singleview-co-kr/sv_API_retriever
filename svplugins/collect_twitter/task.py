@@ -26,19 +26,23 @@
 import logging
 import sys
 import os
+import configparser  # https://docs.python.org/3/library/configparser.html
 
 # singleview library
 if __name__ == '__main__': # for console debugging
     sys.path.append('../../svcommon')
+    sys.path.append('../../svdjango')
     import sv_mysql
     import sv_object
     import sv_plugin
     import sv_twitter
+    import settings
 else: # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_object
     from svcommon import sv_plugin
     from svcommon import sv_twitter
+    from django.conf import settings
 
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
@@ -46,7 +50,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230218)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230419)')
         
         self._g_dictParam.update({'mode':None, 'morpheme':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -56,6 +60,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTblPrefix = None
         self.__g_sMode = {}
         self.__g_sMorpheme = None
+        self.__g_nTwtLimit = 5
 
     def __del__(self):
         """ never place self._task_post_proc() here 
@@ -63,6 +68,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTblPrefix = None
         self.__g_sMode = {}
         self.__g_sMorpheme = None
+        self.__g_nTwtLimit = None
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
@@ -79,6 +85,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 return
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        s_twt_conf_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'tweet.config.ini')
+        o_config = configparser.ConfigParser()
+        if os.path.isfile(s_twt_conf_path):
+            o_config.read(s_twt_conf_path)
+        if 'basic' in o_config:
+            self.__g_nTwtLimit = int(o_config['basic']['twt_limit'])
+        else:
+            self._printDebug('tweet.config.ini not found, set default tweet limit')
+        del o_config
+
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
@@ -123,7 +141,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_since_id = lst_rst[0]['status_id']
 
         o_sv_twitter = sv_twitter.SvTwitter()
-        lst_status = o_sv_twitter.searchQuery(s_morpheme, n_twt_limit=400, n_since_id=n_since_id)
+        lst_status = o_sv_twitter.searchQuery(s_morpheme, n_twt_limit=self.__g_nTwtLimit, n_since_id=n_since_id)
         del o_sv_twitter
         lst_status_registered = []
 
