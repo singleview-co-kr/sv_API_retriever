@@ -26,8 +26,12 @@
 import logging
 import os
 import sys
+import time
 from timeit import default_timer as timer
 import configparser  # https://docs.python.org/3/library/configparser.html
+
+# 3rd party library
+from selenium.webdriver.common.by import By
 
 # singleview library
 if __name__ == '__main__':  # for console debugging
@@ -52,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230417)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230421)')
 
         # self._g_dictParam.update({'target_url': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -99,6 +103,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             self._printDebug('stop -> site_scraper.ini')
             return
+
+        if 'login' in o_config:
+            dict_login_info = {'login_url': o_config['login']['login_url'],
+                               'user_name': o_config['login']['user_name'],
+                               'user_name_input_text_name': o_config['login']['user_name_input_text_name'],
+                               'password': o_config['login']['password'],
+                               'user_pw_input_text_name': o_config['login']['user_pw_input_text_name'],
+                               'login_btn_xpath': o_config['login']['login_btn_xpath']}
+        else:
+            dict_login_info = None
         del o_config
 
         t_start = timer()
@@ -108,6 +122,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if o_extractor:
             o_extractor.set_host_url(s_host_url)
+            o_extractor.set_login_info(dict_login_info)
+            #s_driver_path = 'dd' #os.path.join(self._g_sAbsRootPath, 'static', 'chromedriver', 'chro1medriver')
+            o_extractor.set_chrome_driver() #s_driver_path)
             o_extractor.set_storage_path(s_storage_path)
             o_extractor.set_sv_mysql(o_sv_mysql)
             o_extractor.set_print_func(self._printDebug)
@@ -129,8 +146,16 @@ class SvCmsIntLinkExtractor(sv_site_scraper.ISvSiteScraper):
         self._g_dictIgnoreQryName = {'act':  # ignore by qry value
                                          ['dispMemberLoginForm', 'dispMemberLogout', 'dispMemberFindAccount',
                                           'dispMemberSignUpForm', 'dispBoardWrite', 'dispBoardDelete',
-                                          'dispBoardDeleteComment', 'dispBoardModifyComment',
-                                          'dispBoardReplyComment', 'procFileDownload'],
+                                          'dispBoardDeleteComment', 'dispBoardModifyComment', 'dispBoardAdminBoardInfo',
+                                          'dispPageAdminContentModify', 'dispPageAdminInfo',
+                                          'dispPageAdminMobileContent', 'dispBoardReplyComment', 'procFileDownload',
+                                          'dispBoardAdminCategoryInfo', 'dispBoardAdminExtraVars',
+                                          'dispBoardAdminGrantInfo', 'dispBoardAdminBoardAdditionSetup',
+                                          'dispBoardAdminSkinInfo', 'dispBoardAdminMobileSkinInfo',
+                                          'dispBoardAdminContent', 'dispAdminConfigGeneral', 'dispMemberInfo',
+                                          'dispDocumentManageDocument'
+                                          ],
+                                     'module': ['admin'],
                                      # unconditionally ignore qry
                                      'listStyle': None, 'search_target': None, 'search_keyword': None,
                                      'sort_index': None, 'order_type': None, 'tags': None, 'catalog': None,
@@ -144,6 +169,18 @@ class SvCmsIntLinkExtractor(sv_site_scraper.ISvSiteScraper):
             self._g_dictSelector['list'] = 'div.bd_lst_wrp > ol'
         elif 'yuhan' in self._g_sSiteUrl:
             self._g_dictSelector['list'] = 'div.bd_lst_wrp > table > tbody'
+
+    def _set_logged_in(self):
+        # https://hyunsooworld.tistory.com/entry/%EC%85%80%EB%A0%88%EB%8B%88%EC%9B%80-%EC%98%A4%EB%A5%98-AttributeError-WebDriver-object-has-no-attribute-findelementbycssselector-%EC%98%A4%EB%A5%98%ED%95%B4%EA%B2%B0
+        if self._g_dictLoginConfig:
+            self._g_WdChrome.get(self._g_sSiteUrl + self._g_dictLoginConfig['login_url'])
+            self._g_WdChrome.find_element(By.NAME, self._g_dictLoginConfig['user_name_input_text_name']).\
+                send_keys(self._g_dictLoginConfig['user_name'])  # key in
+            self._g_WdChrome.find_element(By.NAME, self._g_dictLoginConfig['user_pw_input_text_name']).\
+                send_keys(self._g_dictLoginConfig['password'])  # key in
+            time.sleep(1)
+            self._g_WdChrome.find_element(By.XPATH, self._g_dictLoginConfig['login_btn_xpath']).click()  # click login btn
+            # time.sleep(5)
 
 
 if __name__ == '__main__':  # for console debugging

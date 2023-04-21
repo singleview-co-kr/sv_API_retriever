@@ -4,7 +4,7 @@ CREATE TABLE `scraper_site_log` (
   `finger_print` char(33) NULL,
   `content` TEXT NULL,
   `status_code` smallint,
-  `regdate` DATE DEFAULT NOW(),
+  `regdate` DATETIME DEFAULT NOW(),
   `scrape_date` DATE NULL,
   `document_date` DATE NULL,
   PRIMARY KEY (`log_srl`),
