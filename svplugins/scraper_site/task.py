@@ -104,15 +104,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._printDebug('stop -> site_scraper.ini')
             return
 
+        dict_login_info = None
         if 'login' in o_config:
-            dict_login_info = {'login_url': o_config['login']['login_url'],
+            if 'user_name' in o_config['login'] and 'password' in o_config['login']:
+                dict_login_info = { # 'login_url': o_config['login']['login_url'],
                                'user_name': o_config['login']['user_name'],
-                               'user_name_input_text_name': o_config['login']['user_name_input_text_name'],
+                               # 'user_name_input_text_name': o_config['login']['user_name_input_text_name'],
                                'password': o_config['login']['password'],
-                               'user_pw_input_text_name': o_config['login']['user_pw_input_text_name'],
-                               'login_btn_xpath': o_config['login']['login_btn_xpath']}
-        else:
-            dict_login_info = None
+                               # 'user_pw_input_text_name': o_config['login']['user_pw_input_text_name'],
+                               # 'login_btn_xpath': o_config['login']['login_btn_xpath']
+            }
         del o_config
 
         t_start = timer()
@@ -156,7 +157,7 @@ class SvCmsIntLinkExtractor(sv_site_scraper.ISvSiteScraper):
                                           'dispDocumentManageDocument'
                                           ],
                                      'module': ['admin'],
-                                     # unconditionally ignore qry
+                                     # ignore qry unconditionally
                                      'listStyle': None, 'search_target': None, 'search_keyword': None,
                                      'sort_index': None, 'order_type': None, 'tags': None, 'catalog': None,
                                      'category': None, 'cpage': None, 'comment_srl': None, 'utm_source': None,
@@ -165,6 +166,7 @@ class SvCmsIntLinkExtractor(sv_site_scraper.ISvSiteScraper):
         self._g_dictSelector['body'] = 'div.rd.rd_nav_style2.clear > div.rd_body.clear > article > div'
         self._g_dictSelector['doc_date'] = \
             'div.rd.rd_nav_style2.clear > div.rd_hd.clear > div.board.clear > div.top_area.ngeb > div > span'
+        self._g_dictSelector['login_btn'] = '#fo_member_login > fieldset > div:nth-child(2) > input'
         if 'singleview' in self._g_sSiteUrl:
             self._g_dictSelector['list'] = 'div.bd_lst_wrp > ol'
         elif 'yuhan' in self._g_sSiteUrl:
@@ -172,15 +174,11 @@ class SvCmsIntLinkExtractor(sv_site_scraper.ISvSiteScraper):
 
     def _set_logged_in(self):
         # https://hyunsooworld.tistory.com/entry/%EC%85%80%EB%A0%88%EB%8B%88%EC%9B%80-%EC%98%A4%EB%A5%98-AttributeError-WebDriver-object-has-no-attribute-findelementbycssselector-%EC%98%A4%EB%A5%98%ED%95%B4%EA%B2%B0
-        if self._g_dictLoginConfig:
-            self._g_WdChrome.get(self._g_sSiteUrl + self._g_dictLoginConfig['login_url'])
-            self._g_WdChrome.find_element(By.NAME, self._g_dictLoginConfig['user_name_input_text_name']).\
-                send_keys(self._g_dictLoginConfig['user_name'])  # key in
-            self._g_WdChrome.find_element(By.NAME, self._g_dictLoginConfig['user_pw_input_text_name']).\
-                send_keys(self._g_dictLoginConfig['password'])  # key in
-            time.sleep(1)
-            self._g_WdChrome.find_element(By.XPATH, self._g_dictLoginConfig['login_btn_xpath']).click()  # click login btn
-            # time.sleep(5)
+        self._g_WdChrome.get(self._g_sSiteUrl + '/index.php?act=dispMemberLoginForm')
+        self._g_WdChrome.find_element(By.NAME, 'user_id').send_keys(self._g_dictLoginConfig['user_name'])  # key in
+        self._g_WdChrome.find_element(By.NAME, 'password').send_keys(self._g_dictLoginConfig['password'])  # key in
+        time.sleep(1)
+        self._g_WdChrome.find_element(By.CSS_SELECTOR, self._g_dictSelector['login_btn']).click()  # click login btn
 
 
 if __name__ == '__main__':  # for console debugging

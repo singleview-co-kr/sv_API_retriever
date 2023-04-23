@@ -38,11 +38,9 @@ from urllib.parse import parse_qs
 # 3rd party library
 from bs4 import BeautifulSoup
 from bs4 import element as bs4_elem
-# https://beomi.github.io/2017/02/27/HowToMakeWebCrawler-With-Selenium/
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common import exceptions as selenium_exceptions
-# from selenium.webdriver.common.by import By
 
 # singleview library
 if __name__ == 'sv_plugin':  # for console debugging
@@ -55,9 +53,6 @@ else:
 
 
 class ISvSiteScraper(ABC):
-    _g_dictScraperHeaders = {'User-Agent': 'sv-bot-v1.0',
-                             # 'From': 'root@domain.example'  # This is another valid field
-                             }
 
     def __init__(self):
         self._g_nDelaySec = .5
@@ -95,9 +90,6 @@ class ISvSiteScraper(ABC):
     def set_sv_mysql(self, o_sv_mysql):
         self.__g_oSvMysql = o_sv_mysql
 
-    # def set_chrome_driver(self, o_wd):
-    #     self._g_WdChrome = o_wd
-
     def set_print_func(self, o_func):
         self._printDebug = o_func
 
@@ -112,17 +104,17 @@ class ISvSiteScraper(ABC):
         self._g_dictLoginConfig = dict_config
 
     def set_chrome_driver(self):  #, s_chrome_driver_path):
-        # wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-        # yum install google-chrome-stable_current_x86_64.rpm
+        # https://seonghun120614.tistory.com/45  # chrome driver log level, and auto-installer
         chrome_options = Options()
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux':  # heading browser on linux console occurs error
             chrome_options.add_argument('--headless')
         # chrome_options.add_argument('--log-level=3')  # 브라우저 로그 레벨을 낮춤
         # chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
         # chrome_options.add_argument('--disable-loging')  # 로그를 남기지 않음
         # chrome_options.add_argument('--output=/dev/null')
+        # https://beomi.github.io/2017/02/27/HowToMakeWebCrawler-With-Selenium/
         self._g_WdChrome = webdriver.Chrome(chrome_options=chrome_options)  # s_chrome_driver_path,
-        # 암묵적으로 웹 자원 로드를 위해 3초까지 기다려 준다.
+        # wait for loading relevant resources
         self._g_WdChrome.implicitly_wait(3)
 
     def set_storage_path(self, s_storage_path_arg):
@@ -139,7 +131,8 @@ class ISvSiteScraper(ABC):
         if self._g_sSiteUrl is None:
             self._printDebug('site url not designated')
             return
-        self._set_logged_in()
+        if self._g_dictLoginConfig and 'user_name' in self._g_dictLoginConfig and 'password' in self._g_dictLoginConfig:
+            self._set_logged_in()
         dt_today = date.today()
         dt_old = dt_today - timedelta(days=5)
         # for initialize only
@@ -200,11 +193,11 @@ class ISvSiteScraper(ABC):
             del lst_sub_page_all
 
     @abstractmethod
-    def _set_site_config(self, s_cms_type):
+    def _set_site_config(self):
         pass
 
     @abstractmethod
-    def _set_logged_in(self, s_cms_type):
+    def _set_logged_in(self):
         pass
 
     def __is_effective_sub_url(self, s_href):
@@ -252,24 +245,11 @@ class ISvSiteScraper(ABC):
         else:
             lst_rst = self.__g_oSvMysql.executeQuery('insertScrapeLog', s_url, s_fingerprint, s_content, n_status_code)
         if 'id' in lst_rst[0]:
-            # self._save_html(lst_rst[0]['id'], s_html)
-            with open(os.path.join(self.__g_sStoragePath, str(lst_rst[0]['id']) + '.html'), 'w',
-                      encoding='utf-8') as out:
+            s_html = os.path.join(self.__g_sStoragePath, str(lst_rst[0]['id']) + '.html')
+            with open(s_html, 'w', encoding='utf-8') as out:
                 out.write(s_html)
 
-    # def _save_html(self, n_log_srl, s_html):
-    #     with open(os.path.join(self.__g_sStoragePath, str(n_log_srl) + '.html'), 'w', encoding='utf-8') as out:
-    #         out.write(s_html)
-
-    def __read_html(self, n_log_srl):
-        f = open(os.path.join(self.__g_sStoragePath, str(n_log_srl) + '.html'), 'r', encoding='utf-8')
-        s_data = f.read()
-        f.close()
-        return s_data
-
     def __analyze_url(self, s_sub_url=None):
-        # https://seonghun120614.tistory.com/45
-        # chrome driver log level, and auto-installer
         # getting the request from url
         dict_rst = {'s_html': None, 'n_status_code': 0, 's_fingerprint': None, 's_content': '',
                     's_document_date': None, 'lst_anchor': None}
@@ -300,53 +280,23 @@ class ISvSiteScraper(ABC):
             if s_type == 'body':  # if contents body, remove duplicated white space and extract document date
                 dict_rst['s_content'] = re.sub('\s{2,}', ' ', s_finger_print)
                 dict_rst['s_document_date'] = o_soup.select_one(self._g_dictSelector['doc_date']).get_text()
-                # print('body detect')
-                # print(o_soup.select_one(self._g_dictSelector['doc_date']).get_text())
             dict_rst['s_fingerprint'] = hashlib.md5(s_finger_print.encode('utf-8')).hexdigest()
             dict_rst['lst_anchor'] = o_soup.find_all("a")
             del o_soup
         else:
             self._printDebug('failed to request ' + s_scrape_url)
 
-        # o_resp = requests.get(s_scrape_url, headers=self._g_dictScraperHeaders)
-        # self.__g_nRequestCnt += 1
-        # if o_resp.status_code == 200:
-        #     self._printDebug('request ' + s_scrape_url + ' succeed')
-        #     s_html = o_resp.text
-        #     o_soup = BeautifulSoup(s_html, 'html.parser')
-        #     # try extract contents body
-        #     for s_type, s_select in self._g_dictSelector.items():
-        #         s_finger_print = o_soup.select_one(s_select)
-        #         if s_finger_print is not None:
-        #             break
-        #     if s_finger_print is None:  # means neither list nor body page; extract html
-        #         s_finger_print = o_soup.get_text()
-        #         s_type = 'general'
-        #     if type(s_finger_print) == bs4_elem.Tag:
-        #         s_finger_print = s_finger_print.get_text()
-        #     dict_rst['s_html'] = s_html
-        #     if s_type == 'body':  # if contents body, remove duplicated white space and extract document date
-        #         dict_rst['s_content'] = re.sub('\s{2,}', ' ', s_finger_print)
-        #         dict_rst['s_document_date'] = o_soup.select_one(self._g_dictSelector['doc_date']).get_text()
-        #         print('body detect')
-        #         print(o_soup.select_one(self._g_dictSelector['doc_date']).get_text())
-        #     dict_rst['s_fingerprint'] = hashlib.md5(s_finger_print.encode('utf-8')).hexdigest()
-        #     dict_rst['lst_anchor'] = o_soup.find_all("a")
-        #     del o_soup
-        # else:
-        #     self._printDebug('request ' + s_scrape_url + 'failed with status code ' + str(o_resp.status_code))
-
-        # dict_rst['n_status_code'] = o_resp.status_code
-        # o_resp.close()
-        # del o_resp
-
         if s_sub_url:
             self.__append_url_effective(s_sub_url)
         time.sleep(self._g_nDelaySec)  # Sleep for 3 seconds
         return dict_rst
-        # if s_sub_url == '/ask_dr_laundary':
-        #     for i in s.find_all("a"):
-        #         print(i)
+
+    # def __read_html(self, n_log_srl):
+#     f = open(os.path.join(self.__g_sStoragePath, str(n_log_srl) + '.html'), 'r', encoding='utf-8')
+#     s_data = f.read()
+#     f.close()
+#     return s_data
+
 
 # if __name__ == '__main__': # for console debugging
 # 	pass
