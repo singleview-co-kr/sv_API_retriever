@@ -43,6 +43,7 @@ else: # for platform running
 
 class SvDocCollection():
     __g_sFirstDateOfTheUniv = '20000101'
+    __g_nTransferChunk = 2000
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -134,7 +135,7 @@ class SvDocCollection():
 
         self.__print_debug('rsp of LMKL')
         nMsgKey = oResp['variables']['a'][0]
-        if self.__translate_msg_code(nMsgKey) == 'ALD':
+        if self.__translate_msg_code(nMsgKey) == 'ALD':  # add latest data
             #self.__print_debug( 'in resp of add latest data' ) 
             dictRetrieveStuff = oResp['variables']['d']
             if dictRetrieveStuff['aDocSrls'] != 'na':
@@ -151,53 +152,69 @@ class SvDocCollection():
                     dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
 
                 if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
-                    self.__print_debug('begin - doc sync')
-                    dictParams = {'c': [self.__g_dictMsg['GMDL']], 'd': dictRetrieveStuff['aDocSrls']} #  give me document list  -> data: doc_srls
-                    oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-            #if type(dictRetrieveStuff['aComSrls']) == list and len(dictRetrieveStuff['aComSrls']):
-            #    self.__print_debug('begin - comment sync')
-            #    dictParams = {'c': [self.__g_dictMsg['GMCL']], 'd': dictRetrieveStuff['aComSrls']} #  give me comment list  -> data: com_srls
-            #    oResp = self.__post_http( self.__g_sTargetUrl, dictParams )
-            #    # self.__print_debug( type(dictRetrieveStuff['aComSrls']) )
+                    self.__get_docs(dictRetrieveStuff['aDocSrls'])
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
             self.__print_debug('stop communication 1')
-            return
-
-        if not self.__continue_iteration():
-            return
-
-        self.__print_debug('rsp of ALD')
-        nMsgKey = oResp['variables']['a'][0]
-        if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
-            self.__print_debug('stop communication 2')
-            return
-
-        n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
-
-        n_idx = 0
-        n_sentinel = len(oResp['variables']['d'])
-        self.__print_debug(str(n_sentinel) + ' documents will be registered into DB.')
-        if n_sentinel:
-            with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-                o_sv_mysql.set_app_name('svplugins.collect_svdoc')
-                o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-                for dict_single_doc in oResp['variables']['d']:
-                    if not self.__continue_iteration():
-                        return
-
-                    n_sv_doc_srl = dict_single_doc['document_srl']
-                    n_sv_module_srl = dict_single_doc['module_srl']
-                    s_title = dict_single_doc['title'].replace(u'\xa0', u'')
-                    s_content = dict_single_doc['content'].replace(u'\xa0', u'')
-                    dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
-                    o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
-                        n_sv_doc_srl, n_sv_module_srl, s_title, s_content, dt_regdate)
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'register sv documents:', suffix = 'Complete', length = 50)
-                    n_idx += 1
-
-        return
     
+    def __get_docs(self, lst_doc_srls):
+        n_iter_cnt = 1
+        lst_partial = []
+        lst_tmp = []
+        for n_doc_srl in lst_doc_srls:
+            if n_iter_cnt % self.__g_nTransferChunk != 0:
+                lst_tmp.append(n_doc_srl)
+            else:
+                lst_tmp.append(n_doc_srl)
+                lst_partial.append(lst_tmp)
+                lst_tmp = []
+            n_iter_cnt += 1
+        # append residual
+        lst_partial.append(lst_tmp)
+        del lst_tmp
+        
+        if len(lst_partial):
+            self.__print_debug('begin - doc sync')
+            n_doc_count = len(lst_doc_srls)
+            for lst_transmit in lst_partial:
+                dict_params = {'c': [self.__g_dictMsg['GMDL']], 'd': lst_transmit} #  give me document list  -> data: doc_srls
+                o_rsp = self.__post_http(self.__g_sTargetUrl, dict_params)
+
+                if not self.__continue_iteration():
+                    return
+
+                self.__print_debug('rsp of ALD')
+                nMsgKey = o_rsp['variables']['a'][0]
+                if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
+                    self.__print_debug('stop communication 2')
+                    return
+
+                n_singleview_referral_code = self.__g_dictSource['singleview_estudio']
+                n_idx = 0
+                n_sentinel = len(o_rsp['variables']['d'])
+                self.__print_debug(str(n_sentinel) + ' out of ' + str(n_doc_count) + ' documents will be registered into DB.')
+                if n_sentinel:
+                    with sv_mysql.SvMySql() as o_sv_mysql:
+                        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                        o_sv_mysql.set_app_name('svplugins.collect_svdoc')
+                        o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
+                        for dict_single_doc in o_rsp['variables']['d']:
+                            if not self.__continue_iteration():
+                                return
+
+                            n_sv_doc_srl = dict_single_doc['document_srl']
+                            n_sv_module_srl = dict_single_doc['module_srl']
+                            s_title = dict_single_doc['title'].replace(u'\xa0', u'')
+                            s_content = dict_single_doc['content'].replace(u'\xa0', u'')
+                            s_answer = dict_single_doc['answer'].replace(u'\xa0', u'')
+                            dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
+                            o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
+                                n_sv_doc_srl, n_sv_module_srl, s_title, s_content, s_answer, dt_regdate)
+                            self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'register sv documents:', suffix = 'Complete', length = 50)
+                            n_idx += 1
+                n_doc_count -= len(lst_transmit)
+            del lst_transmit
+            del lst_partial
+
     def __post_http(self, sTargetUrl, dictParams):
         dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
         dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']

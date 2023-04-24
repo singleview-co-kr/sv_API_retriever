@@ -5,6 +5,7 @@ CREATE TABLE `wc_document_log` (
   `module_srl` bigint(11) NOT NULL,
   `title` varchar(250) NOT NULL,
   `content` LongText NOT NULL,
+  `answer` LongText NOT NULL,
   `b_proc` char(1) NOT NULL DEFAULT '0',
   `logdate` DATETIME NOT NULL,
   `regdate` DATETIME DEFAULT NOW(),
