@@ -128,19 +128,21 @@ class SvDocCollection():
             return
 
         dict_date_param = {'s_begin_date': s_begin_date_to_sync, 's_end_date': s_end_date_to_sync}
-        dictParams = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
-        oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
+        dict_params = {'c': [self.__g_dictMsg['LMKL']], 'd':  dict_date_param}
+        o_resp = self.__post_http(self.__g_sTargetUrl, dict_params)
+        del dict_date_param
+        del dict_params
         if not self.__continue_iteration():
             return
 
         self.__print_debug('rsp of LMKL')
-        nMsgKey = oResp['variables']['a'][0]
-        if self.__translate_msg_code(nMsgKey) == 'ALD':  # add latest data
+        s_resp_msg = self.__translate_msg_code(o_resp['variables']['a'][0])
+        if s_resp_msg == 'ALD':  # add latest data
             #self.__print_debug( 'in resp of add latest data' ) 
-            dictRetrieveStuff = oResp['variables']['d']
-            if dictRetrieveStuff['aDocSrls'] != 'na':
+            dict_retrieve_stuff = o_resp['variables']['d']
+            if dict_retrieve_stuff['aDocSrls'] != 'na':
                 # check already registered doc_srl
-                lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
+                lst_doc_srl = [str(doc_srl) for doc_srl in dict_retrieve_stuff['aDocSrls']]
                 with sv_mysql.SvMySql() as o_sv_mysql:
                     o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
                     o_sv_mysql.set_app_name('svplugins.collect_svdoc')
@@ -149,12 +151,13 @@ class SvDocCollection():
                     lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
                 del dict_param
                 for dict_rec in lst_duplicated_doc_srls:
-                    dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
+                    dict_retrieve_stuff['aDocSrls'].remove(dict_rec['document_srl'])
 
-                if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
-                    self.__get_docs(dictRetrieveStuff['aDocSrls'])
-        elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
+                if type(dict_retrieve_stuff['aDocSrls']) == list and len(dict_retrieve_stuff['aDocSrls']):
+                    self.__get_docs(dict_retrieve_stuff['aDocSrls'])
+        elif s_resp_msg == 'FIN': # nothing to sync
             self.__print_debug('stop communication 1')
+        del o_resp
     
     def __get_docs(self, lst_doc_srls):
         n_iter_cnt = 1
@@ -200,7 +203,6 @@ class SvDocCollection():
                         for dict_single_doc in o_rsp['variables']['d']:
                             if not self.__continue_iteration():
                                 return
-
                             n_sv_doc_srl = dict_single_doc['document_srl']
                             n_sv_module_srl = dict_single_doc['module_srl']
                             s_title = dict_single_doc['title'].replace(u'\xa0', u'')
@@ -215,19 +217,19 @@ class SvDocCollection():
             del lst_transmit
             del lst_partial
 
-    def __post_http(self, sTargetUrl, dictParams):
-        dictParams['secret'] = self.__g_oConfig['basic']['sv_secret_key']
-        dictParams['iv'] = self.__g_oConfig['basic']['sv_iv']
-        oSvHttp = sv_http.SvHttpCom(sTargetUrl)
-        oResp = oSvHttp.postUrl(dictParams)
-        oSvHttp.close()
-        if oResp['error'] == -1:
-            sTodo = oResp['variables']['todo']
-            if sTodo:
+    def __post_http(self, s_target_url, dict_params):
+        dict_params['secret'] = self.__g_oConfig['basic']['sv_secret_key']
+        dict_params['iv'] = self.__g_oConfig['basic']['sv_iv']
+        o_sv_http = sv_http.SvHttpCom(s_target_url)
+        o_rsp = o_sv_http.postUrl(dict_params)
+        o_sv_http.close()
+        if o_rsp['error'] == -1:
+            s_todo = o_rsp['variables']['todo']
+            if s_todo:
                 self.__print_debug('HTTP response raised exception!!')
-                raise Exception(sTodo)
+                raise Exception(s_todo)
         else:
-            return oResp
+            return o_rsp
 
     def __translate_msg_code(self, nMsgKey):
         for sMsg, nKey in self.__g_dictMsg.items():
