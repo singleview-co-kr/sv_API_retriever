@@ -25,7 +25,6 @@
 # standard library
 import logging
 import sys
-import csv
 import os
 import re
 import json
@@ -34,11 +33,18 @@ import time
 import shutil
 from datetime import datetime
 from urllib import parse
+from random import choice
+import requests
+from requests.exceptions import ProxyError
+from requests.exceptions import SSLError
+from requests.exceptions import ConnectTimeout
+from requests.exceptions import ChunkedEncodingError
+from requests.exceptions import ReadTimeout
+from requests.exceptions import ConnectionError
 
 # 3rd-party library
-import scrapy
-from scrapy.spiders import CrawlSpider
-from scrapy.crawler import CrawlerProcess
+from bs4 import BeautifulSoup
+from lxml import etree
 
 # singleview library
 if __name__ == '__main__': # for console debugging
@@ -61,7 +67,7 @@ else: # for platform running
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oHtmlRemover = re.compile(r"<[^<]+?>")
-    __g_nDelaySec = 10
+    __g_nDelaySec = 2
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -137,69 +143,126 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
         elif self.__g_sMode == 'update_kin_date':
-            s_sv_acct_id = dict_acct_info['sv_account_id']
-            s_brand_id = dict_acct_info['brand_id']
-            self.__g_sStoragePath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
-                                                 s_brand_id, 'naver_search')
-            s_kin_html_path = os.path.join(self.__g_sStoragePath, 'kin_html')
-            if not os.path.isdir(s_kin_html_path):
-                os.makedirs(s_kin_html_path)
-            s_conf_path = os.path.join(self.__g_sStoragePath, 'conf')
-
-            o_sv_mysql = sv_mysql.SvMySql()
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
-            o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
-            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
-
-            n_url_cnt = len(lst_nvsearch_log)
-            self._printDebug('crawling task will take ' + str(int(n_url_cnt * self.__g_nDelaySec / 60)) + ' mins at most')
-            if n_url_cnt:  # limit 300 urls per a trial
-                self._printDebug(str(n_url_cnt) + ' urls will be scrapped')
-                s_conf_file_path = 'naver_kin_' + str(lst_nvsearch_log[0]['log_srl']) + '_' + str(
-                    lst_nvsearch_log[-1]['log_srl']) + '.csv'
-                s_csv_path = os.path.join(s_conf_path, s_conf_file_path)
-
-                o_scraper = CrawlerProcess({
-                    'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36',
-                    'FEED_FORMAT': 'csv',
-                    'FEED_URI': s_csv_path,
-                    # 'DEPTH_LIMIT': 2,
-                    'CLOSESPIDER_PAGECOUNT': 300,  # limit 300 urls per a trial
-                    'ROBOTSTXT_OBEY': False,
-                    # Minimum seconds to wait between 2 consecutive requests to the same domain.
-                    'DOWNLOAD_DELAY': self.__g_nDelaySec,
-                    'LOG_LEVEL': 'INFO',
-                })
-                o_scraper.crawl(NvrKinSpider, s_kin_html_path=s_kin_html_path, lst_urls=lst_nvsearch_log)
-                o_scraper.start()
-                del o_scraper
-
-                f = open(s_csv_path, 'r')
-                o_rdr = csv.reader(f)
-                next(o_rdr, None)  # skip the headers
-                for lst_line in o_rdr:
-                    if len(lst_line[1]):  # available to access and get post date
-                        if lst_line[1].find('시간') == -1:  # 2023.03.19
-                            s_logdate = lst_line[1]
-                        else:  # 15시간 전
-                            s_logdate = datetime.today().strftime('%Y.%m.%d')
-                        o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_logdate, lst_line[0])
-                    else:  # not available to access and get post date
-                        o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', lst_line[0])
-                del o_rdr
-                f.close()
-                self.__archive_kin_html_file(s_conf_path, s_conf_file_path)
-            del o_sv_mysql
-            s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
-            o_slack = sv_slack.SvSlack('dbs')
-            # o_slack.sendMsg(s_brand_name + ' scraping has been finished successfully')
-            del o_slack
+            self.__update_kin_date(dict_acct_info)
         else:
             self._printDebug('mode is not specified.')
 
         self._task_post_proc(self._g_oCallback)
-    
+
+    def __update_kin_date(self, dict_acct_info):
+        s_sv_acct_id = dict_acct_info['sv_account_id']
+        s_brand_id = dict_acct_info['brand_id']
+        self.__g_sStoragePath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
+                                             s_brand_id, 'naver_search', 'kin_html')
+        if not os.path.isdir(self.__g_sStoragePath):
+            os.makedirs(self.__g_sStoragePath)
+
+        o_sv_mysql = sv_mysql.SvMySql()
+        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+        o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
+        o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+        lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
+        # lst_nvsearch_log = [
+        #     {'log_srl': 15528, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=11&dirId=111603&docId=439302437'},
+        #     {'log_srl': 15567, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=6&dirId=611&docId=439012841'}]
+
+        n_url_cnt = len(lst_nvsearch_log)
+        self._printDebug('crawling task will take ' + str(int(n_url_cnt * self.__g_nDelaySec / 60)) + ' mins at most')
+
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36",
+            # "content-type": "application/json",
+        }
+        lst_proxy = []  #self.__get_proxy_list()
+
+        s_proxy_server = None
+        dict_log = None
+        while True:
+            if s_proxy_server is None:
+                if len(lst_proxy) == 0:
+                    lst_proxy = self.__get_proxy_list()
+                # self._printDebug(f'proxy len: {len(lst_proxy)}')
+                s_proxy_server = choice(lst_proxy)
+                proxies = {"http": s_proxy_server, 'https': s_proxy_server}
+                # self._printDebug(f'set proxies: {proxies}')
+
+            if dict_log is None:
+                dict_log = lst_nvsearch_log.pop(0)
+            self._printDebug('access ' + dict_log['link'] + ' via ' + proxies['https'])
+            o_resp = None
+            try:
+                o_resp = requests.get(dict_log['link'], headers=headers, proxies=proxies, timeout=5)
+            except (ProxyError, SSLError, ConnectTimeout, ChunkedEncodingError, ReadTimeout, ConnectionError) as e:
+                lst_proxy.remove(s_proxy_server)
+                s_proxy_server = None
+
+            if o_resp:
+                o_soup = BeautifulSoup(o_resp.text, 'html.parser')
+                o_dom = etree.HTML(str(o_soup))  # 15567 끌올
+                lst_pub_date = o_dom.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/span[1]/text()')
+                n_elem = len(lst_pub_date)
+
+                if n_elem == 1:  # available to access and get post date + hidden naver nickname
+                    s_pub_date = lst_pub_date[0]
+                elif n_elem == 2:  # available to access and get post date + shown naver nickname
+                    s_pub_date = lst_pub_date[1]
+                else:
+                    s_pub_date = None
+
+                if s_pub_date:
+                    if s_pub_date.find('시간') == -1:  # 2023.03.19
+                        pass
+                    else:  # 15시간 전
+                        s_pub_date = datetime.today().strftime('%Y.%m.%d')
+                    print(str(dict_log['log_srl']) + ' tagged ' + s_pub_date)
+                    o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_pub_date, dict_log['log_srl'])
+                    self.__save_html(dict_log['log_srl'], o_resp.text)
+                else:   # adult only kin posting has been restricted
+                    print(str(dict_log['log_srl']) + ' toggled')
+                    o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', dict_log['log_srl'])
+
+                del o_resp
+                del o_dom
+                dict_log = None
+                time.sleep(self.__g_nDelaySec)
+                if len(lst_nvsearch_log) == 0:
+                    break
+        del o_sv_mysql
+        s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
+        o_slack = sv_slack.SvSlack('dbs')
+        o_slack.sendMsg(s_brand_name + ' scraping has been finished successfully')
+        del o_slack
+
+    def __save_html(self, n_log_srl, s_html):
+        s_html_file_path = os.path.join(self.__g_sStoragePath, str(n_log_srl) + '.html')
+        with open(s_html_file_path, 'w', encoding='utf-8') as out:
+            out.write(s_html)
+
+    def __get_proxy_list(self):
+        o_resp = requests.get("https://free-proxy-list.net/")
+        o_soup = BeautifulSoup(o_resp.text, 'html.parser')
+        del o_resp
+        o_proxy_tbl = o_soup.select_one('#list > div > div.table-responsive > div > table > tbody')
+        # lst_allowed_country = ['KR', 'JP', 'US', 'TW', 'SG', 'HK']
+        lst_proxy = []
+        lst_tr = o_proxy_tbl.find_all("tr")
+        for o_tr in lst_tr:
+            s_ip = o_tr.select_one('td:nth-of-type(1)').get_text()
+            s_port = o_tr.select_one('td:nth-of-type(2)').get_text()
+            s_code = o_tr.select_one('td:nth-of-type(3)').get_text()
+            s_https = o_tr.select_one('td:nth-of-type(7)').get_text()
+            # if s_code in lst_allowed_country and s_https == "yes":
+            if s_https == "yes":
+                s_server = f"{s_ip}:{s_port}"
+                lst_proxy.append(s_server)
+        self._printDebug('retrieve ' + str(len(lst_proxy)) + ' new proxies')
+        del o_soup
+        del o_proxy_tbl
+        # del lst_allowed_country
+        del lst_tr
+        del o_tr
+        return lst_proxy
+
     def __get_keyword_from_nvsearch(self, n_param_morpheme_srl, s_param_morpheme):
         """ retrieve text from naver search API """        
         o_sv_nvsearch = sv_search_api.SvNvSearch()
@@ -430,45 +493,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_link = parse.urlunparse(o_link_parsed)
         del o_link_parsed, s_new_query, dict_query
         return s_link
-
-
-class NvrKinSpider(CrawlSpider):
-    name = "nvr_kin_publish_date_bot"
-    allowed_domains = ["kin.naver.com"]
-
-    # start_urls = ['http://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001']
-
-    def __init__(self, s_kin_html_path, lst_urls, *a, **kw):
-        super(NvrKinSpider, self).__init__(*a, **kw)
-        self.__g_lstUrl = lst_urls
-        self.__g_sKinHtmlPath = s_kin_html_path
-
-    def __del__(self):
-        """ __del__() is not executed if try except occurred """
-        self.__g_lstUrl = None
-        self.__g_sKinHtmlPath = None
-
-    def start_requests(self):
-        # https://stackoverflow.com/questions/32252201/passing-a-argument-to-a-callback-function
-        for dict_record in self.__g_lstUrl:
-            yield scrapy.Request(url=dict_record['link'], callback=self.parse,
-                                 cb_kwargs=dict(n_log_srl=dict_record['log_srl']))
-
-    def parse(self, response, n_log_srl):
-        # backup scrapped HTML source
-        with open(os.path.join(self.__g_sKinHtmlPath, str(n_log_srl) + '.html'), 'w', encoding='utf-8') as out:
-            out.write(response.text)
-        s_pub_date = response.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/span[1]/text()').extract_first()
-        try:
-            s_pub_date_stripped = s_pub_date.strip()  # 2023.02.02
-        except AttributeError as err:  # adult only kin posting has been restricted
-            # print(str(n_log_srl) + ' can\'t extract pub_date from adult only kin posting')
-            s_pub_date_stripped = ''
-        scraped_info = {
-            'n_log_srl': n_log_srl,
-            's_pub_date': s_pub_date_stripped,  # 2023.02.02
-        }
-        yield scraped_info
 
 
 if __name__ == '__main__': # for console debugging
