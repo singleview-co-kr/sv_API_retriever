@@ -114,6 +114,7 @@ class ISvSiteScraper(ABC):
         # chrome_options.add_argument('--output=/dev/null')
         # https://beomi.github.io/2017/02/27/HowToMakeWebCrawler-With-Selenium/
         self._g_WdChrome = webdriver.Chrome(chrome_options=chrome_options)  # s_chrome_driver_path,
+        self._g_WdChrome.set_page_load_timeout(10)  # timeout 10 sec
         # wait for loading relevant resources
         self._g_WdChrome.implicitly_wait(3)
 
@@ -245,20 +246,20 @@ class ISvSiteScraper(ABC):
         else:
             lst_rst = self.__g_oSvMysql.executeQuery('insertScrapeLog', s_url, s_fingerprint, s_content, n_status_code)
         if 'id' in lst_rst[0]:
-            s_html = os.path.join(self.__g_sStoragePath, str(lst_rst[0]['id']) + '.html')
-            with open(s_html, 'w', encoding='utf-8') as out:
+            s_backup_path = os.path.join(self.__g_sStoragePath, str(lst_rst[0]['id']) + '.html')
+            with open(s_backup_path, 'w', encoding='utf-8') as out:
                 out.write(s_html)
 
     def __analyze_url(self, s_sub_url=None):
         # getting the request from url
-        dict_rst = {'s_html': None, 'n_status_code': 0, 's_fingerprint': None, 's_content': '',
+        dict_rst = {'s_html': '', 'n_status_code': 0, 's_fingerprint': None, 's_content': '',
                     's_document_date': None, 'lst_anchor': None}
         s_scrape_url = self._g_sSiteUrl if s_sub_url is None else self._g_sSiteUrl + s_sub_url
 
         try:
             self._g_WdChrome.get(s_scrape_url)
             dict_rst['n_status_code'] = 200
-        except selenium_exceptions.WebDriverException:
+        except selenium_exceptions.WebDriverException:  # include more than 10 secs timeout
             dict_rst['n_status_code'] = 400
 
         self.__g_nRequestCnt += 1
@@ -290,12 +291,6 @@ class ISvSiteScraper(ABC):
             self.__append_url_effective(s_sub_url)
         time.sleep(self._g_nDelaySec)  # Sleep for 3 seconds
         return dict_rst
-
-    # def __read_html(self, n_log_srl):
-#     f = open(os.path.join(self.__g_sStoragePath, str(n_log_srl) + '.html'), 'r', encoding='utf-8')
-#     s_data = f.read()
-#     f.close()
-#     return s_data
 
 
 # if __name__ == '__main__': # for console debugging
