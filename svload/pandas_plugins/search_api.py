@@ -322,13 +322,14 @@ class SearchApiRaw:
             # end - Retrieve twitter API collection count
         else:
             df_period_data_raw_yt = pd.DataFrame()
-
+        
+        lst_logdate_nvr_media = ['blog', 'news', 'kin']
         if 'naver' in lst_source_to_retrieve:
             # begin - Retrieve naver search API collection count
             dict_media_lbl_id = self.__get_nvr_media_info()
             lst_gross_naver_raw_data = []
             for s_media_lbl, n_media_id in dict_media_lbl_id.items():
-                if s_media_lbl == 'blog' or s_media_lbl == 'news':  # news blog > logdate, 
+                if s_media_lbl in lst_logdate_nvr_media:  # news blog kin > logdate, 
                     lst_raw_data = self.__g_oSvDb.executeQuery('getNvrSearchApiCntByLogdatePeriod',
                                                                 self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate,
                                                                 n_media_id)
