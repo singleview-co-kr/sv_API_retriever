@@ -72,7 +72,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230417)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230428)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -166,9 +166,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #     {'log_srl': 15528, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=11&dirId=111603&docId=439302437'},
         #     {'log_srl': 15567, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=6&dirId=611&docId=439012841'}]
 
-        n_url_cnt = len(lst_nvsearch_log)
-        self._printDebug('crawling task will take ' + str(int(n_url_cnt * self.__g_nDelaySec / 60)) + ' mins at most')
+        n_sentinel = len(lst_nvsearch_log)
+        if n_sentinel == 0:
+            self._printDebug('no more crawling task to proceed')
+            return
 
+        # self._printDebug('crawling task will take ' + str(int(n_sentinel * self.__g_nDelaySec / 60)) + ' mins at most')
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36",
             # "content-type": "application/json",
@@ -177,6 +180,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         s_proxy_server = None
         dict_log = None
+
+        n_idx = 0
         while True:
             if s_proxy_server is None:
                 if len(lst_proxy) == 0:
@@ -188,7 +193,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             if dict_log is None:
                 dict_log = lst_nvsearch_log.pop(0)
-            self._printDebug('access ' + dict_log['link'] + ' via ' + proxies['https'])
+            # self._printDebug('access ' + dict_log['link'] + ' via ' + proxies['https'])
             o_resp = None
             try:
                 o_resp = requests.get(dict_log['link'], headers=headers, proxies=proxies, timeout=5)
@@ -214,16 +219,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         pass
                     else:  # 15시간 전
                         s_pub_date = datetime.today().strftime('%Y.%m.%d')
-                    print(str(dict_log['log_srl']) + ' tagged ' + s_pub_date)
+                    # self._printDebug(str(dict_log['log_srl']) + ' tagged ' + s_pub_date)
                     o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_pub_date, dict_log['log_srl'])
                     self.__save_html(dict_log['log_srl'], o_resp.text)
-                else:   # adult only kin posting has been restricted
-                    print(str(dict_log['log_srl']) + ' toggled')
+                else:  # adult only kin posting has been restricted
+                    # self._printDebug(str(dict_log['log_srl']) + ' toggled')
                     o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', dict_log['log_srl'])
-
                 del o_resp
                 del o_dom
                 dict_log = None
+                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'retrieve NVR kin post date:', suffix = 'Complete', length = 50)
+                n_idx += 1
                 time.sleep(self.__g_nDelaySec)
                 if len(lst_nvsearch_log) == 0:
                     break
