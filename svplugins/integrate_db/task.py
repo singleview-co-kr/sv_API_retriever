@@ -72,7 +72,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230118)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230517)')
         
         self._g_dictParam.update({'yyyymm': None, 'mode': None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -380,6 +380,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__merge_googleads_log()
         if len(self.__g_dictYtMergedDailyLog) > 0:  # only if YT ads exists
             self.__merge_yt_log()
+        else:  # YT out-lading ads without any in-bound session case
+            lst_yt_log_daily = self.__g_oSvMysql.executeQuery('getAdwLogDaily', self.__g_sDate, self.__g_dictSourceTitleTag['youtube'])
+            if len(lst_yt_log_daily):
+                self.__merge_yt_log()
+            del lst_yt_log_daily
         if len(self.__g_dictFbMergedDailyLog) > 0:  # only if facebook business log exists
             self.__merge_fb_log()
         if len(self.__g_dictKkoMergedDailyLog) > 0:  # only if kakao moment log exists
