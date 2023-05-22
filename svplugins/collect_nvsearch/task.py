@@ -72,7 +72,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230428)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230522)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -162,10 +162,6 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
-        # lst_nvsearch_log = [
-        #     {'log_srl': 15528, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=11&dirId=111603&docId=439302437'},
-        #     {'log_srl': 15567, 'link': 'https://kin.naver.com/qna/detail.naver?d1id=6&dirId=611&docId=439012841'}]
-
         n_sentinel = len(lst_nvsearch_log)
         if n_sentinel == 0:
             self._printDebug('no more crawling task to proceed')
@@ -176,31 +172,30 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             "user-agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36",
             # "content-type": "application/json",
         }
-        lst_proxy = []  #self.__get_proxy_list()
-
+        lst_proxy = []
         s_proxy_server = None
         dict_log = None
-
         n_idx = 0
         while True:
             if s_proxy_server is None:
                 if len(lst_proxy) == 0:
                     lst_proxy = self.__get_proxy_list()
-                # self._printDebug(f'proxy len: {len(lst_proxy)}')
-                s_proxy_server = choice(lst_proxy)
+                if len(lst_proxy):
+                    s_proxy_server = choice(lst_proxy)
+                else:
+                    self._printDebug("wait 2 seconds from now on...")
+                    time.sleep(2)
+                    continue
                 proxies = {"http": s_proxy_server, 'https': s_proxy_server}
-                # self._printDebug(f'set proxies: {proxies}')
 
             if dict_log is None:
                 dict_log = lst_nvsearch_log.pop(0)
-            # self._printDebug('access ' + dict_log['link'] + ' via ' + proxies['https'])
             o_resp = None
             try:
                 o_resp = requests.get(dict_log['link'], headers=headers, proxies=proxies, timeout=5)
             except (ProxyError, SSLError, ConnectTimeout, ChunkedEncodingError, ReadTimeout, ConnectionError) as e:
                 lst_proxy.remove(s_proxy_server)
                 s_proxy_server = None
-
             if o_resp:
                 o_soup = BeautifulSoup(o_resp.text, 'html.parser')
                 o_dom = etree.HTML(str(o_soup))  # 15567 끌올
@@ -219,11 +214,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         pass
                     else:  # 15시간 전
                         s_pub_date = datetime.today().strftime('%Y.%m.%d')
-                    # self._printDebug(str(dict_log['log_srl']) + ' tagged ' + s_pub_date)
                     o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_pub_date, dict_log['log_srl'])
                     self.__save_html(dict_log['log_srl'], o_resp.text)
                 else:  # adult only kin posting has been restricted
-                    # self._printDebug(str(dict_log['log_srl']) + ' toggled')
                     o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', dict_log['log_srl'])
                 del o_resp
                 del o_dom
@@ -249,6 +242,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_soup = BeautifulSoup(o_resp.text, 'html.parser')
         del o_resp
         o_proxy_tbl = o_soup.select_one('#list > div > div.table-responsive > div > table > tbody')
+        del o_soup
         # lst_allowed_country = ['KR', 'JP', 'US', 'TW', 'SG', 'HK']
         lst_proxy = []
         lst_tr = o_proxy_tbl.find_all("tr")
@@ -258,11 +252,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_code = o_tr.select_one('td:nth-of-type(3)').get_text()
             s_https = o_tr.select_one('td:nth-of-type(7)').get_text()
             # if s_code in lst_allowed_country and s_https == "yes":
+            # print(s_https )
             if s_https == "yes":
                 s_server = f"{s_ip}:{s_port}"
                 lst_proxy.append(s_server)
+        #if len(lst_proxy) == 0:  # select http proxy serve if no https server
+        #    for o_tr in lst_tr:
+        #        s_ip = o_tr.select_one('td:nth-of-type(1)').get_text()
+        #        s_port = o_tr.select_one('td:nth-of-type(2)').get_text()
+        #        s_code = o_tr.select_one('td:nth-of-type(3)').get_text()
+        #        s_https = o_tr.select_one('td:nth-of-type(7)').get_text()
+        #        s_server = f"{s_ip}:{s_port}"
+        #        lst_proxy.append(s_server)
         self._printDebug('retrieve ' + str(len(lst_proxy)) + ' new proxies')
-        del o_soup
         del o_proxy_tbl
         # del lst_allowed_country
         del lst_tr
