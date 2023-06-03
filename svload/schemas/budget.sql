@@ -10,7 +10,7 @@ CREATE TABLE `budget` (
   `actual_amnt_inc_vat` INT(11) NOT NULL DEFAULT 0,
   `date_begin` DATE NOT NULL,
   `date_end` DATE NOT NULL,
-  `closed` char(1) NOT NULL DEFAULT 0,
+  `deleted` char(1) NOT NULL DEFAULT 0,
   `regdate` DATETIME DEFAULT NOW() NOT NULL,
    PRIMARY KEY (`id`),
    KEY `idx_period` (`date_begin`, `date_end`)

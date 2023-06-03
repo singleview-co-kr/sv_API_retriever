@@ -339,7 +339,7 @@ class Budget:
                                         dict_budget['dt_budget_alloc_yr_mo'].month, dict_budget['s_budget_memo'],
                                         dict_budget['n_budget_target_amnt_inc_vat'],
                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'],
-                                        n_budget_id)
+                                        dict_budget['n_budget_deleted'],n_budget_id)
             del dict_budget
         return dict_rst
 
@@ -376,6 +376,10 @@ class Budget:
         else:
             n_media_agency_id = 0
 
+        if request.POST.get('budget_deleted', None):
+            n_budget_deleted = 1
+        else:
+            n_budget_deleted = 0
         s_budget_alloc_period = strip_tags(request.POST['budget_alloc_period'].strip())
         s_budget_memo = strip_tags(request.POST['budget_memo'].strip())  # <script>console.log('dd')</script> 방지해야 함
         s_budget_target_amnt_inc_vat = request.POST['budget_target_amnt_inc_vat'].strip()
@@ -411,7 +415,8 @@ class Budget:
         dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'n_media_agency_id': n_media_agency_id,
                                 'dt_budget_alloc_yr_mo': dt_budget_alloc_yr_mo, 's_budget_memo': s_budget_memo,
                                 'n_budget_target_amnt_inc_vat': n_budget_target_amnt_inc_vat,
-                                'dt_budget_date_begin': dt_budget_date_begin, 'dt_budget_date_end': dt_budget_date_end}
+                                'dt_budget_date_begin': dt_budget_date_begin, 'dt_budget_date_end': dt_budget_date_end,
+                                'n_budget_deleted': n_budget_deleted}
         return dict_rst
 
     def __get_gross_cost_inc_vat(self, dict_acct_info, dt_budget_date_begin):
