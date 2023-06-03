@@ -18,24 +18,7 @@ class Budget:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     __g_dictBudgetType = {}
-    # __g_dictBudgetType = {1: {'title': 'GOOGLE_ADS', 'media_rst_type': 'PS', 'media_source': 'google',
-    #                           'media_media': 'cpc', 'desc': 'GDN, 구글 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
-    #                       2: {'title': 'YOUTUBE', 'media_rst_type': 'PS', 'media_source': 'youtube',
-    #                           'media_media': 'display', 'desc': '유튜브 동영상 광고 예산', 'camp_prefix': 'YT_PS_DISP_'},
-    #                       3: {'title': 'FACEBOOK', 'media_rst_type': 'PS', 'media_source': 'facebook',
-    #                           'media_media': 'cpc', 'desc': '페이스북 광고 예산', 'camp_prefix': 'FB_PS_CPC_'},
-    #                       4: {'title': 'NVR_CPC', 'media_rst_type': 'PS', 'media_source': 'naver',
-    #                           'media_media': 'cpc', 'desc': '네이버 키워드 광고 예산', 'camp_prefix': 'GG_PS_CPC_'},
-    #                       5: {'title': 'NVR_SEO', 'media_rst_type': 'PNS', 'media_source': 'naver',
-    #                           'media_media': 'organic', 'desc': '네이버 블로그 바이럴 예산', 'camp_prefix': 'NV_PNS_REF_'},
-    #                       6: {'title': 'NVR_BRS', 'media_rst_type': 'PS', 'media_source': 'naver',
-    #                           'media_media': 'display', 'desc': '네이버 브랜드 검색 페이지 예산', 'camp_prefix': 'NV_PS_DISP_'},
-    #                       7: {'title': 'KAKAO_CPC', 'media_rst_type': 'PS', 'media_source': 'kakao',
-    #                           'media_media': 'cpc', 'desc': '카카오 모먼트 예산', 'camp_prefix': 'KKO_PS_CPC_'},
-    #                       100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
-    #                             'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
-    #                       }
-
+    
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
         self.__g_oSvDb = o_sv_db
@@ -212,7 +195,7 @@ class Budget:
         lst_rst = self.__g_oSvDb.executeQuery('getBudgetDetailByPeriod', dt_earliest_req, dt_latest_req)
         lst_added_rst = []
         n_tgt_budget_inc_vat = 0
-        dict_unique_rst_type_source_media_begin_dt = {}
+        n_act_spent_inc_vat = 0
         for dict_budget in lst_rst:
             b_gross_cost_inc_vat_proc = False
             n_gross_cost_inc_vat = 0
@@ -227,14 +210,14 @@ class Budget:
                     b_gross_cost_inc_vat_proc = True
                 # if budget period is between today
                 elif dict_budget['date_begin'] <= dt_today <= dict_budget['date_end']:
-                    n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])    
+                    n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget)
                     b_gross_cost_inc_vat_proc = True
                 elif dict_budget['date_end'] < dt_today:  # if budget end date is past than today
                     n_gross_cost_inc_vat = dict_budget['target_amnt_inc_vat']
                     b_gross_cost_inc_vat_proc = True
 
             if not b_gross_cost_inc_vat_proc:
-                n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])
+                n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget)
                 
             if dict_budget['media_agency_id'] == 0:
                 s_media_agency = 'N/A'
@@ -267,21 +250,9 @@ class Budget:
                     'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
             
             n_tgt_budget_inc_vat += int(dict_budget['target_amnt_inc_vat'])
-            # begin - append unique budget dict - id is camp_prefix_date_begin
-            if dict_acct_info['camp_prefix'] in ['YT_PS_DISP_', 'FB_PS_CPC_']:
-                s_budget_unique_id = dict_acct_info['camp_prefix']
-            else:
-                s_budget_unique_id = dict_budget['memo'].strip()
-            s_budget_unique_id += s_alloc_yr_mo
-            dict_unique_rst_type_source_media_begin_dt[s_budget_unique_id] = int(n_gross_cost_inc_vat)
-            # end - append unique budget dict - id is camp_prefix_date_begin
+            n_act_spent_inc_vat += int(n_gross_cost_inc_vat)
             # end - build monthly budget bar-graph info
         del lst_rst
-        
-        n_act_spent_inc_vat = 0
-        for _, n_act_amnt in dict_unique_rst_type_source_media_begin_dt.items():
-            n_act_spent_inc_vat += n_act_amnt
-        del dict_unique_rst_type_source_media_begin_dt
         # begin - reorganize index to draw budget progress graph
         lst_budget_monthly_period = []
         lst_budget_monthly_tgt = []
@@ -426,15 +397,34 @@ class Budget:
                                 'n_budget_deleted': n_budget_deleted}
         return dict_rst
 
-    def __get_gross_cost_inc_vat(self, dict_acct_info, dt_budget_date_begin):
-        dt_first_day_budget_month = dt_budget_date_begin.replace(day=1)
-        dt_last_day_budget_month = self.__get_last_day_of_month(dt_first_day_budget_month)
-        lst_cost_rst = self.__g_oSvDb.executeQuery('getMediaExpense',
-                                                   dict_acct_info['media_rst_type'],
-                                                   dict_acct_info['media_source'],
-                                                   dict_acct_info['media_media'],
-                                                   dt_first_day_budget_month,
-                                                   dt_last_day_budget_month)
+    def __get_gross_cost_inc_vat(self, dict_acct_info, dict_budget):
+        lst_campaign_level_chk = ['YT_PS_DISP_', 'FB_PS_CPC_']
+        b_campaign_lvl = False
+        if dict_acct_info['camp_prefix'] in lst_campaign_level_chk:
+            for s_prefix in lst_campaign_level_chk:
+                if dict_budget['memo'].startswith(s_prefix):
+                    b_campaign_lvl = True
+                    break
+        if b_campaign_lvl:  # campaign level aggregation
+            lst_campaign_id = dict_budget['memo'].replace(s_prefix, '').split('_')
+            lst_cost_rst = self.__g_oSvDb.executeQuery('getCampaignLevelExpense',
+                                                       dict_acct_info['media_rst_type'],
+                                                       dict_acct_info['media_source'],
+                                                       dict_acct_info['media_media'],
+                                                       lst_campaign_id[0],
+                                                       lst_campaign_id[1],
+                                                       lst_campaign_id[2],
+                                                       dict_budget['date_begin'],
+                                                       dict_budget['date_end'])
+        else:  # source medium level aggregation
+            dt_first_day_budget_month = dict_budget['date_begin'].replace(day=1)
+            dt_last_day_budget_month = self.__get_last_day_of_month(dt_first_day_budget_month)
+            lst_cost_rst = self.__g_oSvDb.executeQuery('getSourceRstMediaLevelExpense',
+                                                       dict_acct_info['media_rst_type'],
+                                                       dict_acct_info['media_source'],
+                                                       dict_acct_info['media_media'],
+                                                       dt_first_day_budget_month,
+                                                       dt_last_day_budget_month)
         n_gross_cost_inc_vat = 0
         for s_title, n_value in lst_cost_rst[0].items():
             if n_value is not None:
