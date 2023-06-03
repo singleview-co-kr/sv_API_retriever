@@ -212,7 +212,7 @@ class Budget:
         lst_rst = self.__g_oSvDb.executeQuery('getBudgetDetailByPeriod', dt_earliest_req, dt_latest_req)
         lst_added_rst = []
         n_tgt_budget_inc_vat = 0
-        n_act_spent_inc_vat = 0
+        dict_unique_rst_type_source_media_begin_dt = {}
         for dict_budget in lst_rst:
             b_gross_cost_inc_vat_proc = False
             n_gross_cost_inc_vat = 0
@@ -235,12 +235,13 @@ class Budget:
 
             if not b_gross_cost_inc_vat_proc:
                 n_gross_cost_inc_vat = self.__get_gross_cost_inc_vat(dict_acct_info, dict_budget['date_begin'])
-
+                
             if dict_budget['media_agency_id'] == 0:
                 s_media_agency = 'N/A'
             else:
                 s_media_agency = self.__dictAgencyInfo[dict_budget['media_agency_id']]
             s_alloc_yr_mo = str(dict_budget['alloc_yr']) + '{:02d}'.format(dict_budget['alloc_mo'])
+
             # begin - build account level table info
             dict_tmp = {'id': dict_budget['id'], 'title': dict_acct_info['title'],
                         'desc': dict_acct_info['desc'],
@@ -264,21 +265,27 @@ class Budget:
                 dict_budget_monthly[s_alloc_yr_mo] = {
                     'tgt_budget_amnt_inc_vat': int(dict_budget['target_amnt_inc_vat']),
                     'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
-            # try:
-            #     dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['tgt_budget_amnt_inc_vat'] + int(dict_budget['target_amnt_inc_vat'])
-            #     dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] = dict_budget_monthly[s_alloc_yr_mo]['act_spent_amnt_inc_vat'] + int(n_gross_cost_inc_vat)
-            # except KeyError:  # regards exceptional future budget
-            #     dict_budget_monthly[s_alloc_yr_mo] = {'tgt_budget_amnt_inc_vat': int(dict_budget['target_amnt_inc_vat']),
-            #                                           'act_spent_amnt_inc_vat': int(n_gross_cost_inc_vat)}
-            n_tgt_budget_inc_vat = n_tgt_budget_inc_vat + int(dict_budget['target_amnt_inc_vat'])
-            n_act_spent_inc_vat = n_act_spent_inc_vat + int(n_gross_cost_inc_vat)
+            
+            n_tgt_budget_inc_vat += int(dict_budget['target_amnt_inc_vat'])
+            # begin - append unique budget dict - id is camp_prefix_date_begin
+            if dict_acct_info['camp_prefix'] in ['YT_PS_DISP_', 'FB_PS_CPC_']:
+                s_budget_unique_id = dict_acct_info['camp_prefix']
+            else:
+                s_budget_unique_id = dict_budget['memo'].strip()
+            s_budget_unique_id += s_alloc_yr_mo
+            dict_unique_rst_type_source_media_begin_dt[s_budget_unique_id] = int(n_gross_cost_inc_vat)
+            # end - append unique budget dict - id is camp_prefix_date_begin
             # end - build monthly budget bar-graph info
         del lst_rst
+        
+        n_act_spent_inc_vat = 0
+        for _, n_act_amnt in dict_unique_rst_type_source_media_begin_dt.items():
+            n_act_spent_inc_vat += n_act_amnt
+        del dict_unique_rst_type_source_media_begin_dt
         # begin - reorganize index to draw budget progress graph
         lst_budget_monthly_period = []
         lst_budget_monthly_tgt = []
         lst_spent_monthly_act = []
-        # for s_alloc_yr_mo, dict_row in dict_budget_monthly.items():
         # sort dict_budget_monthly by year month tag
         lst_budget_yr_mo = sorted(list(dict_budget_monthly.keys()))
         for s_alloc_yr_mo in lst_budget_yr_mo:
@@ -288,7 +295,7 @@ class Budget:
             lst_spent_monthly_act.append(dict_row['act_spent_amnt_inc_vat'])
         del lst_budget_yr_mo
         del dict_budget_monthly
-        n_tgt_act_gap_inc_vat = abs(n_tgt_budget_inc_vat - n_act_spent_inc_vat)
+        n_tgt_act_gap_inc_vat = n_tgt_budget_inc_vat - n_act_spent_inc_vat
         if n_tgt_act_gap_inc_vat > 0:
             s_tgt_act_gap_status = '여유'
         else:
@@ -298,7 +305,7 @@ class Budget:
                                 'lst_spent_monthly_act': lst_spent_monthly_act,
                                 'n_tgt_budget_inc_vat': n_tgt_budget_inc_vat,
                                 'n_act_spent_inc_vat': n_act_spent_inc_vat,
-                                'n_tgt_act_gap_inc_vat': n_tgt_act_gap_inc_vat,
+                                'n_tgt_act_gap_inc_vat': abs(n_tgt_act_gap_inc_vat),
                                 's_tgt_act_gap_status': s_tgt_act_gap_status,
                                 }
         # end - reorganize index to draw budget progress graph
@@ -422,7 +429,6 @@ class Budget:
     def __get_gross_cost_inc_vat(self, dict_acct_info, dt_budget_date_begin):
         dt_first_day_budget_month = dt_budget_date_begin.replace(day=1)
         dt_last_day_budget_month = self.__get_last_day_of_month(dt_first_day_budget_month)
-
         lst_cost_rst = self.__g_oSvDb.executeQuery('getMediaExpense',
                                                    dict_acct_info['media_rst_type'],
                                                    dict_acct_info['media_source'],
@@ -433,6 +439,7 @@ class Budget:
         for s_title, n_value in lst_cost_rst[0].items():
             if n_value is not None:
                 n_gross_cost_inc_vat = n_gross_cost_inc_vat + n_value
+        del lst_cost_rst
         return n_gross_cost_inc_vat
 
     def __get_last_day_of_month(self, dt_source):
