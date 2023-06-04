@@ -64,11 +64,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'nvad_stat_ad_conversion_detail', 'nvad_stat_ad_detail', 'nvad_stat_ad_extension',
                         'nvad_stat_ad_extension_conversion', 'nvad_stat_expkeyword', 
                         'nvad_stat_naverpay_conversion']
+    __g_nNvrBrsAcctId = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230604)')
         
         self._g_dictParam.update({'mode':None})
         # Declaring a dict outside of __init__ is declaring a class-level variable.
@@ -121,6 +122,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.initialize(self._g_dictSvAcctInfo)
 
         self.__g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
+        
+        # begin - set acct_id to retrieve NVR_BRS recs from the budget tbl
+        if self.__g_nNvrBrsAcctId is None:
+            for n_idx, dict_acct in self.__g_oSvCampaignParser.get_source_medium_type_dict().items():
+                if dict_acct['title'] == 'NVR_BRS':
+                    self.__g_nNvrBrsAcctId = n_idx
+                    break
+        # end - set acct_id to retrieve NVR_BRS recs from the budget tbl
         # alert if last contract info will be expired in 2 days
         self.__check_nv_brspage_contract_last()
 
@@ -391,9 +400,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for s_ua in lst_ua:
-                lst_last_contract_info = o_sv_mysql.executeQuery('getNvrBrsContractLastByUa', s_ua)
+                lst_last_contract_info = o_sv_mysql.executeQuery('getNvrBrsBudgetLastByUa', s_ua)
                 if len(lst_last_contract_info) > 0:
-                    dt_contract_days = lst_last_contract_info[0]['contract_date_end'] - date.today()
+                    dt_contract_days = lst_last_contract_info[0]['date_end'] - date.today()
                     if 0 <= dt_contract_days.days <= 2:
                         self._printDebug('BRS ' + s_ua + ' contract info will be expired in ' + str(dt_contract_days.days) + ' days!')
                 del lst_last_contract_info
@@ -405,17 +414,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_contract_info = o_sv_mysql.executeQuery('getNvrBrsContract', dt_touching_date, dt_touching_date)
-
+            lst_contract_info = o_sv_mysql.executeQuery('getNvrBrsBudget', dt_touching_date, dt_touching_date, self.__g_nNvrBrsAcctId)
         if len(lst_contract_info) > 0:
             dict_rst['detected'] = True  # tag brs info detected even if cost is 0
             for dict_single_contract in lst_contract_info:
-                s_ua = dict_single_contract['ua'] # contract UA
-                if dict_single_contract['contract_id'].startswith('svmanual-'):
+                s_ua = dict_single_contract['ua']  # contract UA
+                n_net_period_cost = dict_single_contract['target_amnt_inc_vat']
+                if n_net_period_cost == 0:
                     dict_rst[s_ua] = -1
                 else:
-                    dt_contract_days = dict_single_contract['contract_date_end'] - dict_single_contract['contract_date_begin']
-                    n_net_period_cost = dict_single_contract['contract_amnt'] - dict_single_contract['refund_amnt']
+                    dt_contract_days = dict_single_contract['date_end'] - dict_single_contract['date_begin']
                     n_period_cost_exc_vat = math.ceil(n_net_period_cost / 1.1)
                     n_daily_cost = n_period_cost_exc_vat / (dt_contract_days.days + 1)
                     dict_rst[s_ua] = dict_rst[s_ua] + n_daily_cost
