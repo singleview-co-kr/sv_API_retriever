@@ -234,6 +234,7 @@ class Budget:
                         'media_agency_name': s_media_agency,
                         'target_amnt_inc_vat': dict_budget['target_amnt_inc_vat'],
                         'actual_amnt_inc_vat': n_gross_cost_inc_vat,
+                        'ua': dict_budget['ua'],
                         'date_begin': dict_budget['date_begin'], 'date_end': dict_budget['date_end'],
                         'regdate': dict_budget['regdate']}
             lst_added_rst.append(dict_tmp)
@@ -314,7 +315,8 @@ class Budget:
             dict_budget = dict_rst['dict_ret']
             self.__g_oSvDb.executeQuery('updateBudgetByBudgetId', dict_budget['n_acct_id'],
                                         dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
-                                        dict_budget['dt_budget_alloc_yr_mo'].month, dict_budget['s_budget_memo'],
+                                        dict_budget['dt_budget_alloc_yr_mo'].month, 
+                                        dict_budget['s_budget_memo'], dict_budget['s_ua'],
                                         dict_budget['n_budget_target_amnt_inc_vat'],
                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'],
                                         dict_budget['n_budget_deleted'],n_budget_id)
@@ -333,7 +335,8 @@ class Budget:
             self.__g_oSvDb.executeQuery('insertBudget', request.user.pk, dict_budget['n_acct_id'],
                                         dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
                                         dict_budget['dt_budget_alloc_yr_mo'].month,
-                                        dict_budget['s_budget_memo'], dict_budget['n_budget_target_amnt_inc_vat'],
+                                        dict_budget['s_budget_memo'], dict_budget['s_ua'],
+                                        dict_budget['n_budget_target_amnt_inc_vat'],
                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'])
             del dict_budget
         return dict_rst
@@ -353,6 +356,11 @@ class Budget:
                     return dict_rst
         else:
             n_media_agency_id = 0
+
+        if request.POST['ua'] in ['M', 'P']:
+            s_ua = request.POST['ua']  # UA designated budget eg., NVR_BRS
+        else:
+            s_ua = '0'  # other generic
 
         if request.POST.get('budget_deleted', None):
             n_budget_deleted = 1
@@ -391,7 +399,8 @@ class Budget:
             return dict_rst
         dict_rst['b_error'] = False
         dict_rst['dict_ret'] = {'n_acct_id': n_acct_id, 'n_media_agency_id': n_media_agency_id,
-                                'dt_budget_alloc_yr_mo': dt_budget_alloc_yr_mo, 's_budget_memo': s_budget_memo,
+                                'dt_budget_alloc_yr_mo': dt_budget_alloc_yr_mo, 
+                                's_budget_memo': s_budget_memo, 's_ua': s_ua,
                                 'n_budget_target_amnt_inc_vat': n_budget_target_amnt_inc_vat,
                                 'dt_budget_date_begin': dt_budget_date_begin, 'dt_budget_date_end': dt_budget_date_end,
                                 'n_budget_deleted': n_budget_deleted}

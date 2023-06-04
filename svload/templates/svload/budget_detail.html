@@ -64,6 +64,16 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ua">UA</label>
+                            <div class="col-md-6 col-sm-6 col-xs-12">
+                                <select class="form-control" name="ua">
+                                <option value="">PC+MOB 공통 예산</option>
+                                <option value="M" {% if dict_budget_info.ua == 'M' %}selected{% endif %}>모바일 전용 예산</option>
+                                <option value="P" {% if dict_budget_info.ua == 'P' %}selected{% endif %}>PC 전용 예산</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="budget_target_amnt_inc_vat">목표액(VAT포함, 원)<span class="required">*</span></label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
                                 <input type="text" class="form-control col-md-7 col-xs-12" name="budget_target_amnt_inc_vat" placeholder="VAT 포함, 원" required="required" value="{{dict_budget_info.target_amnt_inc_vat}}">

@@ -138,7 +138,7 @@
                             <td title="{{dict_row.desc}}">{{dict_row.title}}</td>
                             <td>{{dict_row.media_agency_name}}</td>
                             <td>{{dict_row.alloc_period}}</td>
-                            <td><a budget_id="{{dict_row.id}}" class="lnk_update_budget"><u>{{dict_row.memo}}</u></a></td>
+                            <td><a budget_id="{{dict_row.id}}" class="lnk_update_budget"><u>{{dict_row.memo}}</u></a> {% if dict_row.ua == 'P' %}PC 예산{% endif %} {% if dict_row.ua == 'M' %}MOB 예산{% endif %}</td>
                             <td>{{dict_row.target_amnt_inc_vat|intcomma}}</td>
                             <td>{{dict_row.actual_amnt_inc_vat|intcomma}}</td>
                             <td>{{dict_row.date_begin|date:'Y-m-d'}}</td>
@@ -157,6 +157,7 @@
                             <th>회계연월</th>
                             <th>예산 설명</th>
                             <th>목표액(VAT포함, 원)</th>
+                            <th>UA</th>
                             <th>예산시작일</th>
                             <th>예산종료일</th>
                             <th></th>
@@ -183,9 +184,16 @@
                                 {% endfor %}
                                 </select>
                             </td>
-                            <td><input type="text" name="budget_alloc_period" placeholder="YYYYMM" style="height:34px"></td>
+                            <td><input type="text" name="budget_alloc_period" placeholder="YYYYMM" style="height:34px; width:80%"></td>
                             <td><input type="text" name="budget_memo" placeholder="캠페인 코드 입력하면 캠페인별 추적" style="height:34px"></td>
                             <td><input type="text" name="budget_target_amnt_inc_vat" placeholder="VAT 포함, 원" style="height:34px; width:80%"></td>
+                            <td>
+                                <select class="form-control" name="ua">
+                                    <option value="">PC+MOB 공통 예산</option>
+                                    <option value="M">모바일 전용 예산</option>
+                                    <option value="P">PC 전용 예산</option>
+                                </select>
+                            </td>
                             <td><input type="text" name="budget_date_begin" placeholder="YYYY-MM-DD" style="height:34px; width:80%"></td>
                             <td><input type="text" name="budget_date_end" placeholder="YYYY-MM-DD" style="height:34px; width:80%"></td>
                             <td><button type="submit" id='btn_add_budget' class="btn btn-primary">추가</button></td>

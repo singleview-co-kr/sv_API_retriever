@@ -7,7 +7,7 @@ CREATE TABLE `budget` (
   `alloc_mo` tinyint(5) unsigned NOT NULL,
   `memo` varchar(400) NOT NULL,
   `target_amnt_inc_vat` INT(11) NOT NULL DEFAULT 0,
-  `actual_amnt_inc_vat` INT(11) NOT NULL DEFAULT 0,
+  `ua` char(1) NOT NULL DEFAULT 0,
   `date_begin` DATE NOT NULL,
   `date_end` DATE NOT NULL,
   `deleted` char(1) NOT NULL DEFAULT 0,
