@@ -287,7 +287,7 @@ def _sync_job_from_mysql():
                         u_mins = int(dict_trigger_params['minutes'])
                         u_secs = int(dict_trigger_params['seconds'])
                         # http://apscheduler.readthedocs.io/en/latest/modules/triggers/interval.html
-                        g_oScheduler.add_job(sv_plugin.svPluginDaemonJob, 'interval', 
+                        g_oScheduler.add_job(sv_plugin.SvPluginDaemonJob, 'interval',
                             [dict_row['s_plugin_name'], s_config_loc_param, dict_row['s_plugin_params']],
                             weeks = u_wks, days = u_days, hours = u_hrs, minutes = u_mins, seconds = u_secs, 
                             id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date)
@@ -301,7 +301,7 @@ def _sync_job_from_mysql():
                         u_min = dict_trigger_params['minute']
                         u_sec = dict_trigger_params['second']
                         # http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
-                        g_oScheduler.add_job(sv_plugin.svPluginDaemonJob, 'cron', 
+                        g_oScheduler.add_job(sv_plugin.SvPluginDaemonJob, 'cron',
                             [dict_row['s_plugin_name'], s_config_loc_param, dict_row['s_plugin_params']],
                             year = u_yr, month = u_mo, week = u_wk, day_of_week = u_dow, day = u_day, hour = u_hr, minute = u_min, second = u_sec,
                             id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )

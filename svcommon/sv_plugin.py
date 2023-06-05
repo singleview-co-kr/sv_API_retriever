@@ -73,7 +73,7 @@ class ISvPlugin(ABC):
         self._g_sPluginName = s_plugin_name
 
     def toggle_daemon_env(self):
-        """ for svPluginDaemonJob only """
+        """ for SvPluginDaemonJob only """
         # https://www.b-list.org/weblog/2007/sep/22/standalone-django-scripts/
         # https://stackoverflow.com/questions/15048963/alternative-to-the-deprecated-setup-environ-for-one-off-django-scripts
         # begin - to avoid an exception below
@@ -146,7 +146,7 @@ class ISvPlugin(ABC):
         raise Exception('remove')
 
 
-class svPluginDaemonJob():
+class SvPluginDaemonJob():
     """ for dbs.py only """
     __g_oLogger = None
 
@@ -158,7 +158,7 @@ class svPluginDaemonJob():
         :3rd_param: 'param1=a\r\nparam2=b'
         """
         # https://docs.python.org/3.6/library/importlib.html
-        # logging.info('svPluginDaemonJob has been started')
+        # logging.info('SvPluginDaemonJob has been started')
         s_plugin_title = lst_plugin_params[0]
         s_config_loc_param = lst_plugin_params[1]
         s_extra_param = lst_plugin_params[2]
@@ -237,7 +237,7 @@ class SvErrorHandler(Error):
             filename= config('ABSOLUTE_PATH_BOT') + '/log/SvErrorHandler.log',
             level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s',
         )
-        logging.info('svPluginDaemonJob has been started')
+        logging.info('SvPluginDaemonJob has been started')
         
         if s_todo == 'stop':
             self.__print_debug('should stop job and wait next schedule')

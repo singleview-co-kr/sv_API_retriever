@@ -1,5 +1,5 @@
 from svcommon.sv_campaign_parser import SvCampaignParser
-from svcommon.sv_plugin import svPluginDaemonJob
+from svcommon.sv_plugin import SvPluginDaemonJob
 
 
 # for logger
@@ -92,6 +92,6 @@ class BrdedTerm:
         del lst_line
 
         if dict_update_rst['updated']:  # initialize a tbl compiled_ga_media_daily_log
-            o_sv_plugin_daemon = svPluginDaemonJob('integrate_db', s_config_loc_param, 'mode=clear')
+            o_sv_plugin_daemon = SvPluginDaemonJob('integrate_db', s_config_loc_param, 'mode=clear')
             del o_sv_plugin_daemon
         return dict_rst
