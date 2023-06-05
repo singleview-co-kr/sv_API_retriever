@@ -67,7 +67,7 @@ class SvApiConfigParser(sv_object.ISvObject):
     def __del__(self):
         pass
 
-    def getConfig(self):
+    def get_config(self):
         s_err_msg = 'no_api_info_ini'
         dict_2nd_layer = {'brand_name': s_err_msg, 'sv_account_id': s_err_msg, 'brand_id': s_err_msg, 'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
         try:

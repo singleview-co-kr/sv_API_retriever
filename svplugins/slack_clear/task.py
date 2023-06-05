@@ -71,7 +71,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 raise Exception('remove')
             else:
                 return
-
+        print('ok')
+        return
         s_acct_id = dict_acct_info['sv_account_id']
         s_brand_id = dict_acct_info['brand_id']
         self.__get_key_config(s_acct_id, s_brand_id)

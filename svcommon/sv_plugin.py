@@ -97,7 +97,7 @@ class ISvPlugin(ABC):
             filename= self._g_sAbsRootPath + '/log/svplugins.' + str(datetime.today().strftime('%Y%m%d')) + '.log',
             level=logging.DEBUG, format='%(name)s [%(levelname)s] %(message)s @ %(asctime)s',
         )
-        return o_sv_api_config_parser.getConfig()
+        return o_sv_api_config_parser.get_config()
 
     def _task_post_proc(self, o_callback):
         if o_callback:  # regarding an execution on a web console
@@ -224,6 +224,7 @@ class SvPluginValidation():
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
+
 
 class SvErrorHandler(Error):
     """Raised when the http ['variables']['todo'] is set """

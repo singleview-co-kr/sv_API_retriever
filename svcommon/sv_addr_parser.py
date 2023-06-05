@@ -30,13 +30,14 @@ import re
 # 3rd party library
 
 # singleview config
-if __name__ == 'svcommon.sv_addr_parser': # for platform running
+if __name__ == 'svcommon.sv_addr_parser':  # for platform running
     from svcommon import sv_object
-elif __name__ == 'sv_addr_parser': # for plugin console debugging
+elif __name__ == 'sv_addr_parser':  # for plugin console debugging
     import sv_object
-elif __name__ == '__main__': # for class console debugging
+elif __name__ == '__main__':  # for class console debugging
     sys.path.append('../svcommon')
     import sv_object
+
 
 ############ 해석이 어려운 주소 ######################
 # 충청남도 예산군 예산읍 산성공원1길 20 (충청남도 예산군 예산읍 산성리 123) 예림오피스텔B동 111호 (산성리)
@@ -62,37 +63,38 @@ elif __name__ == '__main__': # for class console debugging
 ############## 특별시 생략 주소
 # 서울	서초구	서초0동	1234-5	대우엘카티	123호
 
+
 class SvAddrParser(sv_object.ISvObject):
     __g_regexSpecialChar = re.compile(r"[ #\&\+%@=\/\\\:;,\.'\"\^`~\_|\!\?\*$#<>()\[\]\{\}]")
     __g_regexUnicodeChar = re.compile(r"[^\x20-\x7e]")
     __g_regexDigitChar = re.compile(r"[0-9]+")
-    __g_dictProvinceSynonym = {'서울': '서울특별시', '서울시': '서울특별시', 
-                                '세종': '세종특별자치시', '세종시': '세종특별자치시',
-								'인천': '인천광역시', '대전': '대전광역시', '대구': '대구광역시',
-                                '광주': '광주광역시', '울산': '울산광역시', '부산': '부산광역시',
-								'경기': '경기도', '충북': '충청북도', '충남': '충청남도',
-                                '경북': '경상북도', '경남': '경상남도', '전북': '전라북도',
-                                '전남': '전라남도', '강원': '강원도', 
-                                '제주': '제주특별자치도','제주도':'제주특별자치도'}
-    __g_lstProvinceFullname = ['서울특별시', '서울시', '세종특별자치시', '인천광역시', 
-                                '광주광역시', '울산광역시', '부산광역시', '대전광역시', '대구광역시', 
-								'경기도', '충청북도', '충청남도', '경상북도',
-                                '경상남도', '전라북도', '전라남도', '강원도', '제주특별자치도']
+    __g_dictProvinceSynonym = {'서울': '서울특별시', '서울시': '서울특별시',
+                               '세종': '세종특별자치시', '세종시': '세종특별자치시',
+                               '인천': '인천광역시', '대전': '대전광역시', '대구': '대구광역시',
+                               '광주': '광주광역시', '울산': '울산광역시', '부산': '부산광역시',
+                               '경기': '경기도', '충북': '충청북도', '충남': '충청남도',
+                               '경북': '경상북도', '경남': '경상남도', '전북': '전라북도',
+                               '전남': '전라남도', '강원': '강원도',
+                               '제주': '제주특별자치도', '제주도': '제주특별자치도'}
+    __g_lstProvinceFullname = ['서울특별시', '서울시', '세종특별자치시', '인천광역시',
+                               '광주광역시', '울산광역시', '부산광역시', '대전광역시', '대구광역시',
+                               '경기도', '충청북도', '충청남도', '경상북도',
+                               '경상남도', '전라북도', '전라남도', '강원도', '제주특별자치도']
     __g_dictStandardizeMetropolis = {'서울특별시': '서울', '세종특별자치시': '세종',
-									'인천광역시': '인천', '대전광역시': '대전', '대구광역시': '대구',
-                                    '광주광역시': '광주', '울산광역시': '울산', '부산광역시':'부산'}
+                                     '인천광역시': '인천', '대전광역시': '대전', '대구광역시': '대구',
+                                     '광주광역시': '광주', '울산광역시': '울산', '부산광역시': '부산'}
 
     def __init__(self):
         self._g_oLogger = logging.getLogger(__file__)
         # self.__g_sAddrRaw = None  # for debug
         self.__g_lstAddrRaw = []
-        self.__g_dictAddrParsed = {'do': None, 'si': None,'gu_gun': None,'dong_myun_eup': None,'bunji_ri': None}
+        self.__g_dictAddrParsed = {'do': None, 'si': None, 'gu_gun': None, 'dong_myun_eup': None, 'bunji_ri': None}
         self.__g_dictAddrHeader = {'s_do': None, 's_si': None, 's_gu': None, 's_gun': None,
-                                   's_dong': None, 's_myun': None, 's_eup': None, 's_ri': None, 
-                                   's_bunji': None, # 동/리의 하위 번지
+                                   's_dong': None, 's_myun': None, 's_eup': None, 's_ri': None,
+                                   's_bunji': None,  # 동/리의 하위 번지
                                    # 's_ri_misc': None,
-                                   's_ro': None, 's_ro_no': None   # 도로명 주소 지도 좌표 DB가 없어서 후순위
-                                  }
+                                   's_ro': None, 's_ro_no': None  # 도로명 주소 지도 좌표 DB가 없어서 후순위
+                                   }
 
     def __enter__(self):
         """ grammtical method to use with "with" statement """
@@ -134,17 +136,17 @@ class SvAddrParser(sv_object.ISvObject):
     def get_metropolis_dict(self):
         """ svplugins/client_serve.sv_adr.ph에서 호출 """
         return self.__g_dictStandardizeMetropolis
-        
+
     def __standardize_header(self):
         """ 한국 주소는 도,시,(구),동,번지 / 도,시,(군),면/읍,리  로 분류되는 체제로 나뉨
         도, 시, 구/군, 동/면/읍, 번지/리 """
         # 최상위 주소 요소를 추출하여 서울특별시, 세종특별시 등의 예외를 [도] 체제와 일치시킴
         for _, s_val in self.__g_dictAddrHeader.items():
-            if s_val:  
+            if s_val:
                 if s_val in self.__g_dictStandardizeMetropolis.keys():
                     self.__g_dictAddrParsed['do'] = self.__g_dictStandardizeMetropolis[s_val]
                 break
-        
+
         if self.__g_dictAddrParsed['do'] is None:
             self.__g_dictAddrParsed['do'] = self.__g_dictAddrHeader['s_do']
 
@@ -159,7 +161,7 @@ class SvAddrParser(sv_object.ISvObject):
             self.__g_dictAddrParsed['dong_myun_eup'] = self.__g_dictAddrHeader['s_myun']
         if self.__g_dictAddrParsed['dong_myun_eup'] is None:
             self.__g_dictAddrParsed['dong_myun_eup'] = self.__g_dictAddrHeader['s_eup']
-        
+
         self.__g_dictAddrParsed['bunji_ri'] = self.__g_dictAddrHeader['s_ri']
         if self.__g_dictAddrParsed['bunji_ri'] is None:
             self.__g_dictAddrParsed['bunji_ri'] = self.__g_dictAddrHeader['s_bunji']
@@ -213,7 +215,7 @@ class SvAddrParser(sv_object.ISvObject):
                             self.__g_dictAddrHeader['s_dong'] = self.__g_lstAddrRaw.pop(0)
                             if len(self.__g_lstAddrRaw):
                                 m = self.__g_regexDigitChar.search(s_cur_elem)
-                                if m: # 숫자 포함된 문자열이면 번지 정보로 할당
+                                if m:  # 숫자 포함된 문자열이면 번지 정보로 할당
                                     self.__g_dictAddrHeader['s_bunji'] = self.__g_lstAddrRaw.pop(0)
                                 else:
                                     self.__g_lstAddrRaw.pop(0)
@@ -230,7 +232,7 @@ class SvAddrParser(sv_object.ISvObject):
                             self.__g_dictAddrHeader['s_dong'] = self.__g_lstAddrRaw.pop(0)
                             if len(self.__g_lstAddrRaw):
                                 m = self.__g_regexDigitChar.search(s_cur_elem)
-                                if m: # 숫자 포함된 문자열이면 번지 정보로 할당
+                                if m:  # 숫자 포함된 문자열이면 번지 정보로 할당
                                     self.__g_dictAddrHeader['s_bunji'] = self.__g_lstAddrRaw.pop(0)
                                 else:
                                     self.__g_lstAddrRaw.pop(0)
@@ -264,7 +266,7 @@ class SvAddrParser(sv_object.ISvObject):
                         self.__g_dictAddrHeader['s_ri'] = self.__g_lstAddrRaw.pop(0)
                         if len(self.__g_lstAddrRaw):
                             m = self.__g_regexDigitChar.search(s_cur_elem)
-                            if m: # 숫자 포함된 문자열이면 번지 정보로 할당
+                            if m:  # 숫자 포함된 문자열이면 번지 정보로 할당
                                 self.__g_dictAddrHeader['s_bunji'] = self.__g_lstAddrRaw.pop(0)
                             else:
                                 self.__g_lstAddrRaw.pop(0)
@@ -291,11 +293,10 @@ class SvAddrParser(sv_object.ISvObject):
             return False  # 첫 주소 요소가 시도 명칭이 아니면
 
     def __set_skeleton_header(self):
-		# 입력값 초기화
+        # 입력값 초기화
         self.__g_dictAddrHeader = {k: None for k in self.__g_dictAddrHeader}
         # 해석 결과 저장공간 초기화
         self.__g_dictAddrParsed = {k: None for k in self.__g_dictAddrParsed}
-        
 
 # if __name__ == '__main__': # for console debugging
 # 	pass

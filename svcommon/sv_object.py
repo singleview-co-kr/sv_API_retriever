@@ -29,18 +29,20 @@ class Error(Exception):
     """Base class for exceptions in this module."""
     pass
 
+
 class SvErrorHandler(Error):
     """Raised when the http ['variables']['todo'] is set """
     __g_oLogger = None
 
     def __init__(self, sTodo):
         self.__g_oLogger = logging.getLogger(__file__)
-        #self.__printDebug(sTodo)
+        # self.__printDebug(sTodo)
         if sTodo == 'stop':
             self.__printDebug('should stop job and wait next schedule')
             # sys.exit(sv_events.EVENT_JOB_SHOULD_BE_STOPPED) # sys.exit() signal in sv_http module does not reach to scheduler, as this module is not called directly
         else:
             self.__printDebug('general error occured')
+
 
 class ISvObject(Error):
     _g_oLogger = None
