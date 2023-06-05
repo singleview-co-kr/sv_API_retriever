@@ -141,7 +141,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_since_id = lst_rst[0]['status_id']
 
         o_sv_twitter = sv_twitter.SvTwitter()
-        lst_status = o_sv_twitter.searchQuery(s_morpheme, n_twt_limit=self.__g_nTwtLimit, n_since_id=n_since_id)
+        lst_status = o_sv_twitter.search_query(s_morpheme, n_twt_limit=self.__g_nTwtLimit, n_since_id=n_since_id)
         del o_sv_twitter
         lst_status_registered = []
 

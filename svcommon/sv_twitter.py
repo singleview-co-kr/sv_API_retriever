@@ -28,7 +28,6 @@ import logging
 import configparser # https://docs.python.org/3/library/configparser.html
 import tweepy  # pip install tweepy
 from datetime import datetime
-# import pytz
 
 # 3rd party library
 from decouple import config
@@ -76,7 +75,7 @@ class SvTwitter(sv_object.ISvObject):
         finally:
             del o_config
 
-    def searchQuery(self, s_query, n_since_id=None, n_max_id=None, s_until=None, n_twt_limit=1):
+    def search_query(self, s_query, n_since_id=None, n_max_id=None, s_until=None, n_twt_limit=1):
         """
         since_id - Returns results with an ID greater than (that is, more recent than) the specified ID. 
         There are limits to the number of Tweets which can be accessed through the API. 
@@ -158,7 +157,7 @@ class SvTwitter(sv_object.ISvObject):
 #     # n_twt_limit = 110
 #     # since_id=1458220286151921666,  # 육아
 #     # max_id=1458220438266388494,  # 육아
-#     lst_status = oSvTwitter.searchQuery(s_query='육아', n_twt_limit = 501) #, n_since_id=1414180478970580991, n_max_id=145978385340120675)
+#     lst_status = oSvTwitter.search_query(s_query='육아', n_twt_limit = 501) #, n_since_id=1414180478970580991, n_max_id=145978385340120675)
 #     # for dict_single_status in lst_status:
 #     #     print('https://twitter.com/i/web/status/' + dict_single_status['s_status_id'])
 
