@@ -120,15 +120,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # website to be scraped
         if s_cms_type == 'singleview':
             o_extractor = SvCmsIntLinkExtractor()
-
+        else:
+            o_extractor = None
         if o_extractor:
             o_extractor.set_host_url(s_host_url)
             o_extractor.set_login_info(dict_login_info)
-            #s_driver_path = 'dd' #os.path.join(self._g_sAbsRootPath, 'static', 'chromedriver', 'chro1medriver')
-            o_extractor.set_chrome_driver() #s_driver_path)
+            # s_driver_path = 'dd' #os.path.join(self._g_sAbsRootPath, 'static', 'chromedriver', 'chro1medriver')
+            o_extractor.set_chrome_driver()  # s_driver_path)
             o_extractor.set_storage_path(s_storage_path)
             o_extractor.set_sv_mysql(o_sv_mysql)
-            o_extractor.set_print_func(self._printDebug)
+            o_extractor.set_print_func(self._print_debug)
             o_extractor.extract_internal_link()
             self._print_debug(str(o_extractor.get_request_cnt()) + ' times requested')
             del o_extractor

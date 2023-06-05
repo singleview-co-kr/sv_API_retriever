@@ -120,14 +120,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         return
             o_sv_doc_collector = sv_doc_collection.SvDocCollection()
             o_sv_doc_collector.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-                                        self._printDebug, self._print_progress_bar, self._continue_iteration,
+                                        self._print_debug, self._print_progress_bar, self._continue_iteration,
                                         self.__g_oConfig, self.__g_dictSource, s_target_host_url)
             o_sv_doc_collector.collect_sv_doc()
             del o_sv_doc_collector
         elif s_mode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
             o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
             o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-                                             self._printDebug, self._print_progress_bar, self._continue_iteration,
+                                             self._print_debug, self._print_progress_bar, self._continue_iteration,
                                              self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
                                              s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd, s_module_srl)
             o_sv_morpheme_retriever.do_task()

@@ -152,7 +152,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     return
             except AccessTokenRefreshError:
                 # Handle Auth errors.
-                self._printDebug ('The credentials have been revoked or expired, please re-run the application to re-authorize')
+                self._print_debug('The credentials have been revoked or expired, please re-run the application to re-authorize')
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:

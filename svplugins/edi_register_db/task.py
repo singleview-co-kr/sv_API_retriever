@@ -199,7 +199,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_param = {'b_google_data_studio_edi': True,
                       's_period_start': s_start_yyyymmdd,
                       's_period_end': s_end_yyyymmdd}
-        self.__oEdiTransformer.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
+        self.__oEdiTransformer.init_var(self._print_debug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiTransformer.initialize(self.__oSvMysql, dict_param)
 
     def __register_db(self, dict_rst):
@@ -207,7 +207,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._print_debug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiExtractor.transform_csv_to_db()
         # unset unzip file
@@ -219,7 +219,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._print_debug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         if self._g_dictParam['new_sku_id'] is None:
             self._print_debug('error! new_sku_id is empty')
@@ -254,7 +254,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_mart_rst
         del o_edi_model
 
-        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._print_debug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip, lst_edi_file_info)
         self.__oEdiExtractor.transfer_excel_to_csv()
         dict_rst = self.__oEdiExtractor.check_new_entity()

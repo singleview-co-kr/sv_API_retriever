@@ -125,7 +125,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_job_plugin = importlib.import_module('svplugins.' + s_job_to_do + '.task')
             self._print_debug('sub task: ' + s_job_to_do + ' has been launched')
             with o_job_plugin.svJobPlugin() as o_job:
-                o_job.set_websocket_output(self._printDebug)
+                o_job.set_websocket_output(self._print_debug)
                 o_job.set_my_name(s_job_to_do)
                 o_job.parse_command([])
                 o_job.do_task(self._g_oCallback)

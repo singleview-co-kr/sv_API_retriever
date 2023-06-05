@@ -144,7 +144,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug('-> transfer ga media log to BI DB via SQL')
             o_ga_media_log = ga_media_log.SvGaMediaLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration,
+                                    self._print_debug, self._print_progress_bar, self._continue_iteration,
                                     self.__g_sReplaceYearMonth)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
@@ -152,42 +152,42 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug('-> transfer ga internal search log to BI DB via SQL')
             o_ga_media_log = ga_int_search_log.SvGaIntSearchLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                    self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_ga_itemperf_sql', 'clear_ga_itemperf_sql']:
             self._print_debug('-> transfer ga item performance log to BI DB via SQL')
             o_ga_media_log = ga_itemperf_log.SvGaItemPerfLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                    self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_nvr_qi_sql']:
             self._print_debug('-> transfer de-normed Naver CPC keyword quality index to BI DB via SQL')
             o_kw_qi_log = kw_qi_log.SvKeywordQi()
             o_kw_qi_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                  self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                  self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_kw_qi_log.proc(self.__g_sMode)
             del o_kw_qi_log
         elif self.__g_sMode in ['add_wc_sql']:
             self._print_debug('-> transfer de-normed word cloud to BI DB via SQL')
             o_ga_media_log = word_cloud.SvWordCloud()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                    self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode, s_top_n_cnt)
             del o_ga_media_log
         elif self.__g_sMode in ['add_sv_adr_sql']:
             self._print_debug('-> transfer de-normed sv addr log to BI DB via SQL')
             o_sv_addr_log = sv_adr.SvAddress()
             o_sv_addr_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                   self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_sv_addr_log.proc(self.__g_sMode)
             del o_sv_addr_log
         elif self.__g_sMode in ['add_edi_sql']:
             self._print_debug('-> transfer de-normed edi daily log to BI DB via SQL')
             o_ga_media_log = edi_log.SvEdiLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
+                                    self._print_debug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class

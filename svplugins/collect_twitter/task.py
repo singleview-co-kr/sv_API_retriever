@@ -108,7 +108,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__get_keyword_from_db()
             # o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
             # o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-            #                             self._printDebug, self._print_progress_bar, self._continue_iteration,
+            #                             self._print_debug, self._print_progress_bar, self._continue_iteration,
             #                             self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
             #                             s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd)
             # o_sv_morpheme_retriever.do_task()
