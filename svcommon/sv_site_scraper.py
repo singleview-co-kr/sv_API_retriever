@@ -130,7 +130,7 @@ class ISvSiteScraper(ABC):
 
     def extract_internal_link(self):
         if self._g_sSiteUrl is None:
-            self._printDebug('site url not designated')
+            self._print_debug('site url not designated')
             return
         if self._g_dictLoginConfig and 'user_name' in self._g_dictLoginConfig and 'password' in self._g_dictLoginConfig:
             self._set_logged_in()
@@ -162,7 +162,7 @@ class ISvSiteScraper(ABC):
             # traverse newly appended sub-urls only
             lst_sub_page_all = self.__g_oSvMysql.execute_query('getScrapeLogAll', dt_old)
             if len(lst_sub_page_all) == 0:
-                self._printDebug('no urls to traverse')
+                self._print_debug('no urls to traverse')
                 return
             for dict_row in lst_sub_page_all:
                 if self.__is_analyzed_url_effective(dict_row['url']):  # do not look at more than twice
@@ -190,7 +190,7 @@ class ISvSiteScraper(ABC):
                         self.__append_url_ineffective(s_href)
                 # tag scraped date sub url
                 self.__g_oSvMysql.execute_query('updateScrapeDateByLogSrl', dt_today, dict_row['log_srl'])
-            self._printDebug(str(self.__g_nRequestCnt) + ' requested')
+            self._print_debug(str(self.__g_nRequestCnt) + ' requested')
             del lst_sub_page_all
 
     @abstractmethod
@@ -264,7 +264,7 @@ class ISvSiteScraper(ABC):
 
         self.__g_nRequestCnt += 1
         if dict_rst['n_status_code'] == 200:
-            self._printDebug('request ' + s_scrape_url + ' succeed')
+            self._print_debug('request ' + s_scrape_url + ' succeed')
             s_html = self._g_WdChrome.page_source
             o_soup = BeautifulSoup(s_html, 'html.parser')
             # try extract contents body
@@ -285,7 +285,7 @@ class ISvSiteScraper(ABC):
             dict_rst['lst_anchor'] = o_soup.find_all("a")
             del o_soup
         else:
-            self._printDebug('failed to request ' + s_scrape_url)
+            self._print_debug('failed to request ' + s_scrape_url)
 
         if s_sub_url:
             self.__append_url_effective(s_sub_url)

@@ -113,11 +113,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del o_sv_http
         # end - get Protocol message dictionary
 
-        self._printDebug('-> send new data')
+        self._print_debug('-> send new data')
         
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -132,62 +132,62 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if 'server' in self.__g_oConfig:
                 self.__g_sTargetUrl = self.__g_oConfig['server']['etl_host_url']
             else:
-                self._printDebug('stop -> invalid etl_host_url')
+                self._print_debug('stop -> invalid etl_host_url')
                 self._task_post_proc(self._g_oCallback)
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
                     return
 
-        self._printDebug('-> communication begin')
+        self._print_debug('-> communication begin')
         if self.__g_sMode in ['add_ga_media_sql', 'update_ga_media_sql']:
-            self._printDebug('-> transfer ga media log to BI DB via SQL')
+            self._print_debug('-> transfer ga media log to BI DB via SQL')
             o_ga_media_log = ga_media_log.SvGaMediaLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration,
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration,
                                     self.__g_sReplaceYearMonth)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_ga_intsearch_sql']:
-            self._printDebug('-> transfer ga internal search log to BI DB via SQL')
+            self._print_debug('-> transfer ga internal search log to BI DB via SQL')
             o_ga_media_log = ga_int_search_log.SvGaIntSearchLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_ga_itemperf_sql', 'clear_ga_itemperf_sql']:
-            self._printDebug('-> transfer ga item performance log to BI DB via SQL')
+            self._print_debug('-> transfer ga item performance log to BI DB via SQL')
             o_ga_media_log = ga_itemperf_log.SvGaItemPerfLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode in ['add_nvr_qi_sql']:
-            self._printDebug('-> transfer de-normed Naver CPC keyword quality index to BI DB via SQL')
+            self._print_debug('-> transfer de-normed Naver CPC keyword quality index to BI DB via SQL')
             o_kw_qi_log = kw_qi_log.SvKeywordQi()
             o_kw_qi_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                  self._printDebug, self._printProgressBar, self._continue_iteration)
+                                  self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_kw_qi_log.proc(self.__g_sMode)
             del o_kw_qi_log
         elif self.__g_sMode in ['add_wc_sql']:
-            self._printDebug('-> transfer de-normed word cloud to BI DB via SQL')
+            self._print_debug('-> transfer de-normed word cloud to BI DB via SQL')
             o_ga_media_log = word_cloud.SvWordCloud()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode, s_top_n_cnt)
             del o_ga_media_log
         elif self.__g_sMode in ['add_sv_adr_sql']:
-            self._printDebug('-> transfer de-normed sv addr log to BI DB via SQL')
+            self._print_debug('-> transfer de-normed sv addr log to BI DB via SQL')
             o_sv_addr_log = sv_adr.SvAddress()
             o_sv_addr_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_sv_addr_log.proc(self.__g_sMode)
             del o_sv_addr_log
         elif self.__g_sMode in ['add_edi_sql']:
-            self._printDebug('-> transfer de-normed edi daily log to BI DB via SQL')
+            self._print_debug('-> transfer de-normed edi daily log to BI DB via SQL')
             o_ga_media_log = edi_log.SvEdiLog()
             o_ga_media_log.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix,
-                                    self._printDebug, self._printProgressBar, self._continue_iteration)
+                                    self._printDebug, self._print_progress_bar, self._continue_iteration)
             o_ga_media_log.proc(self.__g_sMode)
             del o_ga_media_log
         elif self.__g_sMode == 'add_ga_media_encrypted':  # will separate to sub class
@@ -195,13 +195,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'update_ga_media_encrypted':  # will separate to sub class
             self.__update_period_ga_media_encrypted()
         else:
-            self._printDebug('weird mode designated')
+            self._print_debug('weird mode designated')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 self._task_post_proc(self._g_oCallback)
                 return
-        self._printDebug('-> communication finish')
+        self._print_debug('-> communication finish')
         self._task_post_proc(self._g_oCallback)
         
     def __add_new_ga_media_encrypted(self):
@@ -215,7 +215,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictParams = {'c': [self.__g_dictMsg['IWSY']], 'd': oResp['variables']['d']} # I will send you what you request
             oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
-            self._printDebug('stop communication 1')
+            self._print_debug('stop communication 1')
             return
 
         if not self._continue_iteration():
@@ -223,7 +223,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         nMsgKey = oResp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
-            self._printDebug('stop communication 2')
+            self._print_debug('stop communication 2')
             return
 
         # send requested data set
@@ -238,16 +238,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             try:
                 sStartDate = dictRetrievalDateRange['start_date']
                 sStartDate = datetime.strptime(sStartDate, '%Y%m%d').strftime('%Y-%m-%d')
-                self._printDebug('get from ' + sStartDate)
+                self._print_debug('get from ' + sStartDate)
                 lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogFrom', sStartDate)
             except ValueError: # if sStartDate == 'na'
-                self._printDebug('get whole')
+                self._print_debug('get whole')
                 sEndDate = dictRetrievalDateRange['end_date']
                 lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogGross')
 
             nRecCount = len(lstRetrievedCompiledLog)
             if nRecCount == 0:
-                self._printDebug('stop communication - no more data to update')
+                self._print_debug('stop communication - no more data to update')
                 return
             elif nRecCount > 0:
                 # get column info
@@ -275,19 +275,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
-                        self._printDebug('transmit and initialize')
+                        self._print_debug('transmit and initialize')
                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
                 oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-                self._printDebug('transmit residual')
-                self._printDebug('-> resp of sending new data')
-                self._printDebug(oResp)
+                self._print_debug('transmit residual')
+                self._print_debug('-> resp of sending new data')
+                self._print_debug(oResp)
         return
 
     def __update_period_ga_media_encrypted(self):
         # server replace data in dashboard client case
         if self.__g_sReplaceYearMonth == None:
-            self._printDebug('stop -> invalid yyyymm')
+            self._print_debug('stop -> invalid yyyymm')
             return
         
         nYr = int(self.__g_sReplaceYearMonth[:4])
@@ -295,7 +295,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
-            self._printDebug('stop -> invalid yyyymm')
+            self._print_debug('stop -> invalid yyyymm')
             return
 
         # bot server: Plz Update Period
@@ -303,19 +303,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         nMsgKey = oResp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) == 'LMKP': # dashboard client: Let me know Period
-            self._printDebug('Let me know Period')
+            self._print_debug('Let me know Period')
             dictParams = {'c': [self.__g_dictMsg['WLYK']], 'd':  self.__g_sReplaceYearMonth} # I will send you what you request
             oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # dashboard client: stop communication by unknown reason
-            self._printDebug('stop -> stop communication 1')
+            self._print_debug('stop -> stop communication 1')
             return
 
         nMsgKey = oResp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) != 'IWWFY': # dashboard client: i will wait for you
-            self._printDebug('stop communication 2')
+            self._print_debug('stop communication 2')
             return
         
-        self._printDebug('add period data')
+        self._print_debug('add period data')
         # send requested data set
         lstColumnHeaderInfo = []
         lstRows = []
@@ -329,7 +329,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
             nRecCount = len(lstRetrievedCompiledLog )
             if nRecCount == 0:
-                self._printDebug('stop communication - no more data to update')
+                self._print_debug('stop communication - no more data to update')
                 raise Exception('stop')
             elif nRecCount > 0:
                 # get column info
@@ -357,13 +357,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
                         lstRows[:] = []
                         nGrossSizeBytesToSync = 0
-                        self._printDebug('transmit and initialize')
+                        self._print_debug('transmit and initialize')
                                         
                 dictParams = {'c': [self.__g_dictMsg['ALD']], 'd':  lstRows} # I will send you what you request
                 oResp = self.__post_http(self.__g_sTargetUrl, dictParams)
-                self._printDebug('transmit residual')
-                self._printDebug('-> resp of sending new data')
-                self._printDebug(oResp)
+                self._print_debug('transmit residual')
+                self._print_debug('-> resp of sending new data')
+                self._print_debug(oResp)
         return
 
     def __post_http(self, sTargetUrl, dictParams):
@@ -376,7 +376,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if oResp['error'] == -1:
             sTodo = oResp['variables']['todo']
             if sTodo:
-                self._printDebug('HTTP response raised exception!!')
+                self._print_debug('HTTP response raised exception!!')
                 raise Exception(sTodo)
         else:
             return oResp
@@ -392,7 +392,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
-            self._printDebug( 'key.config.ini not exist')
+            self._print_debug( 'key.config.ini not exist')
             return # raise Exception('stop')
         self.__g_oConfig.read(sKeyConfigPath)
 

@@ -49,7 +49,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230429)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
 
         self._g_dictParam.update({'slack_ch_ttl': None})
         self.__g_oConfig = configparser.ConfigParser()
@@ -65,7 +65,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
                 'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -82,7 +82,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self._g_dictParam['slack_ch_ttl']:
             s_slack_ch_title = self._g_dictParam['slack_ch_ttl']
         elif s_slack_ch_title is None:
-            self._printDebug('execution denied! -> slack_ch_ttl is required via slack.config.ini or slack_ch_ttl param')
+            self._print_debug('execution denied! -> slack_ch_ttl is required via slack.config.ini or slack_ch_ttl param')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -90,7 +90,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
 
         o_sv_slack = sv_slack.SvSlack(sCallingBot='dbs')
-        self._printDebug('Prepare to clear slack channel - ' + s_slack_ch_title)
+        self._print_debug('Prepare to clear slack channel - ' + s_slack_ch_title)
         o_slack_cleaner = o_sv_slack.get_slack_cleaner(s_slack_ch_title)
         # delete all messages in general channels
         n_cnt = 1
@@ -100,9 +100,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # delete messages, its files, and all its replies (thread)
             o_msg.delete(replies=True, files=True)
             if o_callback:  # regarding an execution on a web console 
-                self._printDebug('single slack msg has been deleted - ' + str(n_cnt))
+                self._print_debug('single slack msg has been deleted - ' + str(n_cnt))
                 n_cnt = n_cnt + 1
-        self._printDebug(str(n_cnt) + ' slack msgs have been deleted')
+        self._print_debug(str(n_cnt) + ' slack msgs have been deleted')
         self._task_post_proc(self._g_oCallback)
 
     def __get_key_config(self, s_acct_id, s_acct_title):
@@ -111,7 +111,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(s_config_path) as f:
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
-            self._printDebug('slack.config.ini not exist')
+            self._print_debug('slack.config.ini not exist')
             return  # raise Exception('stop')
 
         self.__g_oConfig.read(s_config_path)

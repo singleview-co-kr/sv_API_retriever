@@ -64,9 +64,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
 
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -77,7 +77,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_oConfig.read_file(f)
                 b_available = True
         except IOError:
-            self._printDebug('slack_config.ini does not exist')
+            self._print_debug('slack_config.ini does not exist')
             # raise IOError('failed to initialize SvSlack')
 
         if b_available:
@@ -101,14 +101,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         if 'fb_biz_aid' not in dict_acct_info:
-            self._printDebug('stop -> no fb business API info')
+            self._print_debug('stop -> no fb business API info')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -119,26 +119,26 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_brand_id = dict_acct_info['brand_id']
         lst_fb_biz_aid = dict_acct_info['fb_biz_aid']
         if len(lst_fb_biz_aid) == 0:
-            self._printDebug('stop -> no business account id')
+            self._print_debug('stop -> no business account id')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         try:
             for s_fb_biz_aid in lst_fb_biz_aid:
-                self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
+                self._print_debug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
                 self.__g_sCurrentFbBizAid = s_fb_biz_aid
                 self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id)
                 self.__g_sCurrentFbBizAid = None
         except TypeError as error:
             # Handle errors in constructing a query.
-            self._printDebug(('There was an error in constructing your query : %s' % error))
+            self._print_debug(('There was an error in constructing your query : %s' % error))
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         
-        self._printDebug('fb_get_day plugin finished')
+        self._print_debug('fb_get_day plugin finished')
         self._task_post_proc(self._g_oCallback)
 
     def __getFbBusinessRaw(self, sSvAcctId, sAcctTitle):
@@ -161,7 +161,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dtStartRetrieval = datetime.now() - timedelta(days=1)
 
         #dtStartRetrieval = datetime(2018, 7, 31)
-        self._printDebug('start date :'+dtStartRetrieval.strftime('%Y-%m-%d'))
+        self._print_debug('start date :'+dtStartRetrieval.strftime('%Y-%m-%d'))
 
         # requested report date should not be later than today
         dtDateEndRetrieval = datetime.now() - timedelta(days=1) # yesterday
@@ -173,7 +173,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictDateQueue[dtElement] = 0
         
         if len(dictDateQueue) == 0:
-            self._printDebug('no data to collect')
+            self._print_debug('no data to collect')
         
         b_period_compress_toggle = False
         if len(dictDateQueue) > 2:  # consider period compression
@@ -183,7 +183,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_yrmo_end = int(dt_end.strftime('%Y%m'))
             del dt_begin, dt_end
             if n_yrmo_end > n_yrmo_begin:
-                self._printDebug('toggle period compress mode')
+                self._print_debug('toggle period compress mode')
                 b_period_compress_toggle = True
         
         self.__g_sAdAccountId = 'act_' + self.__g_sCurrentFbBizAid
@@ -198,12 +198,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 Ad.Field.creative,])
         except facebook_business.exceptions.FacebookRequestError as err:
             if err.http_status() == 400 and err.get_message() == 'Call was not successful' and err.api_error_code() == 190:
-                self._printDebug(err.api_error_message() + '\n' + \
+                self._print_debug(err.api_error_message() + '\n' + \
                                 'plz visit https://developers.facebook.com/apps/#app#id/marketing-api/tools/\n' + \
                                 'token right select: ads_management, ads_read, read_insights -> get token\n' + \
                                 'paste new token into /conf/fb_biz_config.ini')
             else:
-                self._printDebug(err)
+                self._print_debug(err)
             return
         
         for oAds in ads:
@@ -311,7 +311,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_datadate_begin = lst_compressed_date[0].strftime('%Y-%m-%d')
         s_datadate_end = lst_compressed_date[1].strftime('%Y-%m-%d')
         s_datadate_to_log = lst_compressed_date[1].strftime('%Y%m%d')
-        self._printDebug( '--> '+ self.__g_sCurrentFbBizAid +' will retrieve report from ' + s_datadate_begin + ' to ' + s_datadate_end)
+        self._print_debug( '--> '+ self.__g_sCurrentFbBizAid +' will retrieve report from ' + s_datadate_begin + ' to ' + s_datadate_end)
         params = {
             'level': 'ad',
             #'filtering': [],
@@ -375,20 +375,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 out.write(sRow)
                             continue
             else:
-                self._printDebug('WARNING! no data detected!\nstop querying if you do not spend.\nfb api does not like free querying\nthey might block API access temporarily.')
+                self._print_debug('WARNING! no data detected!\nstop querying if you do not spend.\nfb api does not like free querying\nthey might block API access temporarily.')
             
             try:
                 f = open(self.__g_sLatestFilepath, 'w')
                 f.write(s_datadate_to_log)
                 f.close()
             except PermissionError:
-                self._printDebug('write permission error')
-                self._printDebug(e)
+                self._print_debug('write permission error')
+                self._print_debug(e)
                 
             time.sleep(2)
         except Exception as e:
-            self._printDebug('unknown exception occured')
-            self._printDebug(e)
+            self._print_debug('unknown exception occured')
+            self._print_debug(e)
 
 
 if __name__ == '__main__': # for console debugging and execution

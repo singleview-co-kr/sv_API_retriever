@@ -70,7 +70,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(_regist)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self._g_dictParam.update({'yyyymm': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -98,7 +98,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'adw_cid' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -113,18 +113,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.aw_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         
-        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
-        if self.__g_sReplaceMonth != None:
-            self._printDebug('-> replace aw raw data')
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
+                                                  s_brand_id, 'branded_term.conf')
+        if self.__g_sReplaceMonth is not None:
+            self._print_debug('-> replace aw raw data')
             self.__delete_certain_month()
         else:
-            self._printDebug('-> register aw raw data')
+            self._print_debug('-> register aw raw data')
         
         # begin - referring to raw_data_file, validate raw data file without registration
         lst_non_sv_convention_campaign_title = self.__validate_campaign_code(s_sv_acct_id, s_brand_id, lst_google_ads)
         if len(lst_non_sv_convention_campaign_title):
             for s_single_campaign in lst_non_sv_convention_campaign_title:
-                self._printDebug('[' + s_single_campaign + '] should be filled!')
+                self._print_debug('[' + s_single_campaign + '] should be filled!')
             self._task_post_proc(self._g_oCallback)
             return
         # end - referring to raw_data_file, validate raw data file without registration
@@ -138,7 +139,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             lstMonthRange = calendar.monthrange(nYr, nMo)
         except calendar.IllegalMonthError:
-            self._printDebug('invalid yyyymm')
+            self._print_debug('invalid yyyymm')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -160,10 +161,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, s_brand_id, 'adwords')
         for sGoogleadsCid in lstGoogleads:
             if self.__g_sReplaceMonth == None:
-                self._printDebug('-> '+ sGoogleadsCid +' is validating AW data files')
+                self._print_debug('-> '+ sGoogleadsCid +' is validating AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
             else:
-                self._printDebug('-> '+ sGoogleadsCid +' is validating AW data files')
+                self._print_debug('-> '+ sGoogleadsCid +' is validating AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data', 'closing')
             
             # traverse directory and categorize data files
@@ -195,7 +196,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sDataFileFullname = os.path.join(sParentDataPath, sCid, 'data', 'closing', sFilename)
             
             if not os.path.isfile(sDataFileFullname):
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+                self._print_debug('pass ' + sDataFileFullname + ' does not exist')
                 continue
             
             with open(sDataFileFullname, 'r') as tsvfile:
@@ -219,7 +220,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         if not dict_rst['detected']:  # retrieve campaign name alias info
                             lst_non_sv_convention_campaign_title.append(row[0])
                             continue
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Validate data file:', suffix = 'Complete', length = 50)
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='Validate data file:', suffix='Complete', length=50)
             nIdx += 1
         del o_campaign_alias
         return list(set(lst_non_sv_convention_campaign_title))  # unique list
@@ -230,10 +231,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sParentDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
         for sGoogleadsCid in lstGoogleads:
             if self.__g_sReplaceMonth == None:
-                self._printDebug('-> '+ sGoogleadsCid +' is registering AW data files')
+                self._print_debug('-> '+ sGoogleadsCid +' is registering AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data')
             else:
-                self._printDebug('-> '+ sGoogleadsCid +' is replacing AW data files')
+                self._print_debug('-> '+ sGoogleadsCid +' is replacing AW data files')
                 sDataPath = os.path.join(sParentDataPath, sGoogleadsCid, 'data', 'closing')
             
             # traverse directory and categorize data files
@@ -268,7 +269,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sDataFileFullname = os.path.join(sParentDataPath, sCid, 'data', 'closing', sFilename)
             
             if not os.path.isfile(sDataFileFullname):
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+                self._print_debug('pass ' + sDataFileFullname + ' does not exist')
                 continue
             
             with open(sDataFileFullname, 'r') as tsvfile:
@@ -287,8 +288,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dict_rst = dict_campaign_alias_rst['dict_ret']
                             if not dict_rst['detected']:  # if unacceptable googleads campaign name
                                 sCampaignName = row[0]
-                                self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                                self._printDebug('weird googleads log!')
+                                self._print_debug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                                self._print_debug('weird googleads log!')
                                 if self._g_bDaemonEnv:  # for running on dbs.py only
                                     raise Exception('remove')
                                 else:
@@ -299,8 +300,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_rst = dict_campaign_alias_rst['dict_ret']
                         if not dict_rst['detected']:  # if unacceptable googleads campaign name
                             sCampaignName = row[0]
-                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                            self._printDebug('weird googleads log!')
+                            self._print_debug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                            self._print_debug('weird googleads log!')
                             if self._g_bDaemonEnv:  # for running on dbs.py only
                                 raise Exception('remove')
                             else:
@@ -324,7 +325,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     bBrd = 0
                     dict_brded_rst = self.__g_oSvCampaignParser.decide_brded_by_term(self.__g_sBrandedTruncPath, sTerm)
                     if dict_brded_rst['b_error'] == True:
-                        self._printDebug(dict_brded_rst['s_err_msg'])
+                        self._print_debug(dict_brded_rst['s_err_msg'])
                     elif dict_brded_rst['b_brded']:
                         bBrd = 1
                     del dict_brded_rst
@@ -353,7 +354,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             'imp':nImpression,'clk':nClick,'cost':nCost,'conv_cnt':nConvCnt,'conv_amnt':nConvAmnt
                         }
             self.__archive_data_file(sSourceDataPath, sFilename)
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='Arrange data file:', suffix='Complete', length=50)
             nIdx += 1
         del o_campaign_alias
 
@@ -388,13 +389,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     str(dict_row['cost']), dict_row['imp'], str(dict_row['clk']),
                     str(dict_row['conv_cnt']), str(dict_row['conv_amnt']), sDataDate)
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __archive_data_file(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
-            self._printDebug('error: adw source directory does not exist!')
+            self._print_debug('error: adw source directory does not exist!')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:

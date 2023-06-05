@@ -58,7 +58,6 @@ class svInternalSearch():
         self.__g_dictWordSrl = defaultdict(int)
         self.__g_dictSvAcctInfo = None
         self._g_oLogger = logging.getLogger(__name__)
-        
 
     def __del__(self):
         self.__continue_iteration = None
@@ -71,8 +70,8 @@ class svInternalSearch():
         self.__g_dictWordSrl = defaultdict(int)
         self.__g_dictSvAcctInfo = None
 
-    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
-         f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser,
+                 f_print_debug, f_print_progress_bar, f_continue_iteration):
         self.__g_dictSvAcctInfo = dict_sv_acct_onfo
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -158,15 +157,15 @@ class svInternalSearch():
                 s_search_term = lst_rpt_type[2]
                 # # should check if there is duplicated date + SM log
                 # # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertIntSearchLog', self.__g_dictWordSrl[s_search_term], s_ua_type, 
-                    dict_single_raw['search_term'], s_data_date)
+                oSvMysql.executeQuery('insertIntSearchLog', self.__g_dictWordSrl[s_search_term], s_ua_type,
+                                      dict_single_raw['search_term'], s_data_date)
 
                 self.__print_progress_bar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 n_idx += 1
 
     def __archive_ga_data_file(self, s_cur_filename):
         if not os.path.exists(self.__g_sDataPath):
-            self._printDebug( 'error: google analytics source directory does not exist!' )
+            self.__print_debug('error: google analytics source directory does not exist!' )
             return
         s_archive_data_path = os.path.join(self.__g_sDataPath, 'archive')
         if not os.path.exists(s_archive_data_path):

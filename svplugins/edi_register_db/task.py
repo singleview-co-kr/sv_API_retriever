@@ -92,7 +92,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -112,7 +112,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if dict_rst_storage['b_err']:
             self.__oSvMysql = None
             del dict_rst_storage
-            self._printDebug(dict_rst_storage['s_msg'])
+            self._print_debug(dict_rst_storage['s_msg'])
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -123,7 +123,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = self.__g_oSvStorage.get_uploaded_file(self.__g_nSvFileId)
         if dict_rst['b_err']:
             self.__oSvMysql = None
-            self._printDebug(dict_rst['s_msg'])
+            self._print_debug(dict_rst['s_msg'])
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -133,32 +133,32 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # print(sv_hypermart_model.EdiDataType.QTY_AMNT.label)
         if self.__g_sMode is None:
             self.__oSvMysql = None
-            self._printDebug('you should designate mode')
+            self._print_debug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         s_uploaded_filename = dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext']
-        self._printDebug(s_uploaded_filename + ' will be extracted')
+        self._print_debug(s_uploaded_filename + ' will be extracted')
 
         self.__oEdiExtractor = edi_extract.ExtractEdiExcel()
         self.__oEdiTransformer = edi_transform.TransformEdiDb()
         
         if self.__g_sMode == 'lookup':
-            self._printDebug('-> lookup EDI file')
+            self._print_debug('-> lookup EDI file')
             self.__prepare_EDI_file(dict_rst)
         elif self.__g_sMode == 'register_sku':
-            self._printDebug('-> register new skus')
+            self._print_debug('-> register new skus')
             self.__register_new_sku(dict_rst)
         elif self.__g_sMode == 'register_db':
-            self._printDebug('-> register into DB')
+            self._print_debug('-> register into DB')
             self.__register_db(dict_rst)
         elif self.__g_sMode == 'transform_db':
-            self._printDebug('-> transform DB')
+            self._print_debug('-> transform DB')
             self.__transform_db()
         else:
-            self._printDebug('error -> invalid mode')
+            self._print_debug('error -> invalid mode')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -172,42 +172,42 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __transform_db(self):
         if 'start_yyyymmdd' not in self._g_dictParam:
-            self._printDebug('error! invalid start_yyyymmdd')
+            self._print_debug('error! invalid start_yyyymmdd')
             return
         s_start_yyyymmdd = self._g_dictParam['start_yyyymmdd']
         if s_start_yyyymmdd is None:
-            self._printDebug('error! invalid start_yyyymmdd')
+            self._print_debug('error! invalid start_yyyymmdd')
             return
         try:
             datetime.strptime(s_start_yyyymmdd, '%Y%m%d')
         except ValueError:
-            self._printDebug('error! invalid start_yyyymmdd')
+            self._print_debug('error! invalid start_yyyymmdd')
             return
         if 'end_yyyymmdd' not in self._g_dictParam:
-            self._printDebug('error! invalid end_yyyymmdd')
+            self._print_debug('error! invalid end_yyyymmdd')
             return
         s_end_yyyymmdd = self._g_dictParam['end_yyyymmdd']
         if s_end_yyyymmdd is None:
-            self._printDebug('error! invalid end_yyyymmdd')
+            self._print_debug('error! invalid end_yyyymmdd')
             return
         try:
             datetime.strptime(s_end_yyyymmdd, '%Y%m%d')
         except ValueError:
-            self._printDebug('error! invalid start_yyyymmdd')
+            self._print_debug('error! invalid start_yyyymmdd')
             return        
         
         dict_param = {'b_google_data_studio_edi': True,
                       's_period_start': s_start_yyyymmdd,
                       's_period_end': s_end_yyyymmdd}
-        self.__oEdiTransformer.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
+        self.__oEdiTransformer.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiTransformer.initialize(self.__oSvMysql, dict_param)
 
     def __register_db(self, dict_rst):
         if 's_path_abs_unzip' not in dict_rst['dict_val']:
-            self._printDebug('error! csv data not ready')
+            self._print_debug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         self.__oEdiExtractor.transform_csv_to_db()
         # unset unzip file
@@ -216,13 +216,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __register_new_sku(self, dict_rst):
         if 's_path_abs_unzip' not in dict_rst['dict_val']:
-            self._printDebug('error! csv data not ready')
+            self._print_debug('error! csv data not ready')
             return
         s_path_abs_unzip = dict_rst['dict_val']['s_path_abs_unzip']
-        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip)
         if self._g_dictParam['new_sku_id'] is None:
-            self._printDebug('error! new_sku_id is empty')
+            self._print_debug('error! new_sku_id is empty')
             return
         self.__oEdiExtractor.add_new_sku_info(self._g_dictParam['new_sku_id'])
 
@@ -244,28 +244,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_edi_file_info = []
         o_edi_model = edi_model.SvEdiExcel()
         for dict_single_file in lst_zipped_file_list:
-            self._printDebug('-> analyzing EDI file: ' + dict_single_file['filename'])
+            self._print_debug('-> analyzing EDI file: ' + dict_single_file['filename'])
             dict_mart_rst = o_edi_model.classify_mart(s_path_abs_unzip, dict_single_file['filename'])
             lst_edi_file_info.append({'s_filename': dict_single_file['filename'],
-                                        'n_edi_data_year': dict_mart_rst['dict_val']['n_edi_data_year'],
-                                        'n_hyper_mart': dict_mart_rst['dict_val']['n_hyper_mart'],
-                                        'n_edi_data_type': dict_mart_rst['dict_val']['n_edi_data_type'],
-                                        'status': dict_mart_rst['dict_val']['status']})
+                                      'n_edi_data_year': dict_mart_rst['dict_val']['n_edi_data_year'],
+                                      'n_hyper_mart': dict_mart_rst['dict_val']['n_hyper_mart'],
+                                      'n_edi_data_type': dict_mart_rst['dict_val']['n_edi_data_type'],
+                                      'status': dict_mart_rst['dict_val']['status']})
             del dict_mart_rst
         del o_edi_model
 
-        self.__oEdiExtractor.init_var(self._printDebug, self._printProgressBar, self._continue_iteration)
+        self.__oEdiExtractor.init_var(self._printDebug, self._print_progress_bar, self._continue_iteration)
         self.__oEdiExtractor.initialize(self.__oSvMysql, s_path_abs_unzip, lst_edi_file_info)
         self.__oEdiExtractor.transfer_excel_to_csv()
         dict_rst = self.__oEdiExtractor.check_new_entity()
         if len(dict_rst['dict_new_branch']):
-            self._printDebug('unknown branch has been detected\nplease contact system admin')
+            self._print_debug('unknown branch has been detected\nplease contact system admin')
             for s_mart_id_branch_code, s_branch_name in dict_rst['dict_new_branch'].items():
-                self._printDebug(s_mart_id_branch_code+'||'+s_branch_name)
+                self._print_debug(s_mart_id_branch_code+'||'+s_branch_name)
         if len(dict_rst['dict_new_sku']):
-            self._printDebug('unknown SKU has been detected')
+            self._print_debug('unknown SKU has been detected')
             for s_mart_id_sku_code_sku_name, s_first_detect_date in dict_rst['dict_new_sku'].items():
-                self._printDebug(s_mart_id_sku_code_sku_name)
+                self._print_debug(s_mart_id_sku_code_sku_name)
 
 
 if __name__ == '__main__': # for console debugging

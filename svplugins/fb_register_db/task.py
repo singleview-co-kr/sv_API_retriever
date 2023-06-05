@@ -83,7 +83,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'fb_biz_aid' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -100,7 +100,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_non_sv_convention_campaign_title = self.__validate_fb_raw_data_file(s_sv_acct_id, s_brand_id)
         if len(lst_non_sv_convention_campaign_title):
             for s_single_campaign in lst_non_sv_convention_campaign_title:
-                self._printDebug('[' + s_single_campaign + '] should be filled!')
+                self._print_debug('[' + s_single_campaign + '] should be filled!')
             self._task_post_proc(self._g_oCallback)
             return False
         # end - referring to raw_data_file, validate raw data file without registration
@@ -122,16 +122,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     try: # validate requsted date
                         dtBeginDate = datetime.strptime(aFxPeriod[0], '%Y.%m.%d').date()
                     except ValueError:
-                        self._printDebug('start date:' + aFxPeriod[0] + ' is invalid date string')
+                        self._print_debug('start date:' + aFxPeriod[0] + ' is invalid date string')
                 else:
                     dtBeginDate = datetime(2010, 1, 1).date() # set sentinel
-                    self._printDebug(dtBeginDate)
+                    self._print_debug(dtBeginDate)
 
                 if len(aFxPeriod[1]) > 0: # fx date - end
                     try: # validate requsted date
                         dtEndDate = datetime.strptime(aFxPeriod[1], '%Y.%m.%d').date()
                     except ValueError:
-                        self._printDebug('end date:' + aFxPeriod[1] + ' is invalid date string')
+                        self._print_debug('end date:' + aFxPeriod[1] + ' is invalid date string')
                 else:
                     dtEndDate = datetime(2910, 12, 31).date() # set sentinel
                 
@@ -153,7 +153,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self.__g_dictFxTrendInfo[sFxCode + '_' + row[0]] = int(row[1].replace(',',''))
                     nRowCnt = nRowCnt + 1
         else:
-            self._printDebug('file ' + sCurrencyTrendPath + ' does not exist')
+            self._print_debug('file ' + sCurrencyTrendPath + ' does not exist')
             return False
         return True
 
@@ -165,7 +165,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(sFxCodePath, 'r') as f:
                 sFxCode = f.readline().strip().upper()
         else:
-            self._printDebug('file ' + sFxCodePath + ' does not exist')
+            self._print_debug('file ' + sFxCodePath + ' does not exist')
         return sFxCode
 
     def __validate_fb_raw_data_file(self, s_sv_acct_id, s_brand_id):
@@ -179,7 +179,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if sFbBizAid == 'alias_info_campaign.tsv':
                 continue
             sDownloadDataPath = os.path.join(sDataPath, sFbBizAid, 'data')
-            self._printDebug('-> '+ sFbBizAid +' is validating FB IG data files')
+            self._print_debug('-> '+ sFbBizAid +' is validating FB IG data files')
             lstDataFiles = os.listdir(sDownloadDataPath)
             for sFilename in lstDataFiles:
                 aFileExt = os.path.splitext(sFilename)
@@ -230,8 +230,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             if dictCode['detected'] == False:
                                 lst_non_sv_convention_campaign_title.append(sCampaignName)
             else:
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate data file:', suffix = 'Complete', length = 50)
+                self._print_debug('pass ' + sDataFileFullname + ' does not exist')
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='validate data file:', suffix='Complete', length=50)
             nIdx += 1
         del o_campaign_alias
         return list(set(lst_non_sv_convention_campaign_title))  # unique list
@@ -250,14 +250,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             sFxCode = self.__get_fx_code(s_conf_path_abs)
             self.__g_dictFxCodeByBizAcct[sFbBizAid] = sFxCode
             if sFxCode == 'error':
-                self._printDebug('-> '+ sFbBizAid +' has been stopped')
+                self._print_debug('-> '+ sFbBizAid +' has been stopped')
                 return
 
             if sFxCode != 'KRW':
                 if self.__get_fx_trend(sFxCode) == False:
-                    self._printDebug('-> '+ sFbBizAid +' has been stopped')
+                    self._print_debug('-> '+ sFbBizAid +' has been stopped')
 
-            self._printDebug('-> '+ sFbBizAid +' is analyzing FB IG data files')
+            self._print_debug('-> '+ sFbBizAid +' is analyzing FB IG data files')
             lstDataFiles = os.listdir(sDownloadDataPath)
             for sFilename in lstDataFiles:
                 aFileExt = os.path.splitext(sFilename)
@@ -342,8 +342,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             }
                 self.__archive_data_file(sTempDataPath, aFileInfo[0])
             else:
-                self._printDebug('pass ' + sDataFileFullname + ' does not exist')
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+                self._print_debug('pass ' + sDataFileFullname + ' does not exist')
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='Arrange data file:', suffix='Complete', length=50)
             nIdx += 1
         del o_campaign_alias
 
@@ -376,13 +376,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     str(dict_single_raw['clk']), str(dict_single_raw['u_clk']), str(dict_single_raw['conv_cnt']),
                     str(dict_single_raw['conv_amnt']), sDataDate)
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __archive_data_file(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
-            self._printDebug('error: fb data directory does not exist!')
+            self._print_debug('error: fb data directory does not exist!')
             return
         
         sArchiveDataPath = os.path.join(sDataPath, 'archive')

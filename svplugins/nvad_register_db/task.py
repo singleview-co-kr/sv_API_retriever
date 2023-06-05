@@ -102,7 +102,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -134,7 +134,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__check_nv_brspage_contract_last()
 
         if self.__g_sMode == None:
-            self._printDebug('-> register nvad raw data')
+            self._print_debug('-> register nvad raw data')
             b_rst = self.__parse_nvad_data_file(s_sv_acct_id, s_brand_id, s_cid)
             if not b_rst:
                 self._task_post_proc(self._g_oCallback)
@@ -157,7 +157,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 self.__g_lstDatadateToCompile = sorted(set(self.__g_lstDatadateToCompile))
         elif self.__g_sMode == 'clear':
-            self._printDebug('-> clear nvad raw data')
+            self._print_debug('-> clear nvad raw data')
             with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
                 oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
                 oSvMysql.set_app_name('svplugins.nvad_register_db')
@@ -176,10 +176,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
             b_rst = self.__compile_daily_record(s_cid, str(nDate))
             if not b_rst:
-                self._printDebug('warning! denying assemble stat data & register!')
+                self._print_debug('warning! denying assemble stat data & register!')
                 break
             else:
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'assemble stat data & register:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='assemble stat data & register:', suffix='Complete', length=50)
                 nIdx += 1
 
         self._task_post_proc(self._g_oCallback)
@@ -188,7 +188,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try: # validate requsted date
             sCompileDate = datetime.strptime(sCompileDate, '%Y%m%d').strftime('%Y-%m-%d')
         except ValueError:
-            self._printDebug(sCompileDate + ' is invalid date string')
+            self._print_debug(sCompileDate + ' is invalid date string')
             return False
 
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
@@ -220,10 +220,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             dictCampaignInfo[lstMediLog['campaign_id']] = lstCampaign[0]['campaign_name']
                             sTranslatedCampaignTitle = lstCampaign[0]['campaign_name']
                         except IndexError: # if campaign was existed but permanently removed or unidentified 
-                            self._printDebug('-1-')
-                            self._printDebug(lstCampaign)
-                            self._printDebug(sCompileDate)
-                            self._printDebug(lstMediLog['campaign_id'])
+                            self._print_debug('-1-')
+                            self._print_debug(lstCampaign)
+                            self._print_debug(sCompileDate)
+                            self._print_debug(lstMediLog['campaign_id'])
                             dictCampaignInfo[lstMediLog['campaign_id']] = lstMediLog['campaign_id']
                             sTranslatedCampaignTitle = lstMediLog['campaign_id']
 
@@ -234,11 +234,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         try:
                             dictAdGrpInfo[lstMediLog['ad_group_id']] = lstAdGrp[0]['ad_group_name']
                             sTranslatedGrpTitle = lstAdGrp[0]['ad_group_name']
-                        except IndexError: # if ad grp was existed but permanently removed or unidentified 
-                            self._printDebug('-2-')
-                            self._printDebug(lstAdGrp)
-                            self._printDebug(sCompileDate)
-                            self._printDebug(lstMediLog['ad_group_id'])
+                        except IndexError:  # if ad grp was existed but permanently removed or unidentified
+                            self._print_debug('-2-')
+                            self._print_debug(lstAdGrp)
+                            self._print_debug(sCompileDate)
+                            self._print_debug(lstMediLog['ad_group_id'])
                             dictAdGrpInfo[lstMediLog['ad_group_id']] = lstMediLog['ad_group_id']
                             sTranslatedGrpTitle = lstMediLog['ad_group_id']
 
@@ -274,36 +274,36 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 try:
                     dictCompliedDailyLog[sConvId]['conv_cnt'] += int(lstSingleConvlog['conversion_count'])
                     dictCompliedDailyLog[sConvId]['conv_amnt'] += int(lstSingleConvlog['sales_by_conversion'])
-                except KeyError: # it is possible to exist conversion log without same day media impression data, in a word, supposed to be a delayed conversion
+                except KeyError:  # it is possible to exist conversion log without same day media impression data, in a word, supposed to be a delayed conversion
                     lstCampaign = oSvMysql.executeQuery('getCampaignInfo', lstSingleConvlog['campaign_id'], sCompileDate)
                     try:
                         sTranslatedCampaignTitle = lstCampaign[0]['campaign_name']
-                    except IndexError: # if campaign was existed but permanently removed or unidentified 
-                        self._printDebug('-4-')
-                        self._printDebug(lstCampaign)
-                        self._printDebug(sCompileDate)
-                        self._printDebug(lstSingleConvlog['campaign_id'])
+                    except IndexError:  # if campaign was existed but permanently removed or unidentified
+                        self._print_debug('-4-')
+                        self._print_debug(lstCampaign)
+                        self._print_debug(sCompileDate)
+                        self._print_debug(lstSingleConvlog['campaign_id'])
                         sTranslatedCampaignTitle = lstSingleConvlog['campaign_id']
                     
                     lstAdGrp = oSvMysql.executeQuery('getAdGrpInfo', lstSingleConvlog['ad_group_id'], sCompileDate)
                     try:
                         sTranslatedGrpTitle = lstAdGrp[0]['ad_group_name']
-                    except IndexError: # if ad grp was existed but permanently removed or unidentified 
-                        self._printDebug('-5-')
-                        self._printDebug(lstAdGrp)
-                        self._printDebug(sCompileDate)
-                        self._printDebug(lstSingleConvlog['ad_group_id'])
+                    except IndexError:  # if ad grp was existed but permanently removed or unidentified
+                        self._print_debug('-5-')
+                        self._print_debug(lstAdGrp)
+                        self._print_debug(sCompileDate)
+                        self._print_debug(lstSingleConvlog['ad_group_id'])
                         sTranslatedGrpTitle = lstSingleConvlog['ad_group_id']
 
                     if lstSingleConvlog['ad_keyword_id'] != '-': # ignore non keyword media eg) nvr shopping
                         lstKw = oSvMysql.executeQuery('getKwInfo', lstSingleConvlog['ad_keyword_id'], sCompileDate)
                         try:
                             sTranslatedKw = lstKw[0]['ad_keyword']
-                        except IndexError: # if ad keyword was existed but permanently removed or unidentified 
-                            self._printDebug('-6-')
-                            self._printDebug(lstKw)
-                            self._printDebug(sCompileDate)
-                            self._printDebug(lstSingleConvlog['ad_keyword_id'])
+                        except IndexError:  # if ad keyword was existed but permanently removed or unidentified
+                            self._print_debug('-6-')
+                            self._print_debug(lstKw)
+                            self._print_debug(sCompileDate)
+                            self._print_debug(lstSingleConvlog['ad_keyword_id'])
                             sTranslatedKw = lstSingleConvlog['ad_keyword_id']
                     else:
                         sTranslatedKw = '-'
@@ -332,7 +332,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dictNvBrsPageImpByUa[dict_daily_log['ua']] + dict_daily_log['imp']
                     dictBrspageDailyCostRst = self.__define_nv_brspage_cost_db(sCompileDate) # will be deprecated
                     if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-                        self._printDebug('warning! stop -> no matched contract brs info\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
+                        self._print_debug('warning! stop -> no matched contract brs info\nPlease fill in ' + sCompileDate + ' matching nvr brs info\nAnd run nvad_register_db mode=recompile again')
                         return False
 
                 if dict_daily_log['media'] == 'CPC' and dict_daily_log['campaign_1st'].find('NVSHOP') > -1:
@@ -347,17 +347,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     bBrsInfoFromApiExist = True
                     if dictBrspageDailyCostRst[dict_daily_log['ua']] == 0: # raise exception if BRS impression exists without contract info
                         if dictBrspageDailyCostRst['detected'] == False: # if [contract id] is "svmanual" then dictBrsInfo[sUa] would be -1 
-                            self._printDebug('check brs info: BRS impression exists without contract info on ' + sCompileDate)
+                            self._print_debug('check brs info: BRS impression exists without contract info on ' + sCompileDate)
                             return False
                     else:
                         try:
                             nCost = int(dict_daily_log['imp']/dictNvBrsPageImpByUa[dict_daily_log['ua']] * dictBrspageDailyCostRst[dict_daily_log['ua']])
                         except ZeroDivisionError: # brs info with cost exists mistakenly
                             nCost = 0
-                            self._printDebug('plz check brs info: errornous situation has been detected:')
-                            self._printDebug('brs impression:' + str(dict_daily_log['imp']))
-                            self._printDebug('brs impression by UA:' + str(dictNvBrsPageImpByUa[dict_daily_log['ua']]))
-                            self._printDebug('brs daily cost:' + str(dictBrspageDailyCostRst[dict_daily_log['ua']]))
+                            self._print_debug('plz check brs info: errornous situation has been detected:')
+                            self._print_debug('brs impression:' + str(dict_daily_log['imp']))
+                            self._print_debug('brs impression by UA:' + str(dictNvBrsPageImpByUa[dict_daily_log['ua']]))
+                            self._print_debug('brs daily cost:' + str(dictBrspageDailyCostRst[dict_daily_log['ua']]))
                 else:
                     nCost = dict_daily_log['cost']
 
@@ -404,7 +404,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if len(lst_last_contract_info) > 0:
                     dt_contract_days = lst_last_contract_info[0]['date_end'] - date.today()
                     if 0 <= dt_contract_days.days <= 2:
-                        self._printDebug('BRS ' + s_ua + ' contract info will be expired in ' + str(dt_contract_days.days) + ' days!')
+                        self._print_debug('BRS ' + s_ua + ' contract info will be expired in ' + str(dt_contract_days.days) + ' days!')
                 del lst_last_contract_info
 
     def __define_nv_brspage_cost_db(self, s_compile_date):
@@ -445,8 +445,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_campaign_info['campaign_3rd'] = dict_parse_rst['campaign3rd']
                 dict_campaign_info['brd'] = int(dict_parse_rst['brd'])
             else:
-                self._printDebug('weird campaign info detected')
-                self._printDebug(dict_parse_rst)
+                self._print_debug('weird campaign info detected')
+                self._print_debug(dict_parse_rst)
         else:
             lst_campaign = o_sv_mysql.executeQuery('getCampaignInfo', dict_complied_daily_log['campaign_id'], s_compile_date)
             n_campaign_type = lst_campaign[0]['campaign_type']
@@ -465,12 +465,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_campaign_info['campaign_2nd'] = dict_complied_daily_log['grp_name']
                 dict_campaign_info['brd'] = 1
             else:
-                self._printDebug('weird campaign info detected')
-                self._printDebug(s_campaign_code + '@' + s_compile_date)
+                self._print_debug('weird campaign info detected')
+                self._print_debug(s_campaign_code + '@' + s_compile_date)
         return dict_campaign_info
 
     def __parse_nvad_data_file(self, sSvAcctId, s_brand_id, cid):
-        self._printDebug('-> '+ cid +' is registering NVAD data files')
+        self._print_debug('-> '+ cid +' is registering NVAD data files')
         # dictionary for master data file
         dictBizCh = {}
         dictCamp = {}
@@ -560,13 +560,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             elif sReportType == 'Qi_full.tsv' or sReportType == 'Qi_delta.tsv':
                 dictQi[nDatadate] = sFilename
             else:
-                self._printDebug('weird Report Type! - ' + sReportType)
+                self._print_debug('weird Report Type! - ' + sReportType)
         
         # begin - referring to raw_data_file, validate raw data file without registration
         lst_non_sv_convention_campaign_title = self.__validate_master_ad_group_file(sSvAcctId, s_brand_id, dictAdgrp)
         if len(lst_non_sv_convention_campaign_title):
             for s_single_campaign in lst_non_sv_convention_campaign_title:
-                self._printDebug('[' + s_single_campaign + '] should be filled!')
+                self._print_debug('[' + s_single_campaign + '] should be filled!')
             self._task_post_proc(self._g_oCallback)
             return False
         # end - referring to raw_data_file, validate raw data file without registration
@@ -685,9 +685,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterQi', row[0], row[1], row[2], row[3], row[4], sCheckDate)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master qi file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master qi file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_master_ad_ext_file(self, dictMasterData):
@@ -729,12 +729,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[16] = datetime.strptime( row[16], "%Y-%m-%dT%H:%M:%SZ")
                             else:
                                 row[16] = '0000-00-00 00:00:00'
-                            oSvMysql.executeQuery('insertMasterAdExt', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13],row[14], row[15], row[16])
+                            oSvMysql.executeQuery('insertMasterAdExt', row[0], row[1], row[2], row[3], row[4], row[5],
+                                                  row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13],
+                                                  row[14], row[15], row[16])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master ad ext file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master ad ext file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_master_ad_file(self, dictMasterData):
@@ -767,7 +769,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     self.printDebug('pass ' + sDataFileFullpathname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master ad file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master ad file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_master_keyword_file(self, dictMasterData):
@@ -798,9 +800,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterKeyword', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10], row[11])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master keyword file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master keyword file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_master_ad_group_budget_file(self, dictMasterData):
@@ -831,9 +833,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterAdGroupBudget', row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp budget file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master adgrp budget file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __validate_master_ad_group_file(self, sSvAcctId, s_brand_id, dictMasterData):
@@ -861,15 +863,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 continue
                         if dict_rst['source_code'] != 'NV':  # if unacceptable NVAD group name
                             sCampaignName = row[3]
-                            self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullpathname)
-                            self._printDebug('weird nvad log!')
+                            self._print_debug('  ' + sCampaignName + '  ' + sDataFileFullpathname)
+                            self._print_debug('weird nvad log!')
                             if self._g_bDaemonEnv:  # for running on dbs.py only
                                 raise Exception('remove')
                             else:
                                 return
             else:
-                self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'validate master adgrp file:', suffix = 'Complete', length = 50)
+                self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='validate master adgrp file:', suffix='Complete', length=50)
             nIdx += 1
         del o_campaign_alias
         return list(set(lst_non_sv_convention_campaign_title))  # unique list
@@ -909,7 +911,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 # sCorrectedCampaignCode = ''
                                 # nCnt = 0
                                 # if '#' in aCampaignCode[nLastPart]:
-                                #     self._printDebug('correct weird campaign name from NAVER AD API server ')
+                                #     self._print_debug('correct weird campaign name from NAVER AD API server ')
                                 #     del aCampaignCode[-1]  # remove last part that naver errornously added
 
                                 #     for sCampaignPart in aCampaignCode:
@@ -932,9 +934,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master adgrp file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master adgrp file:', suffix='Complete', length=50)
                 nIdx += 1
         del o_campaign_alias
 
@@ -977,9 +979,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterCampaign', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master campaign file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master campaign file:', suffix='Complete', length=50)
                 nIdx += 1
         
     def __register_master_campaign_budget_file(self, dictMasterData):
@@ -1012,9 +1014,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             oSvMysql.executeQuery('insertMasterCampaignBudget', row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register master campaign budget file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register master campaign budget file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_npay_conv_file(self, dictStatData):
@@ -1040,13 +1042,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatNpayConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug( 'pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat npay conv file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat npay conv file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_ext_conv_file(self, dictStatData):
@@ -1072,13 +1074,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAdExtensionConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13] )
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad ext conv file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad ext conv file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_ext_file(self, dictStatData):
@@ -1104,13 +1106,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAdExtension', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad ext file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad ext file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_conv_detail_file(self, dictStatData):
@@ -1136,13 +1138,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAdConversionDetail', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14] )
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad conv detail file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad conv detail file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_conv_file(self, dictStatData):
@@ -1168,13 +1170,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAdConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12] )
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad conv file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad conv file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_detail_file(self, dictStatData):
@@ -1200,13 +1202,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAdDetail', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14] )
                                 pass
                             except Exception as err:
-                                self._printDebug(err)
-                                self._printDebug(sDataFileFullpathname)
+                                self._print_debug(err)
+                                self._print_debug(sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
                 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad detail file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad detail file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_ad_file(self, dictStatData):
@@ -1233,12 +1235,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 oSvMysql.executeQuery('insertStatAd', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                                 pass
                             except Exception as err:
-                                self._printDebug( sDataFileFullpathname)
+                                self._print_debug( sDataFileFullpathname)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat ad file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat ad file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __register_stat_exp_keyword_file(self, dictStatData):
@@ -1280,19 +1282,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     oSvMysql.executeQuery('insertStatExpKeyword', row[0], row[1], row[2], row[3], row[4], 
                                         row[5], row[6], row[7], row[8], row[9] )
                             except Exception as err:
-                                self._printDebug( err)
+                                self._print_debug( err)
                     
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
-                    self._printDebug('pass ' + sDataFileFullpathname + ' does not exist')
+                    self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
 
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'register stat exp keyword file:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='register stat exp keyword file:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __archiveNvadDataFile(self, sDataPath, sCurrentFileName):
         sSourcePath = sDataPath
         if not os.path.exists(sSourcePath):
-            self._printDebug('error: naver_ad source directory does not exist!')
+            self._print_debug('error: naver_ad source directory does not exist!')
             return
         sArchiveDataPath = os.path.join(sDataPath, 'archive')
         if not os.path.exists(sArchiveDataPath):

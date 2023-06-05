@@ -60,8 +60,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230323)')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -92,7 +92,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -111,14 +111,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = o_master_report.delete_master_report_all()
         # if 'transaction_id' not in list(dict_rst.keys()):
         if 'transaction_id' not in dict_rst:
-            self._printDebug('communication failed - stop')
+            self._print_debug('communication failed - stop')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         else:
-            self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
+            self._print_debug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         # lst_master_rpt = o_master_report.get_master_report_list()
         # for o_single_rpt in lst_master_rpt:
         #     print(o_single_rpt.status)
@@ -136,7 +136,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             open(s_test_filepath, 'w')
             os.remove(s_test_filepath)
         except PermissionError:
-            self._printDebug('write on ' + self.__g_sDownloadPathNew + ' is not permitted')
+            self._print_debug('write on ' + self.__g_sDownloadPathNew + ' is not permitted')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -159,7 +159,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         nQueueLen = len(dictMasterReportQueue)
         if nQueueLen == 0:
-            self._printDebug('No master rpts activated - stop collecting stat rpt!')
+            self._print_debug('No master rpts activated - stop collecting stat rpt!')
             return
 
         lst_handling_task = list(dictMasterReportQueue.keys())
@@ -171,7 +171,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     break
                 sTobeHandledTaskName = lst_handling_task[list(dictMasterReportQueue.values()).index(0)] # find unhandled report task
             except ValueError:
-                self._printDebug('weird error occured - stop collecting stat ' + sTobeHandledTaskName + ' rpt!')
+                self._print_debug('weird error occured - stop collecting stat ' + sTobeHandledTaskName + ' rpt!')
                 break
             try:
                 sLatestFilepath = os.path.join(self.__g_sRetrieveInfoPath, sTobeHandledTaskName+'.latest')
@@ -206,24 +206,24 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # print(dictDateQueue)
             if len(dictDateQueue) == 0:
                 dictMasterReportQueue[sTobeHandledTaskName] = 1
-                self._printDebug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtDateEndRetrieval.strftime('%Y%m%d%H%M%S'))
+                self._print_debug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtDateEndRetrieval.strftime('%Y%m%d%H%M%S'))
                 continue
             while self._continue_iteration(): # loop for each report date
                 try:
                     self.__g_nRetryBackoffCnt = 0
                     dtDateRetrieval = list(dictDateQueue.keys())[list(dictDateQueue.values()).index(0)] # find unhandled report task
-                    self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + dtDateRetrieval.strftime('%Y%m%d'))
+                    self._print_debug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + dtDateRetrieval.strftime('%Y%m%d'))
                     dt_today = datetime.today().date()
                     dt_delta = dt_today - dtDateRetrieval
                     if dt_delta.days <= 0:
-                        self._printDebug('NVR Ad API msg - stat report ' + sTobeHandledTaskName + ' has been disallowed. reason is request for today or future!')
+                        self._print_debug('NVR Ad API msg - stat report ' + sTobeHandledTaskName + ' has been disallowed. reason is request for today or future!')
                         dict_rst['b_error'] = True
                         dict_rst['s_todo'] = 'pass'
                         return dict_rst
 
                     n_expired_days = dict_stat_rpt_expired_days[sTobeHandledTaskName]
                     if dt_delta.days <= -n_expired_days: 
-                        self._printDebug('NVR Ad API msg - stat report ' + sTobeHandledTaskName + ' has been disallowed. reason is ' + n_expired_days + ' days ago from today!')
+                        self._print_debug('NVR Ad API msg - stat report ' + sTobeHandledTaskName + ' has been disallowed. reason is ' + n_expired_days + ' days ago from today!')
                         continue
 
                     sDateRetrieval = dtDateRetrieval.strftime('%Y%m%d')
@@ -236,23 +236,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             if dict_rst['s_todo']:  # if todo is defined
                                 s_todo = dict_rst['s_todo']
                                 if s_todo == 'wait':
-                                    self._printDebug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                                    self._print_debug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                                     time.sleep(self.__g_nRptWaitingSec)
                                     continue
                                 elif s_todo == 'pass':
-                                    self._printDebug('pass and go')
+                                    self._print_debug('pass and go')
                                     dictDateQueue[dtDateRetrieval] = 1
                                     continue
                                 elif s_todo == 'stop':
-                                    self._printDebug('stop')
+                                    self._print_debug('stop')
                                     dictDateQueue[dtDateRetrieval] = 1
                                     return
                             else:  # default is waiting if todo is not defined
-                                self._printDebug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                                self._print_debug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                                 time.sleep(self.__g_nRptWaitingSec)
                                 continue
                         else:
-                            self._printDebug('too many exceptions raise exception!!')
+                            self._print_debug('too many exceptions raise exception!!')
                             dictDateQueue[dtDateRetrieval] = 1
                             continue    
                     else:
@@ -277,7 +277,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # print(o_rst.reportTp)  # eg 'AD'
         # o_rst.statDt, o_rst.regTm, o_rst.updateTm
         if self.__g_sNvrAdManagerLoginId != o_rst.loginId and not self.__g_bNvrAdManagerLoginIdWarned:
-            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.loginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
+            self._print_debug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.loginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
             self.__g_bNvrAdManagerLoginIdWarned = True
             # dict_rst['b_error'] = True
             # dict_rst['s_todo'] = 'stop'
@@ -289,11 +289,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if n_error_code == 11001: # http status 400 with {"code":11001,"message":"잘못된 파라미터 형식입니다."} 1년 이전의 데이터를 요청하면 발생
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'pass'
-                self._printDebug(o_rst.message + ' - 너무 오래된 데이터 요청')
+                self._print_debug(o_rst.message + ' - 너무 오래된 데이터 요청')
             if n_error_code == 20007: # "해당 일자 지표 준비중입니다."
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'stop'
-                self._printDebug(o_rst.message + ' - stop')
+                self._print_debug(o_rst.message + ' - stop')
             del o_rst    
             return dict_rst
 
@@ -301,17 +301,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if s_rpt_status == 'REGIST' or s_rpt_status == 'RUNNING' or s_rpt_status == 'WAITING':
                 if self.__g_nRetryBackoffCnt < 5:
                     if self.__g_nRetryBackoffCnt > 0:
-                        self._printDebug('Retry with exponential back-off')
-                        self._printDebug('Wait for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                        self._print_debug('Retry with exponential back-off')
+                        self._print_debug('Wait for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
                     
                     time.sleep((2 ** self.__g_nRetryBackoffCnt ) + random.random())
                     self.__g_nRetryBackoffCnt = self.__g_nRetryBackoffCnt + 1
                     o_rst = o_stat_report.get_stat_report(s_rpt_report_job_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
-                    self._printDebug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_report_job_id)
+                    self._print_debug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_report_job_id)
                 else:
-                    self._printDebug('exceed trial limit and giveup a report with requested id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                    self._print_debug('exceed trial limit and giveup a report with requested id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
                     dict_rst['b_error'] = True
                     dict_rst['s_todo'] = 'pass'
                     return dict_rst
@@ -323,17 +323,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_rpt_filename = s_date_retrieval + '_' + s_req_rpt_name + '.tsv'
             s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             if os.path.isfile(s_download_path_abs):
-                self._printDebug('download file duplicated - ' + s_req_rpt_name + ' report registed rpt job id=' + s_rpt_report_job_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
+                self._print_debug('download file duplicated - ' + s_req_rpt_name + ' report registed rpt job id=' + s_rpt_report_job_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
                 s_rpt_filename = s_date_retrieval + '_' + s_req_rpt_name + '_' + self.__generate_random_str() + '.tsv'
                 s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             
             o_stat_report.download_stat_report_by_url(s_download_url, s_download_path_abs)
             if self.__validate_downloaded_file(s_download_path_abs) is False:
-                self._printDebug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
+                self._print_debug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'wait'
         elif s_rpt_status == 'AGGREGATING':
-            self._printDebug('NVR Ad API msg - NVR API server is aggregating... stop')
+            self._print_debug('NVR Ad API msg - NVR API server is aggregating... stop')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'stop'
         elif s_rpt_status == 'NONE':
@@ -343,7 +343,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 			# 	$this->_debug('finish retrieve '.$sReportType.' report from NVR ad server on '.$sStatDate.', transaction id '.$sTransactionId.' report job id '.$sReportJobId.' with HTTP status '.$oOutput->get('status') );
 			# 	if( (int)($oOutput->get('status') / 500) == 1 )  // if status is 5XX - wait
 			# 		$oOutput->add( 'todo', 'wait' );
-            self._printDebug('received ' + s_rpt_status + ' status... done')
+            self._print_debug('received ' + s_rpt_status + ' status... done')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'pass'
 
@@ -368,10 +368,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sTobeHandledTaskName = list(dictMasterRereportQueue.keys())[list(dictMasterRereportQueue.values()).index(0)] # find unhandled report task
             except ValueError:
                 if sTobeHandledTaskName == 'Qi':
-                    self._printDebug('-> '+ sNvrAdCustomerID + ' completed: retrieve master reports!')
+                    self._print_debug('-> '+ sNvrAdCustomerID + ' completed: retrieve master reports!')
                     break
                 else:
-                    self._printDebug('-> '+ sNvrAdCustomerID + ' failed: retrieve ' + sTobeHandledTaskName + ' master reports!')
+                    self._print_debug('-> '+ sNvrAdCustomerID + ' failed: retrieve ' + sTobeHandledTaskName + ' master reports!')
                     return
 
             # if sTobeHandledTaskName: # if there exists unhandled report task
@@ -396,19 +396,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # 2021-08-17T10:33:24+09:00
             # print(datetime.now(timezone('Asia/Seoul')).isoformat(timespec='seconds'))
             # print(dtFromRetrieval.replace(tzinfo=timezone('Asia/Seoul')).isoformat(timespec='seconds'))
-            self._printDebug( '--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve master reports - ' + sTobeHandledTaskName )
+            self._print_debug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve master reports - ' + sTobeHandledTaskName )
             if dtFromRetrieval is not None:
                 dt_today = datetime.today().date()
                 dt_from_retrieval = dtFromRetrieval.date()
                 if sTobeHandledTaskName in lst_master_rpt_daily:
                     if dt_from_retrieval >= dt_today:
-                        self._printDebug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtFromRetrieval.strftime('%Y%m%d%H%M%S'))
+                        self._print_debug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a day! last retrieval datetime was ' + dtFromRetrieval.strftime('%Y%m%d%H%M%S'))
                         dictMasterRereportQueue[sTobeHandledTaskName] = 1
                         continue
                 elif sTobeHandledTaskName == 'Qi':  # 품질지수 보고서는 1주일에 한번만
                     dt_delta = dt_today - dt_from_retrieval
                     if dt_delta.days <= 7:
-                        self._printDebug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a week')
+                        self._print_debug('NVR Ad API msg - ' + sTobeHandledTaskName + ' report retrieval is allowed once a week')
                         dictMasterRereportQueue[sTobeHandledTaskName] = 1
                         continue
                     pass
@@ -419,23 +419,23 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if dict_rst['s_todo']:  # if todo is defined
                         s_todo = dict_rst['s_todo']
                         if s_todo == 'wait':
-                            self._printDebug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                            self._print_debug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                             time.sleep(self.__g_nRptWaitingSec)
                             continue
                         elif s_todo == 'pass':
-                            self._printDebug('pass and go')
+                            self._print_debug('pass and go')
                             dictMasterRereportQueue[sTobeHandledTaskName] = 1
                             return
                         elif s_todo == 'stop':
-                            self._printDebug('stop')
+                            self._print_debug('stop')
                             dictMasterRereportQueue[sTobeHandledTaskName] = 1
                             return
                     else:  # default is waiting if todo is not defined
-                        self._printDebug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                        self._print_debug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                         time.sleep(self.__g_nRptWaitingSec)
                         continue
                 else:
-                    self._printDebug('too many exceptions raise exception!!')
+                    self._print_debug('too many exceptions raise exception!!')
                     dictMasterRereportQueue[sTobeHandledTaskName] = 1
                     continue    
             else:
@@ -455,7 +455,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_rpt_id = o_rst.id
         s_rpt_status = o_rst.status
         if self.__g_sNvrAdManagerLoginId != o_rst.managerLoginId and not self.__g_bNvrAdManagerLoginIdWarned:
-            self._printDebug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.managerLoginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
+            self._print_debug('NVR AD manager login ID is different: ' + self.__g_sNvrAdManagerLoginId + ' on API info but NVR API returned ID is ' + str(o_rst.managerLoginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
             self.__g_bNvrAdManagerLoginIdWarned = True
             # dict_rst['b_error'] = True
             # dict_rst['s_todo'] = 'pass'
@@ -467,17 +467,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if s_rpt_status == 'REGIST' or s_rpt_status == 'RUNNING':
                 if self.__g_nRetryBackoffCnt < 5:
                     if self.__g_nRetryBackoffCnt > 0:
-                        self._printDebug('Retry with exponential back-off')
-                        self._printDebug('Wait for a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
+                        self._print_debug('Retry with exponential back-off')
+                        self._print_debug('Wait for a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
                     
                     time.sleep((2 ** self.__g_nRetryBackoffCnt ) + random.random())
                     self.__g_nRetryBackoffCnt = self.__g_nRetryBackoffCnt + 1
                     o_rst = o_master_report.get_master_report_by_id(s_rpt_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
-                    self._printDebug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_id)
+                    self._print_debug('NVR ad server responded with, status=' + s_rpt_status + ' requested id=' + s_rpt_id)
                 else:
-                    self._printDebug('exceed trial limit and giveup a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
+                    self._print_debug('exceed trial limit and giveup a report ' + s_req_rpt_name + ' with registed id=' + s_rpt_id + ', status=' + s_rpt_status)
                     dict_rst['b_error'] = True
                     dict_rst['s_todo'] = 'pass'
                     del o_rst
@@ -490,19 +490,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_rpt_filename = str(self.__g_dtCurDatetime) + '_' + s_req_rpt_name + '_' + s_rpt_type + '.tsv'
             s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             if os.path.isfile(s_download_path_abs):
-                self._printDebug('download file duplicated - ' + s_req_rpt_name + ' report registed id=' + s_rpt_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
+                self._print_debug('download file duplicated - ' + s_req_rpt_name + ' report registed id=' + s_rpt_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
                 s_rpt_filename = str(self.__g_dtCurDatetime) + '_' + s_req_rpt_name + '_' + s_rpt_type + '_' + self.__generate_random_str() + '.tsv'
                 s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             
             o_master_report.download_master_report_by_url(s_download_url, s_download_path_abs)
             if self.__validate_downloaded_file(s_download_path_abs) is False:
-                self._printDebug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
+                self._print_debug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'wait'
         elif s_rpt_status == 'NONE':
             pass
         else:
-            self._printDebug('received ' + s_rpt_status + ' status... done')
+            self._print_debug('received ' + s_rpt_status + ' status... done')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'pass'
         return dict_rst

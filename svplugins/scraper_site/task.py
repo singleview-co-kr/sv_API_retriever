@@ -77,7 +77,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
                 'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -101,7 +101,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_host_url = o_config['server']['host_url']
             s_cms_type = o_config['server']['cms_type']
         else:
-            self._printDebug('stop -> site_scraper.ini')
+            self._print_debug('stop -> site_scraper.ini')
             return
 
         dict_login_info = None
@@ -130,12 +130,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_extractor.set_sv_mysql(o_sv_mysql)
             o_extractor.set_print_func(self._printDebug)
             o_extractor.extract_internal_link()
-            self._printDebug(str(o_extractor.get_request_cnt()) + ' times requested')
+            self._print_debug(str(o_extractor.get_request_cnt()) + ' times requested')
             del o_extractor
         del o_sv_mysql
 
         t_end = timer()
-        self._printDebug('-> proc elapsed for ' + str(int((t_end - t_start) / 60)) + ' mins')
+        self._print_debug('-> proc elapsed for ' + str(int((t_end - t_start) / 60)) + ' mins')
         del t_start
         del t_end
         self._task_post_proc(self._g_oCallback)

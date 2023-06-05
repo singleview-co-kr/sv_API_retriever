@@ -78,7 +78,7 @@ class SvCipherOpenSsl(sv_object.ISvObject):
     def __get_key(self):
         """get hashed key - if key is not set on init, then default key wil be used"""
         if not self.key:
-            self._printDebug('hashed key not exists')
+            self._print_debug('hashed key not exists')
             return False
         else:
             # print(self.key)
@@ -87,7 +87,7 @@ class SvCipherOpenSsl(sv_object.ISvObject):
     def __get_iv(self):
         """ get hashed IV value - if no IV values then it throw error"""
         if not self.iv:
-            self._printDebug('hashed IV not exists')
+            self._print_debug('hashed IV not exists')
             return False
         else:
             return bytes(hashlib.sha256(self.iv.encode('utf-8')).hexdigest()[:16], 'utf-8')
@@ -115,7 +115,7 @@ class SvCipherMcrypt(sv_object.ISvObject):
         self.__g_sSecret = s_secret_key
 
     def decrypt_str(self, s_target):
-        # self.__printDebug(self.__g_sPadding.encode('utf8') )
+        # self.__print_debug(self.__g_sPadding.encode('utf8') )
         # DecodeAES = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(self.__g_sPadding.encode('utf8'))
         DecodeAES = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip('\x00'.encode('utf8'))
         cipher = AES.new(key=self.__g_sSecret.encode('utf8'), mode=AES.MODE_CBC, IV=self.__g_sIv.encode('utf8'))

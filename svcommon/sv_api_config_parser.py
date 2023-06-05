@@ -69,12 +69,13 @@ class SvApiConfigParser(sv_object.ISvObject):
 
     def get_config(self):
         s_err_msg = 'no_api_info_ini'
-        dict_2nd_layer = {'brand_name': s_err_msg, 'sv_account_id': s_err_msg, 'brand_id': s_err_msg, 'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
+        dict_2nd_layer = {'brand_name': s_err_msg, 'sv_account_id': s_err_msg, 'brand_id': s_err_msg,
+                          'tbl_prefix': s_err_msg, 'nvr_ad_acct': {}}
         try:
             with open(self.__g_sApiConfigFile) as f:
                 self.__g_oConfig.read_file(f)
-        except IOError: # run plugin for the first time
-            self._printDebug('api_info.ini not exist')
+        except IOError:  # run plugin for the first time
+            self._print_debug('api_info.ini not exist')
             return dict_2nd_layer
 
         s_brand_name = None

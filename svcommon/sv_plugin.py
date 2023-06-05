@@ -85,7 +85,7 @@ class ISvPlugin(ABC):
     def _task_pre_proc(self, o_callback):
         if o_callback:  # regarding an execution on a web console 
             if self._g_sPluginName is None:
-                self._printDebug('You must run .set_my_name() before launch a plugin task')
+                self._print_debug('You must run .set_my_name() before launch a plugin task')
                 o_callback(self._g_sPluginName)
                 return
             self._g_oThread = threading.currentThread()
@@ -114,7 +114,7 @@ class ISvPlugin(ABC):
         # begin something
         i = 0
         while self._continue_iteration():  # getattr(self._g_oThread, "b_run", True):
-            self._printDebug(self._g_sPluginName + " " + str(i))
+            self._print_debug(self._g_sPluginName + " " + str(i))
             i = i + 1
             time.sleep(2)
             if i > 105:
@@ -142,7 +142,7 @@ class ISvPlugin(ABC):
                 self._g_dictSvAcctInfo['n_acct_id'] = lst_acct_info[0]
                 self._g_dictSvAcctInfo['n_brand_id'] = lst_acct_info[1]
                 return
-        self._printDebug('you might run on console without config_loc parameter!')
+        self._print_debug('you might run on console without config_loc parameter!')
         raise Exception('remove')
 
 

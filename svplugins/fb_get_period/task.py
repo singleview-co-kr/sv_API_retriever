@@ -74,10 +74,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -88,7 +88,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__g_oConfig.read_file(f)
                 b_available = True
         except IOError:
-            self._printDebug('slack_config.ini does not exist')
+            self._print_debug('slack_config.ini does not exist')
 
         if b_available:
             self.__g_oConfig.read(s_fb_biz_config_file)
@@ -107,14 +107,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         if 'fb_biz_aid' not in dict_acct_info:
-            self._printDebug('stop -> no fb business API info')
+            self._print_debug('stop -> no fb business API info')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -123,7 +123,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if self._g_dictParam['earliest_date'] is None or \
             self._g_dictParam['latest_date'] is None:
-            self._printDebug('you should designate earliest_date and latest_date')
+            self._print_debug('you should designate earliest_date and latest_date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -136,19 +136,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_brand_id = dict_acct_info['brand_id']
         s_fb_biz_aid = dict_acct_info['fb_biz_aid']
         if s_fb_biz_aid == '':
-            self._printDebug('stop -> no business account id')
+            self._print_debug('stop -> no business account id')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         
-        self._printDebug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
+        self._print_debug('fb_get_day plugin launched with acct id ' + s_fb_biz_aid)
         try:
             self.__getFbBusinessRaw(s_sv_acct_id, s_brand_id, s_fb_biz_aid)
         except TypeError as error:
             # Handle errors in constructing a query.
-            self._printDebug(('There was an error in constructing your query : %s' % error))
+            self._print_debug(('There was an error in constructing your query : %s' % error))
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -180,7 +180,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 logging.info(s_msg)
                 raise Exception('completed')
             else:
-                self._printDebug(s_msg)
+                self._print_debug(s_msg)
                 return
 
         sAdAccountId = 'act_'+sFbBizAid
@@ -216,14 +216,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         logging.info(s_msg)
                         raise Exception('remove')
                     else:
-                        self._printDebug(s_msg)
+                        self._print_debug(s_msg)
                         return
                 else:
                     if self._g_bDaemonEnv:  # for running on dbs.py only
                         logging.info(err)
                         raise Exception('remove')
                     else:
-                        self._printDebug(err)
+                        self._print_debug(err)
                         return
 
             for oAds in ads:
@@ -285,7 +285,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     if 'template_data' in dictCreatives['object_story_spec']:
                                         sHostInfo = dictCreatives['object_story_spec']['template_data']['link']
                                     else:
-                                        self._printDebug( dictCreatives['object_story_spec'] )
+                                        self._print_debug( dictCreatives['object_story_spec'] )
                                 elif sStorySpec == 'instagram_actor_id':
                                     if 'template_data' in dictCreatives['object_story_spec']:
                                         sHostInfo = dictCreatives['object_story_spec']['template_data']['link']
@@ -331,7 +331,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         ]
         sDataDate = dtDateDataRetrieval.strftime('%Y-%m-%d')
         sDataDateToLog =dtDateDataRetrieval.strftime('%Y%m%d')
-        self._printDebug('--> '+ sFbBizAid +' will retrieve general report on ' + sDataDateToLog)
+        self._print_debug('--> '+ sFbBizAid +' will retrieve general report on ' + sDataDateToLog)
         
         try:
             sTsvFilename = sDataDateToLog + '_general.tsv'
@@ -361,7 +361,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     if dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_purchase' or dictActionVals['action_type'] == 'offsite_conversion.fb_pixel_view_content':
                                         nConversionCount = dictActionVals['value']
                             except KeyError:
-                                pass #self._printDebug('no conversion')
+                                pass #self._print_debug('no conversion')
                             sAdIdFromInsight = dictInsight['ad_id']
                             for dictAd in lstAd:
                                 if dictAd['id'] == sAdIdFromInsight:
@@ -397,7 +397,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                     out.write(sRow)
                                 continue
             except:
-                self._printDebug('exception occured')
+                self._print_debug('exception occured')
 
             f = open(sEarliestFilepath, 'w')
             f.write(sDataDateToLog)
@@ -408,7 +408,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 logging.info(s_msg)
                 raise Exception('remove')
             else:
-                self._printDebug(s_msg)
+                self._print_debug(s_msg)
                 return
 
 

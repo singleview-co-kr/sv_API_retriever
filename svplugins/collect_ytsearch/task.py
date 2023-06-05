@@ -61,7 +61,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
         self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
-        self._g_dictParam.update({'mode':None, 'morpheme':None})
+        self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -84,7 +84,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -104,7 +104,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # end - set important folder
 
         if self.__g_sMode == 'collect_api':
-            self._printDebug('-> communication begin')
+            self._print_debug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_ytsearch')
@@ -117,15 +117,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
                 s_morpheme = dict_single_morpheme['morpheme']
                 n_total_effective_cnt = self.__get_keyword_from_ytsearch(n_morpheme_srl, s_morpheme)
-                self._printDebug(str(n_total_effective_cnt) + ' times retrieved')
+                self._print_debug(str(n_total_effective_cnt) + ' times retrieved')
                 # return  #### limit to first morpheme ##################
-                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Collect JSON data:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Collect JSON data:', suffix='Complete', length=50)
                 n_idx += 1
-            self._printDebug('-> communication finish')
+            self._print_debug('-> communication finish')
         elif self.__g_sMode == 'register_db':
             self.__register_raw_json_file()
         else:
-            self._printDebug('mode is not specified.')
+            self._print_debug('mode is not specified.')
 
         self._task_post_proc(self._g_oCallback)
     
@@ -141,12 +141,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_term_retrieval_cnt = 0
         n_display_cnt = 50
 
-        self._printDebug(s_param_morpheme + ' will be retrieved')
+        self._print_debug(s_param_morpheme + ' will be retrieved')
         o_sv_ytsearch = sv_search_api.SvYtSearch()
         o_sv_ytsearch.set_display_cnt(n_display_cnt)
         dict_1st_rst = o_sv_ytsearch.search_query(s_morpheme=s_param_morpheme)  # (s_morpheme='유한락스')  #
         if dict_1st_rst['b_error']:
-            self._printDebug(dict_1st_rst['s_msg'])
+            self._print_debug(dict_1st_rst['s_msg'])
             return
 
         n_total_effective_cnt += 1
@@ -162,12 +162,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_iter_retrieval = dict_iter_rst['dict_body']
                 if 'pageInfo' in dict_iter_retrieval and \
                         dict_iter_retrieval['pageInfo']['totalResults'] < n_term_retrieval_cnt * n_display_cnt:
-                    self._printDebug('called requests exceeds API result count')
+                    self._print_debug('called requests exceeds API result count')
                     break
 
                 n_total_effective_cnt += 1
                 if dict_iter_rst['b_error']:
-                    self._printDebug(dict_iter_rst['s_msg'])
+                    self._print_debug(dict_iter_rst['s_msg'])
                     break
                 
                 s_tsv_filename = s_base_tsv_filename + '_' + str(n_term_retrieval_cnt)
@@ -175,14 +175,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if 'items' in dict_iter_retrieval and dict_iter_retrieval['items']:
                     f_new_rate = self.__get_new_rate(o_sv_mysql, n_param_morpheme_srl, dict_iter_retrieval['items'])
                 if f_new_rate < 0.1:
-                    self._printDebug('too many duplicated item')
+                    self._print_debug('too many duplicated item')
                     break
                 del dict_iter_retrieval
                 del dict_iter_rst
         else:
             time.sleep(1)
 
-        self._printDebug(s_param_morpheme + ' has been retrieved')
+        self._print_debug(s_param_morpheme + ' has been retrieved')
         del dict_1st_rst
         del o_sv_mysql
         del o_sv_ytsearch
@@ -242,7 +242,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__append_into_article_db(o_sv_mysql, s_morpheme_srl, dict_body, s_log_date)
             del dict_body
             self.__archive_data_file(s_json_filename)
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'Register JSON file:', suffix = 'Complete', length = 50)
+            self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Register JSON file:', suffix='Complete', length=50)
             n_idx += 1
         del o_sv_ytsearch
         del o_sv_mysql
@@ -254,13 +254,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if not self.__is_duplicated(o_sv_mysql, s_morpheme_srl, dict_single_item['id']['videoId']):
                 dict_snippet = dict_single_item['snippet']
                 o_sv_mysql.executeQuery('insertSearchLog', s_morpheme_srl, dict_snippet['channelId'], 
-                                        dict_snippet['channelTitle'], dict_single_item['id']['videoId'], dict_snippet['title'], 
-                                        dict_snippet['description'], dict_snippet['publishedAt'], s_log_date) 
+                                        dict_snippet['channelTitle'], dict_single_item['id']['videoId'],
+                                        dict_snippet['title'], dict_snippet['description'], dict_snippet['publishedAt'],
+                                        s_log_date)
                 del dict_snippet
 
     def __archive_data_file(self, s_current_filename):
         if not os.path.exists(self.__g_sDownloadPath):
-            self._printDebug('error: youtube search source directory does not exist!')
+            self._print_debug('error: youtube search source directory does not exist!')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:

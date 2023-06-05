@@ -471,12 +471,12 @@ class SvMySql(sv_object.ISvObject):
             rows = self.__g_oCursor.fetchall()
             if not self.__g_oCursor.rowcount: # table creation
                 if __name__ == '__main__':
-                    self._printDebug("table creation")
+                    self._print_debug("table creation")
                 s_sql_stmt = re.sub(m.group(0), self.__g_dictConfig['db_table_prefix']+m.group(0), s_sql_stmt)  # add table prefix on table name
                 self.__g_oCursor.execute(s_sql_stmt)
             else:
                 if __name__ == '__main__':
-                    self._printDebug("already existing table")
+                    self._print_debug("already existing table")
     
 
 # if __name__ == '__main__': # for console debugging

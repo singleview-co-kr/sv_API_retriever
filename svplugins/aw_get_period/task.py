@@ -65,7 +65,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230317)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230605)')
 
         self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -86,14 +86,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         if 'adw_cid' not in dict_acct_info:
-            self._printDebug('stop -> no google ads API info')
+            self._print_debug('stop -> no google ads API info')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -102,7 +102,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if self._g_dictParam['earliest_date'] is None or \
                 self._g_dictParam['latest_date'] is None:
-            self._printDebug('you should designate earliest_date and latest_date')
+            self._print_debug('you should designate earliest_date and latest_date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -119,7 +119,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__get_adwords_raw(s_sv_acct_id, s_brand_id, s_googleads_cid)
         except TypeError as error:
             # Handle errors in constructing a query.
-            self._printDebug(('There was an error in constructing your query : %s' % error))
+            self._print_debug(('There was an error in constructing your query : %s' % error))
 
         self._task_post_proc(self._g_oCallback)
 
@@ -138,8 +138,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path,
                                                                    version=self.__g_sGoogleAdsApiVersion)
         except google.auth.exceptions.RefreshError:
-            self._printDebug('A refresh token in google-ads.yaml has expired!')
-            self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
+            self._print_debug('A refresh token in google-ads.yaml has expired!')
+            self._print_debug('Run svinitialize/generate_user_credentials.py to get valid token.')
             return
         o_googleads_service = o_googleads_client.get_service("GoogleAdsService")
 
@@ -154,13 +154,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         # if requested date is earlier than first date
         if dt_date_data_retrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0):
-            self._printDebug('meet earliest stat date -> remove the job and toggle the job table')
+            self._print_debug('meet earliest stat date -> remove the job and toggle the job table')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('completed')
             else:
                 return
         s_data_date_for_mysql = dt_date_data_retrieval.strftime('%Y%m%d')
-        self._printDebug('--> ' + s_googleads_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
+        self._print_debug('--> ' + s_googleads_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
         # set device dictionary
         dict_googleads_v12_device = {i.value: i.name for i in DeviceEnum.Device}
         s_google_ads_cid = s_googleads_cid.replace('-', '')
@@ -170,7 +170,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                'Conversions', 'Total conv. value', 'Day']
 
         s_tsv_filename = s_data_date_for_mysql + '_general.tsv'
-        # self._printDebug(sTsvFilename)
+        # self._print_debug(sTsvFilename)
         f = open(s_earliest_filepath, 'w')
         f.write(s_data_date_for_mysql)
         f.close()
@@ -192,8 +192,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
                                                                      query=s_disp_campaign_query)
         except Exception as e:
-            self._printDebug('unknown exception occured while access googleads API')
-            self._printDebug(e)
+            self._print_debug('unknown exception occured while access googleads API')
+            self._print_debug(e)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -222,8 +222,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
                                                                                 query=s_text_campaign_query)
                     except Exception as e:
-                        self._printDebug('unknown exception occured while access googleads API')
-                        self._printDebug(e)
+                        self._print_debug('unknown exception occured while access googleads API')
+                        self._print_debug(e)
                         if self._g_bDaemonEnv:  # for running on dbs.py only
                             raise Exception('remove')
                         else:

@@ -103,7 +103,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
                 'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -126,7 +126,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # end - set important folder
         
         if self.__g_sMode == 'collect_api':
-            self._printDebug('-> communication begin')
+            self._print_debug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql:
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
@@ -137,15 +137,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
                 s_morpheme = dict_single_morpheme['morpheme']
                 n_total_effective_cnt = self.__get_keyword_from_nvsearch(n_morpheme_srl, s_morpheme)
-                self._printDebug(str(n_total_effective_cnt) + ' times retrieved')
+                self._print_debug(str(n_total_effective_cnt) + ' times retrieved')
                 # return  #### limit to first morpheme ##################
-            self._printDebug('-> communication finish')
+            self._print_debug('-> communication finish')
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
         elif self.__g_sMode == 'update_kin_date':
             self.__update_kin_date(dict_acct_info)
         else:
-            self._printDebug('mode is not specified.')
+            self._print_debug('mode is not specified.')
 
         self._task_post_proc(self._g_oCallback)
 
@@ -164,10 +164,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
         n_sentinel = len(lst_nvsearch_log)
         if n_sentinel == 0:
-            self._printDebug('no more crawling task to proceed')
+            self._print_debug('no more crawling task to proceed')
             return
 
-        # self._printDebug('crawling task will take ' + str(int(n_sentinel * self.__g_nDelaySec / 60)) + ' mins at most')
+        # self._print_debug('crawling task will take ' + str(int(n_sentinel * self.__g_nDelaySec / 60)) + ' mins at most')
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36",
             # "content-type": "application/json",
@@ -183,7 +183,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if len(lst_proxy):
                     s_proxy_server = choice(lst_proxy)
                 else:
-                    self._printDebug("wait 2 seconds from now on...")
+                    self._print_debug("wait 2 seconds from now on...")
                     time.sleep(2)
                     continue
                 proxies = {"http": s_proxy_server, 'https': s_proxy_server}
@@ -221,7 +221,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 del o_resp
                 del o_dom
                 dict_log = None
-                self._printProgressBar(n_idx + 1, n_sentinel, prefix = 'retrieve NVR kin post date:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(n_idx + 1, n_sentinel, prefix='retrieve NVR kin post date:', suffix='Complete', length=50)
                 n_idx += 1
                 time.sleep(self.__g_nDelaySec)
                 if len(lst_nvsearch_log) == 0:
@@ -264,7 +264,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #        s_https = o_tr.select_one('td:nth-of-type(7)').get_text()
         #        s_server = f"{s_ip}:{s_port}"
         #        lst_proxy.append(s_server)
-        self._printDebug('retrieve ' + str(len(lst_proxy)) + ' new proxies')
+        self._print_debug('retrieve ' + str(len(lst_proxy)) + ' new proxies')
         del o_proxy_tbl
         # del lst_allowed_country
         del lst_tr
@@ -284,7 +284,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_base_tsv_filename = datetime.now().strftime('%Y%m%d') + '_' + str(n_param_morpheme_srl)
         n_total_effective_cnt = 0
 
-        self._printDebug(s_param_morpheme + ' will be retrieved')
+        self._print_debug(s_param_morpheme + ' will be retrieved')
         n_idx = 0
         n_sentinel = len(self.__g_lstMedia)
         for s_media in self.__g_lstMedia:
@@ -296,7 +296,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_nvsearch.set_display_cnt(n_display_cnt)
                 dict_1st_rst = o_sv_nvsearch.search_query(s_morpheme=s_param_morpheme)
                 if dict_1st_rst['b_error']:
-                    self._printDebug(dict_1st_rst['s_msg'])
+                    self._print_debug(dict_1st_rst['s_msg'])
                     continue
                 n_total_effective_cnt += 1
                 s_tsv_filename = s_base_tsv_filename + '_' + s_media + '_' + str(n_media_retrieval_cnt)
@@ -310,12 +310,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         dict_iter_retrieval = dict_iter_rst['dict_xml_body']
                         if 'total' in dict_iter_retrieval and \
                                 dict_iter_retrieval['total'] < n_media_retrieval_cnt * n_display_cnt:  # 'total' attr changes randomly if media is webkr
-                            # self._printDebug('called requests exceeds API result count')
+                            # self._print_debug('called requests exceeds API result count')
                             break
 
                         n_total_effective_cnt += 1
                         if dict_iter_rst['b_error']:
-                            # self._printDebug(dict_iter_rst['s_msg'])
+                            # self._print_debug(dict_iter_rst['s_msg'])
                             break
                         
                         s_tsv_filename = s_base_tsv_filename + '_' + s_media + '_' + str(n_media_retrieval_cnt)
@@ -324,7 +324,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 dict_iter_retrieval['item']:
                             f_new_rate = self.__get_new_rate(o_sv_mysql, n_param_morpheme_srl, s_media, n_media_id, dict_iter_retrieval['item'])
                         if f_new_rate < 0.1:
-                            # self._printDebug('too many duplicated item')
+                            # self._print_debug('too many duplicated item')
                             break
                         del dict_iter_retrieval
                         del dict_iter_rst
@@ -333,9 +333,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         
                 del dict_1st_retrieval
                 del dict_1st_rst
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix='Collect XML data:', suffix='Complete', length=50)
+            self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Collect XML data:', suffix='Complete', length=50)
             n_idx += 1
-        self._printDebug(s_param_morpheme + ' has been retrieved')
+        self._print_debug(s_param_morpheme + ' has been retrieved')
         del o_sv_mysql
         del o_sv_nvsearch
         del dict_media_lbl_id
@@ -399,7 +399,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             del dict_xml_body
             self.__append_into_article_db(o_sv_mysql, lst_standardized_log, s_log_date)
             self.__archive_xml_file(s_xml_filename)
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix='Register XML file:', suffix='Complete', length=50)
+            self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Register XML file:', suffix='Complete', length=50)
             n_idx += 1
         del dict_media_lbl_id
         del o_sv_nvsearch
@@ -416,7 +416,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __archive_xml_file(self, s_current_filename):
         if not os.path.exists(self.__g_sDownloadPath):
-            self._printDebug('error: naver search source directory does not exist!')
+            self._print_debug('error: naver search source directory does not exist!')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -431,7 +431,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __archive_kin_html_file(self, s_data_path, s_cur_filename):
         if not os.path.exists(s_data_path):
-            self._printDebug('error: naver API raw directory does not exist!' )
+            self._print_debug('error: naver API raw directory does not exist!' )
             return
         s_data_archive_path = os.path.join(s_data_path, 'archive')
         if not os.path.exists(s_data_archive_path):

@@ -62,10 +62,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230323)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self._g_dictParam.update({'data_first_date':None, 'data_last_date':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -95,7 +95,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if self._g_dictParam['data_first_date'] is None or \
             self._g_dictParam['data_last_date'] is None:
-            self._printDebug('you should designate data_first_date and data_last_date')
+            self._print_debug('you should designate data_first_date and data_last_date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -107,7 +107,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -126,14 +126,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = o_master_report.delete_master_report_all()
         # if 'transaction_id' not in list(dict_rst.keys()):
         if 'transaction_id' not in dict_rst:
-            self._printDebug('communication failed - stop')
+            self._print_debug('communication failed - stop')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         else:
-            self._printDebug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
+            self._print_debug('-> '+ s_customer_id +' delete master reports with transaction id - ' + dict_rst['transaction_id'])
         
         self.__g_sRetrieveInfoPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'naver_ad', s_customer_id, 'conf')
         if os.path.isdir(self.__g_sRetrieveInfoPath) == False:
@@ -179,13 +179,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 logging.info(s_msg)
                                 raise Exception('remove')
                             else:
-                                self._printDebug(s_msg)
+                                self._print_debug(s_msg)
                                 return
 
-                        self._printDebug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + str(dtDateStatRetrieval))
+                        self._print_debug('--> nvr ad id: ' + sNvrAdCustomerID +' will retrieve stat report - ' + sTobeHandledTaskName +' on ' + str(dtDateStatRetrieval))
                         # if requested stat date is earlier than stat first date
                         if dtDateStatRetrieval - datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d') < timedelta(days=0): 
-                            self._printDebug('finish: meet first stat date')
+                            self._print_debug('finish: meet first stat date')
                             dictMasterReportQueue[sTobeHandledTaskName] = 'finish'
                             continue
 
@@ -197,28 +197,28 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 if dict_rst['s_todo']:  # if todo is defined
                                     s_todo = dict_rst['s_todo']
                                     if s_todo == 'wait':
-                                        self._printDebug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                                        self._print_debug('wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                                         time.sleep(self.__g_nRptWaitingSec)
                                         continue
                                     elif s_todo == 'pass':
                                         dictMasterReportQueue[sTobeHandledTaskName] = 'pass'
                                         continue
                                     elif s_todo == 'stop':
-                                        self._printDebug('stop')
+                                        self._print_debug('stop')
                                         dictMasterReportQueue[sTobeHandledTaskName] = 'stop'
                                         return
                                     elif s_todo == 'close':
-                                        self._printDebug('close')
+                                        self._print_debug('close')
                                         dictMasterReportQueue[sTobeHandledTaskName] = 'close'
                                         f = open(sEarliestFilepath, 'w')
                                         f.write(self.__g_sDataFirstDate)
                                         f.close()
                                 else:  # default is waiting if todo is not defined
-                                    self._printDebug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
+                                    self._print_debug('error occured but todo is not defined -> wait ' + str(self.__g_nRptWaitingSec) + ' sec and go')
                                     time.sleep(self.__g_nRptWaitingSec)
                                     continue
                             else:
-                                self._printDebug('too many exceptions raise exception!!')
+                                self._print_debug('too many exceptions raise exception!!')
                                 dictMasterReportQueue[sTobeHandledTaskName] = 'finish'
                                 continue    
                         else:
@@ -240,21 +240,21 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     logging.info(s_msg)
                     raise Exception('completed')
                 else:
-                    self._printDebug(s_msg)
+                    self._print_debug(s_msg)
                     return
 
             if isDoneSomething == False:
-                self._printDebug('did nothing -> check whether job should be removed')
+                self._print_debug('did nothing -> check whether job should be removed')
                 # https://godoftyping.wordpress.com/2015/04/19/python-%EB%82%A0%EC%A7%9C-%EC%8B%9C%EA%B0%84%EA%B4%80%EB%A0%A8-%EB%AA%A8%EB%93%88/
                 try:
                     dtStart = datetime.strptime(self.__g_sDataLastDate, '%Y%m%d')
                 except ValueError:
-                    self._printDebug('Invalid start date!')
+                    self._print_debug('Invalid start date!')
 
                 try:
                     dtReverseEnd = datetime.strptime(self.__g_sDataFirstDate, '%Y%m%d')
                 except ValueError:
-                    self._printDebug('Invalid end date!')
+                    self._print_debug('Invalid end date!')
 
                 try:
                     isSomeReportMissed = False
@@ -276,10 +276,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             logging.info(s_msg)
                             raise Exception('completed')
                         else:
-                            self._printDebug(s_msg)
+                            self._print_debug(s_msg)
                             return
                 except NameError:
-                    self._printDebug('deny to calculate day difference')
+                    self._print_debug('deny to calculate day difference')
 
     def __retrieveNvStatReportAct(self, o_stat_report, s_req_rpt_name, s_date_retrieval):
         """ an actual method retrieving a stat report """
@@ -292,7 +292,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # print(o_rst.reportTp)  # eg 'AD'
         # o_rst.statDt, o_rst.regTm, o_rst.updateTm
         if self.__g_sNvrAdManagerLoginId != o_rst.loginId and not self.__g_bNvrAdManagerLoginIdWarned:
-            self._printDebug('NVR AD manager login ID (' + self.__g_sNvrAdManagerLoginId + ') is different with NVR API returned ID (' + str(o_rst.loginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
+            self._print_debug('NVR AD manager login ID (' + self.__g_sNvrAdManagerLoginId + ') is different with NVR API returned ID (' + str(o_rst.loginId) + ')\n' + self.__g_sNvrAdManagerLoginId + ' might be a Naver ID')
             self.__g_bNvrAdManagerLoginIdWarned = True
             # dict_rst['b_error'] = True
             # dict_rst['s_todo'] = 'stop'
@@ -304,11 +304,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if n_error_code == 11001: # http status 400 with {"code":11001,"message":"잘못된 파라미터 형식입니다."} 1년 이전의 데이터를 요청하면 발생
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'close'
-                self._printDebug(o_rst.message + ' - 너무 오래된 데이터 요청')
+                self._print_debug(o_rst.message + ' - 너무 오래된 데이터 요청')
             if n_error_code == 20007: # "해당 일자 지표 준비중입니다."
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'stop'
-                self._printDebug(o_rst.message + ' - stop')
+                self._print_debug(o_rst.message + ' - stop')
             del o_rst    
             return dict_rst
 
@@ -316,17 +316,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if s_rpt_status == 'REGIST' or s_rpt_status == 'RUNNING' or s_rpt_status == 'WAITING':
                 if self.__g_nRetryBackoffCnt < 5:
                     if self.__g_nRetryBackoffCnt > 0:
-                        self._printDebug('Retry with exponential back-off')
-                        self._printDebug('Wait for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                        self._print_debug('Retry with exponential back-off')
+                        self._print_debug('Wait for a report ' + s_req_rpt_name + ' with registed rpt job id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
                     
                     time.sleep((2 ** self.__g_nRetryBackoffCnt ) + random.random())
                     self.__g_nRetryBackoffCnt = self.__g_nRetryBackoffCnt + 1
                     o_rst = o_stat_report.get_stat_report(s_rpt_report_job_id)
                     s_rpt_status = o_rst.status
                     s_download_url = o_rst.downloadUrl
-                    self._printDebug('NVR ad server responded with , status=' + s_rpt_status + ' requested id=' + s_rpt_report_job_id)
+                    self._print_debug('NVR ad server responded with , status=' + s_rpt_status + ' requested id=' + s_rpt_report_job_id)
                 else:
-                    self._printDebug('exceed trial limit and giveup a report with requested id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
+                    self._print_debug('exceed trial limit and giveup a report with requested id=' + s_rpt_report_job_id + ', status=' + s_rpt_status)
                     dict_rst['b_error'] = True
                     dict_rst['s_todo'] = 'pass'
                     return dict_rst
@@ -338,17 +338,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             s_rpt_filename = s_date_retrieval + '_' + s_req_rpt_name + '.tsv'
             s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             if os.path.isfile(s_download_path_abs):
-                self._printDebug('download file duplicated - ' + s_req_rpt_name + ' report registed rpt job id=' + s_rpt_report_job_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
+                self._print_debug('download file duplicated - ' + s_req_rpt_name + ' report registed rpt job id=' + s_rpt_report_job_id + ' from ' + s_download_url + ' to ' + s_download_path_abs)
                 s_rpt_filename = s_date_retrieval + '_' + s_req_rpt_name + '_' + self.__generate_random_str() + '.tsv'
                 s_download_path_abs = os.path.join(self.__g_sDownloadPathNew, s_rpt_filename)
             
             o_stat_report.download_stat_report_by_url(s_download_url, s_download_path_abs)
             if self.__validate_downloaded_file(s_download_path_abs) is False:
-                self._printDebug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
+                self._print_debug('NVR Ad API msg - NVR server returned BUILT but send erroronous tsv file')
                 dict_rst['b_error'] = True
                 dict_rst['s_todo'] = 'wait'
         elif s_rpt_status == 'AGGREGATING':
-            self._printDebug('NVR Ad API msg - NVR API server is aggregating... stop')
+            self._print_debug('NVR Ad API msg - NVR API server is aggregating... stop')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'stop'
         elif s_rpt_status == 'NONE':
@@ -358,7 +358,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 			# 	$this->_debug('finish retrieve '.$sReportType.' report from NVR ad server on '.$sStatDate.', transaction id '.$sTransactionId.' report job id '.$sReportJobId.' with HTTP status '.$oOutput->get('status') );
 			# 	if( (int)($oOutput->get('status') / 500) == 1 )  // if status is 5XX - wait
 			# 		$oOutput->add( 'todo', 'wait' );
-            self._printDebug('pass and go: received ' + s_rpt_status + ' status... done')
+            self._print_debug('pass and go: received ' + s_rpt_status + ' status... done')
             dict_rst['b_error'] = True
             dict_rst['s_todo'] = 'pass'
 

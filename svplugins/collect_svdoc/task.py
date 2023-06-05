@@ -87,7 +87,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
                 'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -95,7 +95,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
 
         if s_mode is None:
-            self._printDebug('you should designate mode')
+            self._print_debug('you should designate mode')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -112,7 +112,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 if 'server' in self.__g_oConfig:
                     s_target_host_url = self.__g_oConfig['server']['sv_doc_host_url']
                 else:
-                    self._printDebug('stop -> invalid sv_doc_host_url')
+                    self._print_debug('stop -> invalid sv_doc_host_url')
                     self._task_post_proc(self._g_oCallback)
                     if self._g_bDaemonEnv:  # for running on dbs.py only
                         raise Exception('remove')
@@ -120,20 +120,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         return
             o_sv_doc_collector = sv_doc_collection.SvDocCollection()
             o_sv_doc_collector.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-                                        self._printDebug, self._printProgressBar, self._continue_iteration,
+                                        self._printDebug, self._print_progress_bar, self._continue_iteration,
                                         self.__g_oConfig, self.__g_dictSource, s_target_host_url)
             o_sv_doc_collector.collect_sv_doc()
             del o_sv_doc_collector
         elif s_mode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
             o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
             o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-                                        self._printDebug, self._printProgressBar, self._continue_iteration,
-                                        self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
-                                        s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd, s_module_srl)
+                                             self._printDebug, self._print_progress_bar, self._continue_iteration,
+                                             self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+                                             s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd, s_module_srl)
             o_sv_morpheme_retriever.do_task()
             del o_sv_morpheme_retriever
         else:
-            self._printDebug('weird')
+            self._print_debug('weird')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -148,7 +148,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
-            self._printDebug('key.config.ini not exist')
+            self._print_debug('key.config.ini not exist')
             return  # raise Exception('stop')
 
         self.__g_oConfig.read(sKeyConfigPath)

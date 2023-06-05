@@ -70,8 +70,8 @@ class svItemPerformance():
         self.__g_dictItemSrl = {}
         self.__g_dictSvAcctInfo = None
 
-    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser, 
-         f_print_debug, f_print_progress_bar, f_continue_iteration):
+    def init_var(self, dict_sv_acct_onfo, s_tbl_prefix, s_ga_data_path, o_sv_campaign_parser,
+                 f_print_debug, f_print_progress_bar, f_continue_iteration):
         self.__g_dictSvAcctInfo = dict_sv_acct_onfo
         self.__continue_iteration = f_continue_iteration
         self.__print_debug = f_print_debug
@@ -191,7 +191,7 @@ class svItemPerformance():
 
     def __archive_ga_data_file(self, s_cur_filename):
         if not os.path.exists(self.__g_sDataPath):
-            self._printDebug( 'error: google analytics source directory does not exist!' )
+            self._print_debug( 'error: google analytics source directory does not exist!' )
             return
         s_archive_data_path = os.path.join(self.__g_sDataPath, 'archive')
         if not os.path.exists(s_archive_data_path):

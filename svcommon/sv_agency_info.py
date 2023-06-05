@@ -113,7 +113,7 @@ class SvAgencyInfo(sv_object.ISvObject):
                     for lst_row in o_tsv_reader:
                         lst_temp.append(lst_row)
             else:
-                self._printDebug(self.__sAgencyInfoPath + ' does not exist')
+                self._print_debug(self.__sAgencyInfoPath + ' does not exist')
                 return False
             self.__lstAgencyInfo = lst_temp
             self.__dictAgencyInfo[s_cur_agency_info_id] = lst_temp
@@ -163,13 +163,13 @@ class SvAgencyInfo(sv_object.ISvObject):
                     try:  # validate requested date
                         s_begin_date = datetime.strptime(lst_period[0], '%Y%m%d').strftime('%Y%m%d')
                     except ValueError:
-                        self._printDebug('start date:' + lst_period[0] + ' is invalid date string')
+                        self._print_debug('start date:' + lst_period[0] + ' is invalid date string')
 
                 if len(lst_period[1]) > 0:
                     try:  # validate requested date
                         s_end_date = datetime.strptime(lst_period[1], '%Y%m%d').strftime('%Y%m%d')
                     except ValueError:
-                        self._printDebug('end date:' + lst_period[1] + ' is invalid date string')
+                        self._print_debug('end date:' + lst_period[1] + ' is invalid date string')
                 
                 if int(s_begin_date) > int(s_touching_date):
                     continue
@@ -182,13 +182,13 @@ class SvAgencyInfo(sv_object.ISvObject):
                     n_percent = lst_single_period[3].replace('%', '')
                     f_fee_rate = int(n_percent)/100
                 else:  # if invalid percent string
-                    self._printDebug('invalid percent string ' + lst_single_period[3])
+                    self._print_debug('invalid percent string ' + lst_single_period[3])
                     raise Exception('stop')
                 s_fee_type = lst_single_period[4]
                 break
         # warn and ignore an agency fee if no belonged period
         if f_fee_rate == 0.0 and s_fee_type is None:
-            self._printDebug(s_cur_agency_info_id + ' has no agency fee info on ' + s_touching_date)
+            self._print_debug(s_cur_agency_info_id + ' has no agency fee info on ' + s_touching_date)
             s_fee_type = self.__g_sAgencyFeeTypeMarkup
 
         n_final_cost = 0
@@ -212,10 +212,10 @@ class SvAgencyInfo(sv_object.ISvObject):
 
         if s_data_source == 'naver_ad':
             if n_cost != n_final_cost + n_agency_cost:
-                self._printDebug('calculation mismatches on naver ad')
-                self._printDebug(n_cost)
-                self._printDebug(n_final_cost)
-                self._printDebug(n_agency_cost)
+                self._print_debug('calculation mismatches on naver ad')
+                self._print_debug(n_cost)
+                self._print_debug(n_final_cost)
+                self._print_debug(n_agency_cost)
 
         if s_data_source == 'kakao':  # csv download based data
             n_vat_from_final_cost = int(n_final_cost * 0.1)
@@ -230,7 +230,7 @@ class SvAgencyInfo(sv_object.ISvObject):
         dict_rst['agency_id'] = n_agency_id
         dict_rst['agency_name'] = s_agency_name
         if b_debug:
-            self._printDebug(s_touching_date + ' ' + str(f_fee_rate) + ' ' + s_fee_type)
+            self._print_debug(s_touching_date + ' ' + str(f_fee_rate) + ' ' + s_fee_type)
         return dict_rst
 
     # def get_allocated_pns_cost(self, o_sv_db, n_pns_touching_date, s_touching_date, s_source):
@@ -240,7 +240,7 @@ class SvAgencyInfo(sv_object.ISvObject):
     #     """
     #     dict_pns_info = {}
     #     if s_source not in self.__g_dictPnsSource:
-    #         self._printDebug('invalid pns info request :' + s_source)
+    #         self._print_debug('invalid pns info request :' + s_source)
     #         return dict_pns_info
     #
     #     dt_touching_date = datetime.strptime(s_touching_date, '%Y-%m-%d').date()
@@ -259,7 +259,7 @@ class SvAgencyInfo(sv_object.ISvObject):
     #             if m:  # if valid percent string
     #                 f_rate = int(dict_single_contract['agency_rate_percent'].replace('%', '')) / 100
     #             else:  # if invalid percent string
-    #                 self._printDebug('invalid percent string ' + dict_single_contract['agency_rate_percent'])
+    #                 self._print_debug('invalid percent string ' + dict_single_contract['agency_rate_percent'])
     #                 raise Exception('stop')
     #             del m
     #

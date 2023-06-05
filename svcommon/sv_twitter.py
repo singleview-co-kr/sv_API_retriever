@@ -57,7 +57,7 @@ class SvTwitter(sv_object.ISvObject):
                 o_config.read_file(f)
                 self.__g_bAvailable = True
         except IOError:
-            self._printDebug('twitter_config.ini does not exist')
+            self._print_debug('twitter_config.ini does not exist')
 
         if self.__g_bAvailable:
             o_config.read(s_twitter_config_file)
@@ -70,9 +70,9 @@ class SvTwitter(sv_object.ISvObject):
             # create tweepy API object to fetch tweets
             self.__g_oTwitterApi = tweepy.API(auth, wait_on_rate_limit=True)
             # dict_rate_limit_context = self.__g_oTwitterApi.rate_limit_status()
-            self._printDebug('Authentication Succeeded')
+            self._print_debug('Authentication Succeeded')
         except:
-            self._printDebug('Error: Twitter API Authentication Failed')
+            self._print_debug('Error: Twitter API Authentication Failed')
         finally:
             del o_config
 
@@ -86,14 +86,14 @@ class SvTwitter(sv_object.ISvObject):
         """
         lst_status = []
         if not self.__g_bAvailable:
-            self._printDebug('execution denied')
+            self._print_debug('execution denied')
             return lst_status
 
         if s_until:
             try:
                 datetime.strptime(s_until, '%Y-%m-%d')
             except ValueError:
-                self._printDebug("Incorrect data format, should be YYYY-MM-DD")
+                self._print_debug("Incorrect data format, should be YYYY-MM-DD")
                 return lst_status
         else:
             s_until = datetime.now().strftime("%Y-%m-%d")  # limit to yesterday tweets
@@ -146,9 +146,9 @@ class SvTwitter(sv_object.ISvObject):
                                         'dict_rtwit': dict_rtwit, 'dict_qtwit': dict_qtwit})
             except Exception as e:  # e.response e.api_errors e.api_codes e.api_messages
                 if 215 in e.api_codes:  # Bad Authentication data.
-                    self._printDebug('invalid API key')
+                    self._print_debug('invalid API key')
         else:
-            self._printDebug(__file__ + ' has requested to send blank message!')
+            self._print_debug(__file__ + ' has requested to send blank message!')
 
         return lst_status
 

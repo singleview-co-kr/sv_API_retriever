@@ -97,18 +97,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('stop')
             else:
-                self._printDebug('nothing to retreive')
+                self._print_debug('nothing to retreive')
                 return
         
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
                 return
         if 'adw_cid' not in dict_acct_info:
-            self._printDebug('stop -> no google ads API info')
+            self._print_debug('stop -> no google ads API info')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -123,7 +123,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__get_adwords_raw(s_sv_acct_id, s_brand_id, s_googleads_cid)
         except TypeError as error:
             # Handle errors in constructing a query.
-            self._printDebug(('There was an error in constructing your query : %s' % error))
+            self._print_debug(('There was an error in constructing your query : %s' % error))
 
         self._task_post_proc(self._g_oCallback)
 
@@ -133,7 +133,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             lst_month_range = calendar.monthrange(n_yr, n_mo)
         except calendar.IllegalMonthError:
-            self._printDebug('invalid yyyymm')
+            self._print_debug('invalid yyyymm')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -196,8 +196,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_googleads_client = GoogleAdsClient.load_from_storage(s_google_ads_yaml_path,
                                                                    version=self.__g_sGoogleAdsApiVersion)
         except google.auth.exceptions.RefreshError:
-            self._printDebug('A refresh token in google-ads.yaml has expired!')
-            self._printDebug('Run svinitialize/generate_user_credentials.py to get valid token.')
+            self._print_debug('A refresh token in google-ads.yaml has expired!')
+            self._print_debug('Run svinitialize/generate_user_credentials.py to get valid token.')
             return
         o_googleads_service = o_googleads_client.get_service('GoogleAdsService')
         dict_date_queue = dict()
@@ -217,7 +217,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 # find unhandled report task
                 dt_retrieval = list(dict_date_queue.keys())[list(dict_date_queue.values()).index(0)]
                 s_data_date_for_mysql = dt_retrieval.strftime('%Y%m%d')
-                self._printDebug('--> ' + s_adwords_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
+                self._print_debug('--> ' + s_adwords_cid + ' will retrieve general report on ' + s_data_date_for_mysql)
             except ValueError:
                 break
 
@@ -239,8 +239,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_disp_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
                                                                          query=s_disp_campaign_query)
             except Exception as e:
-                self._printDebug('unknown exception occurred while access googleads API')
-                self._printDebug(e)
+                self._print_debug('unknown exception occurred while access googleads API')
+                self._print_debug(e)
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
@@ -270,8 +270,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             o_txt_campaign_resp = o_googleads_service.search_stream(customer_id=s_google_ads_cid,
                                                                                     query=s_text_campaign_query)
                         except Exception as e:
-                            self._printDebug('unknown exception occured while access googleads API')
-                            self._printDebug(e)
+                            self._print_debug('unknown exception occured while access googleads API')
+                            self._print_debug(e)
                             if self._g_bDaemonEnv:  # for running on dbs.py only
                                 raise Exception('remove')
                             else:

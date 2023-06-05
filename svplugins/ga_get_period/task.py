@@ -67,10 +67,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230113)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
-        self._g_dictParam.update({'earliest_date':None, 'latest_date':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -100,7 +100,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         if self._g_dictParam['earliest_date'] is None or \
             self._g_dictParam['latest_date'] is None:
-            self._printDebug('you should designate earliest_date and latest_date')
+            self._print_debug('you should designate earliest_date and latest_date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -122,7 +122,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # Try to make a request to the API. Print the results or handle errors.        
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'google_analytics' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -138,14 +138,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__getInsiteRaw(service, s_sv_acct_id, s_brand_id, s_property_or_view_id)
             except TypeError as error:
                 # Handle errors in constructing a query.
-                self._printDebug(('There was an error in constructing your query : %s' % error))
+                self._print_debug(('There was an error in constructing your query : %s' % error))
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
                     return
             except HttpError as error:
                 # Handle API errors.
-                self._printDebug(('Arg, there was an API error : %s : %s' % (error.resp.status, error._get_reason())))
+                self._print_debug(('Arg, there was an API error : %s : %s' % (error.resp.status, error._get_reason())))
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
@@ -158,7 +158,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     return
         elif s_version == 'ga4':
-            self._printDebug('choose ga4_get_day plugin')
+            self._print_debug('choose ga4_get_day plugin')
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
             else:
@@ -238,12 +238,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         logging.info(s_msg)
                         raise Exception('completed')
                     else:
-                        self._printDebug(s_msg)
+                        self._print_debug(s_msg)
                         return
 
                 sDataDate = dtDateDataRetrieval.strftime('%Y-%m-%d')
                 sDataDateForMysql =dtDateDataRetrieval.strftime('%Y%m%d')
-                self._printDebug('--> '+ sGaViewId +' retrieves ' + sUa + '-' + sFileName + ' report on ' + sDataDateForMysql)
+                self._print_debug('--> '+ sGaViewId +' retrieves ' + sUa + '-' + sFileName + ' report on ' + sDataDateForMysql)
                 try:
                     oRst = service.data().ga().get(
                             ids='ga:' + sGaViewId,
@@ -286,7 +286,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             logging.info(s_msg)
                             raise Exception('remove')
                         else:
-                            self._printDebug(s_msg)
+                            self._print_debug(s_msg)
                             return
                     elif error.resp.reason in ['userRateLimitExceeded','internalServerError', 'backendError']:
                         if n_retry_backoff_cnt < 5:
@@ -295,8 +295,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 logging.info(s_msg)
                                 logging.info(error.resp)
                             else:
-                                self._printDebug(s_msg)
-                                self._printDebug(error.resp)
+                                self._print_debug(s_msg)
+                                self._print_debug(error.resp)
                             time.sleep((2 ** n_retry_backoff_cnt) + random.random())
                             n_retry_backoff_cnt += 1
                         else:
@@ -308,8 +308,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         logging.info(s_msg)
                         raise Exception('remove' )
                     else:
-                        self._printDebug(e)
-                        self._printDebug(s_msg)
+                        self._print_debug(e)
+                        self._print_debug(s_msg)
                         return
         
         if isDoneSomething == False:
@@ -318,7 +318,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 logging.info(s_msg)
                 raise Exception('completed' )
             else:
-                self._printDebug(s_msg)
+                self._print_debug(s_msg)
                 return
 
     def __get_service_oauth2(self, api_name, api_version, scopes, key_file_location):
@@ -408,21 +408,21 @@ def __traverseAccountInfo(self, service):
 		for account in accounts.get('items'):
 		
 			currentAccountId = account.get('id')
-			self._printDebug('> account ID '+ currentAccountId )
+			self._print_debug('> account ID '+ currentAccountId )
 			webproperties = service.management().webproperties().list(
 				accountId = currentAccountId).execute()
 
 			for WebpropertyId in webproperties.get('items'):
 				CurrentWebpropertyId = WebpropertyId.get('id')
-				self._printDebug('-> property ' + WebpropertyId.get('name') + ' ID '+ CurrentWebpropertyId )
+				self._print_debug('-> property ' + WebpropertyId.get('name') + ' ID '+ CurrentWebpropertyId )
 
 				profiles = service.management().profiles().list(
 					accountId=currentAccountId,
 					webPropertyId=CurrentWebpropertyId).execute()
 
 				for profile in profiles.get('items'):
-					#self._printDebug( profile )
-					self._printDebug( '--> view ' + profile.get('name') + ' ID ' + profile.get('id') )
+					#self._print_debug( profile )
+					self._print_debug( '--> view ' + profile.get('name') + ' ID ' + profile.get('id') )
 
 def __getFirstProfileId(self, service):
 	"""Traverses Management API to return the first profile id.
@@ -459,13 +459,13 @@ def __printResults(self,results):
 		Args:
 		results: The response returned from the Core Reporting API.
 		"""
-		self._printDebug('Profile Name: %s' % results.get('profileInfo').get('profileName'))
+		self._print_debug('Profile Name: %s' % results.get('profileInfo').get('profileName'))
 
 		# Print header.
 		output = []
 		for header in results.get('columnHeaders'):
 			output.append('%30s' % header.get('name'))
-		self._printDebug(''.join(output))
+		self._print_debug(''.join(output))
 
 		# Print data table.
 		if results.get('rows', []):
@@ -473,7 +473,7 @@ def __printResults(self,results):
 				output = []
 				for cell in row:
 					output.append('%30s' % cell)
-				self._printDebug(''.join(output))
+				self._print_debug(''.join(output))
 		else:
-			self._printDebug('No Rows Found')
+			self._print_debug('No Rows Found')
 '''

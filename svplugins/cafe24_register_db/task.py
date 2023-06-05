@@ -84,7 +84,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -100,12 +100,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
         n_sv_file_id = self._g_dictParam['sv_file_id']
-        self._printDebug(n_sv_file_id)
+        self._print_debug(n_sv_file_id)
 
         self.__g_oSvStorage.init(s_sv_acct_id, s_brand_id)
         dict_rst_storage = self.__g_oSvStorage.validate(sv_storage.SV_STORAGE_UPLOAD)
         if dict_rst_storage['b_err']:
-            self._printDebug(dict_rst_storage['s_msg'])
+            self._print_debug(dict_rst_storage['s_msg'])
             self._task_post_proc(self._g_oCallback)
             del dict_rst_storage
             if self._g_bDaemonEnv:  # for running on dbs.py only
@@ -116,7 +116,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         dict_rst = self.__g_oSvStorage.get_uploaded_file(n_sv_file_id)
         if dict_rst['b_err']:
-            self._printDebug(dict_rst['s_msg'])
+            self._print_debug(dict_rst['s_msg'])
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -125,7 +125,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         # load cafe24 order excel file
         s_uploaded_filename = dict_rst['dict_val']['s_original_filename'] + '.' + dict_rst['dict_val']['s_original_file_ext']
-        self._printDebug(s_uploaded_filename + ' will be transformed')
+        self._print_debug(s_uploaded_filename + ' will be transformed')
         s_secured_filename = dict_rst['dict_val']['s_storage_path_abs']
         df = pd.read_excel(s_secured_filename, engine='openpyxl')
         # remove unnecessary column
@@ -164,7 +164,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     str(o_row['상품별 추가할인금액']), s_coupon_title, str(o_row['쿠폰 할인금액']), s_purchaser_id, s_purchaser_dob, 
                     o_row['주문경로'], s_ext_order_id, dt_order_date)
 
-                self._printProgressBar(nIdx, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1
         del o_sv_addr_parser
 

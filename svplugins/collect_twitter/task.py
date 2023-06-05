@@ -78,7 +78,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -94,7 +94,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if 'basic' in o_config:
             self.__g_nTwtLimit = int(o_config['basic']['twt_limit'])
         else:
-            self._printDebug('tweet.config.ini not found, set default tweet limit')
+            self._print_debug('tweet.config.ini not found, set default tweet limit')
         del o_config
 
         with sv_mysql.SvMySql() as o_sv_mysql:
@@ -103,18 +103,18 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
         if self.__g_sMode in ['analyze_new', 'tag_ignore_word', 'add_custom_noun', 'get_period']:
-            self._printDebug('-> retrieve status to extract morpheme')
+            self._print_debug('-> retrieve status to extract morpheme')
 
             self.__get_keyword_from_db()
             # o_sv_morpheme_retriever = morpheme_retriever.SvMorphRetriever()
             # o_sv_morpheme_retriever.init_var(self._g_dictSvAcctInfo, s_tbl_prefix,
-            #                             self._printDebug, self._printProgressBar, self._continue_iteration,
+            #                             self._printDebug, self._print_progress_bar, self._continue_iteration,
             #                             self._g_sPluginName, self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
             #                             s_mode, s_comma_sep_words, s_start_yyyymmdd, s_end_yyyymmdd)
             # o_sv_morpheme_retriever.do_task()
             # del o_sv_morpheme_retriever
         else:
-            self._printDebug('-> communication begin')
+            self._print_debug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_twitter')
@@ -125,9 +125,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
                 s_morpheme = dict_single_morpheme['morpheme']
                 lst_status_registered = self.__get_keyword_from_twitter(n_morpheme_srl, s_morpheme)
-                self._printDebug(str(len(lst_status_registered)) + ' tweets have been retrieved for ' + s_morpheme)
+                self._print_debug(str(len(lst_status_registered)) + ' tweets have been retrieved for ' + s_morpheme)
                 del lst_status_registered
-            self._printDebug('-> communication finish')
+            self._print_debug('-> communication finish')
 
         self._task_post_proc(self._g_oCallback)
 

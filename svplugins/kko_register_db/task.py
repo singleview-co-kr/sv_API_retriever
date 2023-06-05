@@ -64,7 +64,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'kko_moment_aid' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -79,7 +79,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_app_name('svplugins.kko_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
         
-        self._printDebug('-> register kko raw data')
+        self._print_debug('-> register kko raw data')
         self.__arrangeKkoRawDataFile(s_sv_acct_id, s_brand_id, s_kakao_acct_id)
         self.__registerDb()
 
@@ -129,11 +129,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 self.__procKkoRawDataFileV2(sCid, sDataPath, sDataFileFullname, sFilename, dictCampaignNameAlias)
             
-            self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Arrange data file:', suffix = 'Complete', length = 50)
+            self._print_progress_bar(nIdx + 1, nSentinel, prefix='Arrange data file:', suffix='Complete', length=50)
             nIdx += 1
 
     def __procKkoRawDataFileV2(self, sCid, sSourceDataPath, sDataFileFullname, sFilename, dictCampaignNameAlias):
-        self._printDebug('v2 format')
+        self._print_debug('v2 format')
         # 유형x목표	row[0]
         # 캠페인 row[1]
         # 광고그룹 row[2]
@@ -158,7 +158,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # 구매(간접) row[21]
         # 구매금액(간접) row[22]
         if not os.path.isfile(sDataFileFullname):
-            self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+            self._print_debug('pass ' + sDataFileFullname + ' does not exist')
             return
 
         with open(sDataFileFullname, 'r') as tsvfile:
@@ -202,8 +202,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign2nd = dictCampaignNameAlias[sCampaignName ]['camp2nd']
                         sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
                     else:  # if unacceptable googleads campaign name
-                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                        self._printDebug('weird kakao moment log!')
+                        self._print_debug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                        self._print_debug('weird kakao moment log!')
                         return
                 
                 sUa = self.__g_oSvCampaignParser.get_ua(row[6])
@@ -218,7 +218,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sReportId = sCid+'|@|'+sDatadate+'|@|'+sUa+'|@|'+sSource+'|@|'+sRstType+'|@|'+ sMedium+'|@|'+ str(bBrd)+'|@|'+\
                     sCampaign1st+'|@|'+	sCampaign2nd+'|@|'+	sCampaign3rd # +'|@|'+ str(sTerm)
 
-                if sReportId in self.__g_dictKkoRaw:  #.keys():  # if designated log already created
+                if sReportId in self.__g_dictKkoRaw:  # .keys():  # if designated log already created
                     self.__g_dictKkoRaw[sReportId]['imp'] += nImpression
                     self.__g_dictKkoRaw[sReportId]['clk'] += nClick
                     self.__g_dictKkoRaw[sReportId]['cost_inc_vat'] += nCost
@@ -235,7 +235,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__archiveGaDataFile(sSourceDataPath, sFilename)
 
     def __procKkoRawDataFileV1(self, sCid, sSourceDataPath, sDataFileFullname, sFilename, dictCampaignNameAlias):
-        self._printDebug( 'v1 format')
+        self._print_debug('v1 format')
         # 디스플레이 캠페인 row[0]
         # 광고그룹 row[1]
         # 소재 row[2]
@@ -255,7 +255,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # 구매(간접) row[16]
         # 구매금액(간접) row[17]
         if not os.path.isfile(sDataFileFullname):
-            self._printDebug('pass ' + sDataFileFullname + ' does not exist')
+            self._print_debug('pass ' + sDataFileFullname + ' does not exist')
             return
 
         with open(sDataFileFullname, 'r') as tsvfile:
@@ -279,7 +279,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCampaign3rd = None
                 lstCampaignCode = row[2].split('_')
                 # process body
-                if len(lstCampaignCode) == 6: # adwords campaign name follows singleview campaign code
+                if len(lstCampaignCode) == 6:  # campaign name follows singleview campaign code
                     if lstCampaignCode[0] == 'KKO':
                         sSource = lstCampaignCode[0]
                         sRstType = lstCampaignCode[1]
@@ -299,8 +299,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCampaign2nd = dictCampaignNameAlias[sCampaignName]['camp2nd']
                         sCampaign3rd = dictCampaignNameAlias[sCampaignName]['camp3rd']
                     else:  # if unacceptable googleads campaign name
-                        self._printDebug('  ' + sCampaignName + '  ' + sDataFileFullname)
-                        self._printDebug('weird kakao moment log!')
+                        self._print_debug('  ' + sCampaignName + '  ' + sDataFileFullname)
+                        self._print_debug('weird kakao moment log!')
                         return
                 sUa = self.__g_oSvCampaignParser.get_ua(row[5])
                 nImpression = int(row[6])
@@ -357,12 +357,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     str(dict_single_row['cost_inc_vat']), dict_single_row['imp'], str(dict_single_row['clk']),
                     str(dict_single_row['conv_cnt_direct']), str(dict_single_row['conv_amnt_direct']),
                     str(dict_single_row['conv_cnt_indirect']), str(dict_single_row['conv_amnt_indirect']), sDataDate )
-                self._printProgressBar(nIdx + 1, nSentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1
 
     def __archiveGaDataFile(self, sSourcePath, sCurrentFileName):
         if not os.path.exists(sSourcePath):
-            self._printDebug('error: adw source directory does not exist!')
+            self._print_debug('error: adw source directory does not exist!')
             return
         sArchiveDataPath = os.path.join(sSourcePath, 'archive')
         if not os.path.exists(sArchiveDataPath):

@@ -77,8 +77,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230114)')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -97,7 +97,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         """ Authenticate and construct service. """
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'google_analytics' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -113,7 +113,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self.__get_insite_raw(s_sv_acct_id, s_brand_id, s_property_or_view_id)
             except TypeError as error:
                 # Handle errors in constructing a query.
-                self._printDebug(('There was an error in constructing your query : %s' % error))
+                self._print_debug(('There was an error in constructing your query : %s' % error))
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
@@ -231,7 +231,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         break
                     
                     s_data_date_mysql = dt_retrieval.strftime('%Y%m%d')
-                    self._printDebug( '--> '+ s_ga4_property_id +' retrieves ' + s_ua + '-' + s_filename + ' report on ' + s_data_date_mysql)
+                    self._print_debug( '--> '+ s_ga4_property_id +' retrieves ' + s_ua + '-' + s_filename + ' report on ' + s_data_date_mysql)
 
                     s_tsv_filename = s_data_date_mysql + '_' + s_ua + '_' + s_filename + '.tsv'
                     s_data_date = dt_retrieval.strftime('%Y-%m-%d')
@@ -275,20 +275,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     # except HttpError as error:
                     #     # https://developers.google.com/analytics/devguides/reporting/core/v4/errors
                     #     if error.resp.reason in ['quotaExceeded']:
-                    #         self._printDebug('stop - daily or monthly quota exceeded')
+                    #         self._print_debug('stop - daily or monthly quota exceeded')
                     #         return
                     #     elif error.resp.reason in ['userRateLimitExceeded','internalServerError', 'backendError']:
                     #         if nRetryBackoffCnt < 5:
-                    #             self._printDebug('start retrying with exponential back-off that GA recommends.')
-                    #             self._printDebug(error.resp)
+                    #             self._print_debug('start retrying with exponential back-off that GA recommends.')
+                    #             self._print_debug(error.resp)
                     #             time.sleep((2 ** nRetryBackoffCnt) + random.random())
                     #             nRetryBackoffCnt = nRetryBackoffCnt + 1
                     #         else:
                     #             raise Exception('remove')
                     # except Exception as e:
-                    #     self._printDebug(e)
-                    #     self._printDebug('GA api has reported weird error while processing sv account id: ' + s_sv_acct_id)
-                    #     self._printDebug('remove')  # raise Exception('remove' )
+                    #     self._print_debug(e)
+                    #     self._print_debug('GA api has reported weird error while processing sv account id: ' + s_sv_acct_id)
+                    #     self._print_debug('remove')  # raise Exception('remove' )
                     #     return
                     # print("Report result:")
                     with open(os.path.join(s_data_path, s_tsv_filename), 'w', encoding='utf-8') as out:
@@ -298,7 +298,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 if(len(lst_single_dim_val.value)):  # ignore no dimension value
                                     lst_dims.append(lst_single_dim_val.value.replace('"', '').replace("'", ''))
                             
-                            if(len(lst_dims)):
+                            if len(lst_dims):
                                 out.write('\t'.join(lst_dims)+'\t'+o_single_row.metric_values[0].value.replace('"', '').replace("'", ''))
                                 out.write( '\n')
                             del lst_dims

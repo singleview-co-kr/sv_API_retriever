@@ -76,7 +76,7 @@ class SvNvSearch(sv_object.ISvObject):
                 self.__g_bAvailable = True
         except IOError:
             self.__g_bAvailable = False
-            self._printDebug('viral_config.ini does not exist')
+            self._print_debug('viral_config.ini does not exist')
 
         if self.__g_bAvailable:
             o_config.read(s_viral_config_file)
@@ -85,7 +85,7 @@ class SvNvSearch(sv_object.ISvObject):
             self.__g_sClientId = o_config['NV_SEARCH']['client_id']
             self.__g_sClientSecret = o_config['NV_SEARCH']['client_secret']
         except:
-            self._printDebug('Error: Invalid Naver Search API info')
+            self._print_debug('Error: Invalid Naver Search API info')
         finally:
             del o_config
         
@@ -108,7 +108,7 @@ class SvNvSearch(sv_object.ISvObject):
             self.__g_sCurMedia = s_media
         else:
             self.__g_sCurMedia = None
-            self._printDebug('invalid naver search API media')
+            self._print_debug('invalid naver search API media')
 
     def set_display_cnt(self, n_cnt):
         if n_cnt > 10:  # no reason to request less than 10; default list count is 10, consumes one API daily hit regardless requested list count
@@ -199,7 +199,7 @@ class SvYtSearch(sv_object.ISvObject):
                 self.__g_bAvailable = True
         except IOError:
             self.__g_bAvailable = False
-            self._printDebug('viral_config.ini does not exist')
+            self._print_debug('viral_config.ini does not exist')
 
         if self.__g_bAvailable:
             o_config.read(s_viral_config_file)
@@ -207,7 +207,7 @@ class SvYtSearch(sv_object.ISvObject):
         try:  # attempt to read API key
             s_api_key = o_config['YT_SEARCH']['api_key']
         except:
-            self._printDebug('Error: Invalid Youtube Search API info')
+            self._print_debug('Error: Invalid Youtube Search API info')
         finally:
             del o_config
 

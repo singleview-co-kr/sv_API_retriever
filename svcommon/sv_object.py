@@ -25,23 +25,25 @@
 import logging
 # from classes import sv_events
 
+
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
 
 
 class SvErrorHandler(Error):
-    """Raised when the http ['variables']['todo'] is set """
+    """ Raised when the http ['variables']['todo'] is set """
     __g_oLogger = None
 
-    def __init__(self, sTodo):
+    def __init__(self, s_todo):
         self.__g_oLogger = logging.getLogger(__file__)
-        # self.__printDebug(sTodo)
-        if sTodo == 'stop':
-            self.__printDebug('should stop job and wait next schedule')
-            # sys.exit(sv_events.EVENT_JOB_SHOULD_BE_STOPPED) # sys.exit() signal in sv_http module does not reach to scheduler, as this module is not called directly
+        # self.__print_debug(sTodo)
+        if s_todo == 'stop':
+            self.__print_debug('should stop job and wait next schedule')
+            # sys.exit(sv_events.EVENT_JOB_SHOULD_BE_STOPPED)
+            # sys.exit() signal in sv_http module does not reach to scheduler, as this module is not called directly
         else:
-            self.__printDebug('general error occured')
+            self.__print_debug('general error occured')
 
 
 class ISvObject(Error):
@@ -55,7 +57,7 @@ class ISvObject(Error):
     def set_websocket_output(self, o_websocket_display_pipe):
         self._g_oWebsocket = o_websocket_display_pipe
 
-    def _printProgressBar(self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '='):
+    def _print_progress_bar(self, iteration, total, prefix='', suffix='', decimals=1, length=100, fill='='):
         """
         Print iterations progress
         Call in a loop to create terminal progress bar
@@ -70,28 +72,28 @@ class ISvObject(Error):
         """
         if __name__ == 'svcommon.sv_object' and self._g_oWebsocket is not None:
             if iteration == total:
-                self._printDebug(prefix + ' 100% done')
+                self._print_debug(prefix + ' 100% done')
             elif iteration == int(total / 4):
-                self._printDebug(prefix + ' 25% done')
+                self._print_debug(prefix + ' 25% done')
             elif iteration == int(total / 2):
-                self._printDebug(prefix + ' 50% done')
+                self._print_debug(prefix + ' 50% done')
             elif iteration == int(total * 0.75):
-                self._printDebug(prefix + ' 75% done')
-        elif __name__ == 'sv_object': # for console debugging
+                self._print_debug(prefix + ' 75% done')
+        elif __name__ == 'sv_object':  # for console debugging
             percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-            filledLength = int(length * iteration // total)
-            bar = fill * filledLength + '-' * (length - filledLength)
-            print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+            n_filled_length = int(length * iteration // total)
+            bar = fill * n_filled_length + '-' * (length - n_filled_length)
+            print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\r')
             # Print New Line on Complete
             if iteration == total: 
                 print()
 
-    def _printDebug(self, s_msg):
+    def _print_debug(self, s_msg):
         if __name__ == 'svcommon.sv_object' and self._g_oWebsocket is not None:
             if type(s_msg) != str:
                 s_msg = str(s_msg)
             self._g_oWebsocket(s_msg)
-        elif __name__ == 'sv_object': # for console debugging
+        elif __name__ == 'sv_object':  # for console debugging
             print(s_msg)
 
         if self._g_oLogger is not None:

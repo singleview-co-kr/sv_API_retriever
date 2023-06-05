@@ -137,7 +137,7 @@ class SvHttpCom(sv_object.ISvObject):
             o_http_resp = self.__g_oHttpConn.getresponse()
             if o_http_resp.status == 200 and o_http_resp.reason == 'OK':
                 s_resp = o_http_resp.read().decode('utf-8')  # This will return entire content.
-                # self._printDebug(sResp)
+                # self._print_debug(sResp)
                 if s_resp is not 'NULL':
                     s_tmp = self.__g_oCipher.decrypt_str(s_resp)
                     o_tmp = json.loads(s_tmp)
@@ -150,7 +150,7 @@ class SvHttpCom(sv_object.ISvObject):
         except Exception as err:
             n_idx = 0
             for e in err.args:
-                self._printDebug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
+                self._print_debug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
                 n_idx += 1
             # oResp = self.__g_dictRet
         finally:
@@ -163,14 +163,14 @@ class SvHttpCom(sv_object.ISvObject):
             o_http_resp = self.__g_oHttpConn.getresponse()
             if o_http_resp.status == 200 and o_http_resp.reason == 'OK':
                 s_resp = o_http_resp.read().decode('utf-8')  # This will return entire content.
-                # self._printDebug(s_resp)
+                # self._print_debug(s_resp)
                 o_resp = json.loads(base64.b64decode(s_resp))  # php XE::Object will not be received
             else:
                 pass  # what if HTTP failed
         except Exception as err:
             n_idx = 0
             for e in err.args:
-                self._printDebug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
+                self._print_debug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
                 n_idx += 1
             o_resp = self.__g_dictRet
         finally:
@@ -182,52 +182,52 @@ class SvHttpCom(sv_object.ISvObject):
                 self.__g_oCipher.set_iv(dict_params.pop('iv'))
                 self.__g_oCipher.set_secret_key(dict_params.pop('secret'))
                 s_json = json.dumps(dict_params)
-                # self._printDebug(s_json)
+                # self._print_debug(s_json)
                 s_json = self.__g_oCipher.encrypt_str(s_json)
-                # self._printDebug(s_json)
+                # self._print_debug(s_json)
                 o_headers = {'Content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
                 s_params = urllib.parse.urlencode({self.__g_sReservedQueryName: s_json})
-                # self._printDebug(self.__g_sSubUrl)
+                # self._print_debug(self.__g_sSubUrl)
                 self.__g_oHttpConn.request('POST', self.__g_sSubUrl, s_params, o_headers)
                 o_http_resp = self.__g_oHttpConn.getresponse()
                 if o_http_resp.status == 200 and o_http_resp.reason == 'OK':
                     s_resp = o_http_resp.read().decode('utf-8')  # This will return entire content.
-                    # self._printDebug(s_resp)
+                    # self._print_debug(s_resp)
                     if s_resp == 'bar1':
-                        self._printDebug('invalid brand_id')
+                        self._print_debug('invalid brand_id')
                         self.__g_dictRet['error'] = -1
                         self.__g_dictRet['variables']['todo'] = 'stop'
                     elif s_resp == 'bar2':
-                        self._printDebug('enc key not exist')
+                        self._print_debug('enc key not exist')
                         self.__g_dictRet['error'] = -1
                         self.__g_dictRet['variables']['todo'] = 'stop'
                     elif s_resp == 'bar3':
-                        self._printDebug('decryption failed')
+                        self._print_debug('decryption failed')
                         self.__g_dictRet['error'] = -1
                         self.__g_dictRet['variables']['todo'] = 'stop'
                     elif s_resp == 'bar4':
-                        self._printDebug('not a debug mode')
+                        self._print_debug('not a debug mode')
                         self.__g_dictRet['error'] = -1
                         self.__g_dictRet['variables']['todo'] = 'stop'
                     elif s_resp != 'NULL':
                         s_tmp = self.__g_oCipher.decrypt_str(s_resp)
                         o_tmp = json.loads(s_tmp)
-                        # self._printDebug('' )
-                        # self._printDebug(oTmp )
-                        # self._printDebug('' )
+                        # self._print_debug('' )
+                        # self._print_debug(oTmp )
+                        # self._print_debug('' )
                         self.__g_dictRet['error'] = 0
                         self.__g_dictRet['variables'] = o_tmp
                     # while not r1.closed:
                     # 	print(r1.read(200))  # 200 bytes
                 else:  # what if HTTP failed
-                    self._printDebug('invalid URL -> status:' + str(o_http_resp.status) + ' reason:' + o_http_resp.reason)
+                    self._print_debug('invalid URL -> status:' + str(o_http_resp.status) + ' reason:' + o_http_resp.reason)
             else:
-                self._printDebug('not a dict type params')
+                self._print_debug('not a dict type params')
 
         except Exception as err:
             n_idx = 0
             for e in err.args:
-                self._printDebug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
+                self._print_debug('http generic error raised arg' + str(n_idx) + ': ' + str(e))
                 n_idx += 1
         finally:
             return self.__g_dictRet

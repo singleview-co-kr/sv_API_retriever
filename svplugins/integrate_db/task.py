@@ -124,7 +124,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
                 'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -155,7 +155,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dict_date_range = self.__get_touch_date_range()
 
         if dict_date_range['start_date'] is None and dict_date_range['end_date'] is None:
-            self._printDebug('stop - weird raw data last date')
+            self._print_debug('stop - weird raw data last date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -165,7 +165,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dt_start = dict_date_range['start_date']
         dt_end = dict_date_range['end_date']
         if dt_start > dt_end:
-            self._printDebug('error - weird raw data last date')
+            self._print_debug('error - weird raw data last date')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -179,13 +179,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 break
             self.__g_sDate = dt_date.strftime('%Y-%m-%d')
             self.__compile_daily_record()
-            self._printProgressBar(n_idx + 1, n_sentinel, prefix='Arrange data:', suffix='Complete', length=50)
+            self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Arrange data:', suffix='Complete', length=50)
             n_idx += 1
 
         self._task_post_proc(self._g_oCallback)
 
     def __truncate_compiled_tbl(self):
-        self._printDebug('-> clear ga media daily compiled log')
+        self._print_debug('-> clear ga media daily compiled log')
         with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
@@ -199,7 +199,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:
             lst_month_range = calendar.monthrange(n_yr, n_mo)
         except calendar.IllegalMonthError:
-            self._printDebug('invalid yyyymm')
+            self._print_debug('invalid yyyymm')
             return dict_rst
 
         # check google-ads API directory exists
@@ -331,7 +331,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             lst_first_date = []
             lst_gross_compiled_log_date_range = oSvMysql.executeQuery('getCompiledGaMediaLogDateMaxMin')
             if lst_gross_compiled_log_date_range[0]['maxdate'] is None:
-                self._printDebug('zero base')
+                self._print_debug('zero base')
                 # decide that GA data period is a population on 20190216
                 lst_first_date.append(lst_ga_log_date_range[0]['mindate'])
                 dict_rst['start_date'] = max(lst_first_date)
@@ -343,7 +343,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         try:  # validate requested date
             datetime.strptime(self.__g_sDate, '%Y-%m-%d').strftime('%Y-%m-%d')
         except ValueError:
-            self._printDebug(self.__g_sDate + ' is invalid date string')
+            self._print_debug(self.__g_sDate + ' is invalid date string')
             return
         # clear log
         self.__g_dictNvadMergedDailyLog.clear()
@@ -719,7 +719,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 dict_row['tot_revenue'], dict_row['tot_registrations'],
                                                 self.__g_sDate)
             else:
-                self._printDebug('fb record with multiple media data on ' + self.__g_sDate)
+                self._print_debug('fb record with multiple media data on ' + self.__g_sDate)
 
         # proc residual - fb api sends log but GA does not detect
         if len(dict_fb_daily_log):
@@ -834,10 +834,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                dict_row['tot_transactions'], dict_row['tot_revenue'],
                                                dict_row['tot_registrations'], self.__g_sDate)
             else:
-                self._printDebug('adw record with multiple media data on ' + self.__g_sDate)
-                self._printDebug(dict_id_rst)
-                self._printDebug(dict_row)
-                self._printDebug(lst_googleads_log_daily)
+                self._print_debug('adw record with multiple media data on ' + self.__g_sDate)
+                self._print_debug(dict_id_rst)
+                self._print_debug(dict_row)
+                self._print_debug(lst_googleads_log_daily)
         # proc residual
         # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         dict_imp = {'M_1': 0, 'M_0': 0, 'P_1': 0, 'P_0': 0}
@@ -963,10 +963,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                dict_row['tot_transactions'],
                                                dict_row['tot_revenue'], dict_row['tot_registrations'], self.__g_sDate)
             else:
-                self._printDebug('youtube record with multiple media data on ' + self.__g_sDate)
-                self._printDebug(dict_id_rst)
-                self._printDebug(dict_row)
-                self._printDebug(lst_yt_log_daily)
+                self._print_debug('youtube record with multiple media data on ' + self.__g_sDate)
+                self._print_debug(dict_id_rst)
+                self._print_debug(dict_row)
+                self._print_debug(lst_yt_log_daily)
         # proc residual
         dict_yt_residual_arranged = {}
         for n_log_srl, dict_single_yt_log in dict_yt_daily_log.items():
@@ -1165,7 +1165,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                                     dict_id_rst['s_media'], dict_id_rst['s_term'],
                                                                     dict_id_rst['s_camp_1st'], dict_id_rst['s_ua'])
                 if len(lst_nvad_log_daily) > 1:
-                    pass  # self._printDebug('NVAD separates NVSHOPPING item so allocate appropriately')
+                    pass  # self._print_debug('NVAD separates NVSHOPPING item so allocate appropriately')
             else:
                 lst_nvad_log_daily = self.__g_oSvMysql.executeQuery('getNvadLogSpecificCpc', self.__g_sDate,
                                                                     dict_id_rst['s_media'], dict_id_rst['s_term'],
@@ -1245,10 +1245,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     # aggregate each log into a single GA detected NVAD log,
                     # if there happens duplicated nvad log by different nvad campaign name;
                     # GA recognize utm_campaign only, which is same level of NVAD adgrp name
-                    self._printDebug('aggregate duplicated nvad log')
-                    self._printDebug(self.__g_sDate)
-                    self._printDebug(s_unique_tag)
-                    self._printDebug(lst_nvad_log_daily)
+                    self._print_debug('aggregate duplicated nvad log')
+                    self._print_debug(self.__g_sDate)
+                    self._print_debug(s_unique_tag)
+                    self._print_debug(lst_nvad_log_daily)
                     n_cost = 0
                     n_imp = 0
                     n_click = 0

@@ -98,7 +98,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -115,25 +115,25 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         else:
             dict_rst = self.__validate_configuration()
             if dict_rst['b_err']:
-                self._printDebug(dict_rst['s_msg'])
+                self._print_debug(dict_rst['s_msg'])
                 self._task_post_proc(self._g_oCallback)
                 if self._g_bDaemonEnv:  # for running on dbs.py only
                     raise Exception('remove')
                 else:
                     return
-            self._printDebug('-> communication begin')
-            self._printDebug('-> ask new adr')
+            self._print_debug('-> communication begin')
+            self._print_debug('-> ask new adr')
             n_idx = len(self.__g_lstModuleSrl)
             for i in range(0, n_idx):
                 self.__ask_sv_xe_seb_service(self.__g_lstCollectionBase[i], 
                                                 self.__g_lstModuleSrl[i], self.__g_lstAddrFieldTitle[i])
-            self._printDebug('-> communication finish')
+            self._print_debug('-> communication finish')
 
         self._task_post_proc(self._g_oCallback)
 
     def __retrieve_chery_picker(self):
         n_module_srl = 162
-        self._printDebug('-> __retrieve_chery_picker begin')
+        self._print_debug('-> __retrieve_chery_picker begin')
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
@@ -194,7 +194,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dt_yesterday = datetime.today() - relativedelta(days=1)
             s_end_date_to_sync = dt_yesterday.strftime("%Y%m%d")
             if int(s_begin_date_to_sync) > int(s_end_date_to_sync):
-                self._printDebug('begin_date is later than end_date')
+                self._print_debug('begin_date is later than end_date')
                 return
             dict_date_param['s_collection_base'] = s_collection_base
             dict_date_param['s_begin_date'] = s_begin_date_to_sync
@@ -217,7 +217,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dict_date_param['n_last_doc_srl'] = n_last_sync_doc_srl
 
         if dict_date_param['s_collection_base'] is None:
-            self._printDebug('stop communication - collection_base is weird')
+            self._print_debug('stop communication - collection_base is weird')
             return
         
         # print(dict_date_param)
@@ -227,10 +227,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if not self._continue_iteration():
             return
         
-        self._printDebug('rsp of LMKL')
+        self._print_debug('rsp of LMKL')
         nMsgKey = dict_rsp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) == 'ERR':
-            self._printDebug('stop communication - ' + dict_rsp['variables']['d'])
+            self._print_debug('stop communication - ' + dict_rsp['variables']['d'])
             return
 
         if self.__translate_msg_code(nMsgKey) == 'ALD':
@@ -249,7 +249,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
 
                 if type(dictRetrieveStuff['aDocSrls']) == list and len(dictRetrieveStuff['aDocSrls']):
-                    self._printDebug('begin - doc sync')
+                    self._print_debug('begin - doc sync')
                     #  give me document list  -> data: doc_srls
                     dict_params_tmp = {'s_collection_base': 'date', 
                                         'n_module_srl': n_module_srl, 's_addr_field_title': s_addr_field_title,
@@ -260,20 +260,20 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     del dict_params_tmp
             
         elif self.__translate_msg_code(nMsgKey) == 'FIN': # nothing to sync
-            self._printDebug('stop communication 1')
+            self._print_debug('stop communication 1')
             return
 
         if not self._continue_iteration():
             return
 
-        self._printDebug('rsp of ALD')
+        self._print_debug('rsp of ALD')
         nMsgKey = dict_rsp['variables']['a'][0]
         if self.__translate_msg_code(nMsgKey) == 'ERR':
-            self._printDebug('stop communication - ' + dict_rsp['variables']['d'])
+            self._print_debug('stop communication - ' + dict_rsp['variables']['d'])
             return
 
         if self.__translate_msg_code(nMsgKey) != 'HYA': # here you are
-            self._printDebug('stop communication 2')
+            self._print_debug('stop communication 2')
             return
 
         o_sv_addr_parser = sv_addr_parser.SvAddrParser()
@@ -314,7 +314,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if dict_rsp['error'] == -1:
             s_todo = dict_rsp['variables']['todo']
             if s_todo:
-                self._printDebug('HTTP response raised exception!!')
+                self._print_debug('HTTP response raised exception!!')
                 raise Exception(s_todo)
         else:
             return dict_rsp
@@ -330,7 +330,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             with open(sKeyConfigPath) as f:
                 self.__g_oConfig.read_file(f)
         except FileNotFoundError:
-            self._printDebug('key.config.ini not exist')
+            self._print_debug('key.config.ini not exist')
             return  # raise Exception('stop')
 
         self.__g_oConfig.read(sKeyConfigPath)

@@ -65,7 +65,7 @@ class SvSlack(sv_object.ISvObject):
                 self.__g_oConfig.read_file(f)
                 self.__g_bAvailable = True
         except IOError:
-            self._printDebug('slack_config.ini does not exist')
+            self._print_debug('slack_config.ini does not exist')
             # raise IOError('failed to initialize SvSlack')
 
         if self.__g_bAvailable:
@@ -73,13 +73,13 @@ class SvSlack(sv_object.ISvObject):
 
     def sendMsg(self, s_msg):
         if not self.__g_bAvailable:
-            self._printDebug('execution denied')
+            self._print_debug('execution denied')
             return
 
         if len(s_msg):
-            dict_msg_body = { "channel": self.__g_oConfig[self.__g_sCallingBot]['channel'], 
-                                "username": self.__g_oConfig['COMMON']['bot_name'], 
-                                "text": self.__g_sCallingBot + ' > ' + s_msg + '\n' }
+            dict_msg_body = {"channel": self.__g_oConfig[self.__g_sCallingBot]['channel'],
+                             "username": self.__g_oConfig['COMMON']['bot_name'],
+                             "text": self.__g_sCallingBot + ' > ' + s_msg + '\n'}
             webhook_url = self.__g_oConfig['COMMON']['web_hook_url']
             response = requests.post(
                 webhook_url, json=dict_msg_body, headers={'Content-Type': 'application/json'}
@@ -93,17 +93,17 @@ class SvSlack(sv_object.ISvObject):
             # sMsgToSend = self.__g_oConfig['COMMON']['bot_name'] + ' > ' + self.__g_sCallingBot + ' > ' + sMsg + '\n'
             # slack_client.chat_postMessage(channel=sChannel, text=sMsgToSend)
         else:
-            self._printDebug(__file__ + ' has requested to send blank message!')
+            self._print_debug(__file__ + ' has requested to send blank message!')
 
     def get_slack_cleaner(self, s_channel_name):
         if not self.__g_bAvailable:
-            self._printDebug('execution denied')
+            self._print_debug('execution denied')
             return
 
         self.__g_oSlackCleaner = SlackCleaner(self.__g_oConfig['COMMON']['slack_user_oauth_token'])
         lst_channels = [str(o_slack_ch) for o_slack_ch in self.__g_oSlackCleaner.conversations]
         if s_channel_name not in lst_channels:
-            self._printDebug('SlackCleaner is not initialized')
+            self._print_debug('SlackCleaner is not initialized')
             self.__g_oSlackCleaner = None
             return False
         else:
@@ -111,14 +111,14 @@ class SvSlack(sv_object.ISvObject):
 
     def validate_user(self, s_user_name):
         if not self.__g_bAvailable or not self.__g_oSlackCleaner:
-            self._printDebug('execution denied')
+            self._print_debug('execution denied')
             return
         # list of users
-        # self._printDebug(s.users)
+        # self._print_debug(s.users)
 
     def delete_all(self, s_channel_name):
         if not self.__g_bAvailable:
-            self._printDebug('execution denied')
+            self._print_debug('execution denied')
             return
         
         self.get_slack_cleaner(s_channel_name)
@@ -129,7 +129,7 @@ class SvSlack(sv_object.ISvObject):
         # s.conversations returns <class 'slack_cleaner2.model.SlackChannel'>
         # lst_channels = [str(o_slack_ch) for o_slack_ch in s.conversations]
         # if s_channel_name not in lst_channels:
-        #     self._printDebug('invalid channel title')
+        #     self._print_debug('invalid channel title')
         #     return
 
         # delete all messages in general channels

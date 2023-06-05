@@ -77,7 +77,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
           'nvr_ad_acct' not in dict_acct_info:
-            self._printDebug('stop -> invalid config_loc')
+            self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
                 raise Exception('remove')
@@ -123,14 +123,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # begin - execute jobs to do
         for s_job_to_do in lst_jobs_to_cron:
             o_job_plugin = importlib.import_module('svplugins.' + s_job_to_do + '.task')
-            self._printDebug('sub task: ' + s_job_to_do + ' has been launched')
+            self._print_debug('sub task: ' + s_job_to_do + ' has been launched')
             with o_job_plugin.svJobPlugin() as o_job:
                 o_job.set_websocket_output(self._printDebug)
                 o_job.set_my_name(s_job_to_do)
                 o_job.parse_command([])
                 o_job.do_task(self._g_oCallback)
             del o_job_plugin
-            self._printDebug('sub task: ' + s_job_to_do + ' has been finished')
+            self._print_debug('sub task: ' + s_job_to_do + ' has been finished')
         # end - execute jobs to do
         self._task_post_proc(self._g_oCallback)
         return
