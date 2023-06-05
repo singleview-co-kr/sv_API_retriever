@@ -51,11 +51,12 @@ if s_msg != 'pass':
     sys.exit(0)
 
 g_oScheduler = None
-g_sVersion = '1.3.2'
-g_sLastModifiedDate = '5th, May 2022'
+g_sVersion = '1.3.3'
+g_sLastModifiedDate = '5th, Jun 2023'
 g_sAbsPathBot = config('ABSOLUTE_PATH_BOT')
 
-class setSvDaemon(daemonocle.Daemon):
+
+class SetSvDaemon(daemonocle.Daemon):
     """ this class seems to be created by different process with main(), that is configuration run by main() is not working in this code block 
         main() is not executed even if you run the CLI [python3.6 crawler.py banana] """
     # basic usage: python dbs.py start/stop
@@ -105,7 +106,8 @@ def cb_shutdown(message, code):
     o_slack.sendMsg('bot has been shutdown')
     del o_slack
 
-@click.command(cls=DaemonCLI, daemon_class=setSvDaemon, daemon_params={'shutdown_callback': cb_shutdown, 'pidfile': './misc/dbs.pid'})
+
+@click.command(cls=DaemonCLI, daemon_class=SetSvDaemon, daemon_params={'shutdown_callback': cb_shutdown, 'pidfile': './misc/dbs.pid'})
 def main():
     """ This is singleview doing-by-schedule bot. It assists to run various regular job."""
     #global g_oScheduler
@@ -122,6 +124,7 @@ def main():
 
     while True:  # 'daemon' code
         time.sleep(6) # process CPU shr % will go up to 100% w/o this execution
+
 
 def _start_scheduler():
     global g_oScheduler
@@ -156,6 +159,7 @@ def _start_scheduler():
     o_slack.sendMsg('bot has been started')
     del o_slack
 
+
 def _my_listener(event):
     '''Listens to completed job'''
     # http://apscheduler.readthedocs.io/en/latest/modules/events.html
@@ -176,10 +180,11 @@ def _my_listener(event):
         o_slack.sendMsg('_my_listener has toggled job, id: ' + event.job_id + ' from table' )
         with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
             o_sv_mysql.initialize()
-            o_sv_mysql.executeQuery('updateJobIsActive', 0, event.job_id)
+            o_sv_mysql.execute_query('updateJobIsActive', 0, event.job_id)
             o_sv_mysql.commit()
 
     del o_slack
+
 
 def _sync_job_from_mysql():
     """
@@ -221,7 +226,7 @@ def _sync_job_from_mysql():
     o_logger = logging.getLogger(__file__)
     with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
         o_sv_mysql.initialize()
-        lst_raw_mysql_jobs = o_sv_mysql.executeQuery('getJobList', 1)  # 1 means active
+        lst_raw_mysql_jobs = o_sv_mysql.execute_query('getJobList', 1)  # 1 means active
 
     # remove any job existed in Mysql but application_date is earlier than modification_date; remove updated job to add newly
     for dict_mysql_job in lst_raw_mysql_jobs:
@@ -307,7 +312,7 @@ def _sync_job_from_mysql():
                             id = u_id, name = u_name, start_date = u_start_date, end_date = u_end_date )
                     with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
                         o_sv_mysql.initialize()
-                        o_sv_mysql.executeQuery('updateJobAppliedDate', dict_row['id'])
+                        o_sv_mysql.execute_query('updateJobAppliedDate', dict_row['id'])
                         o_sv_mysql.commit()  # update stmt on dbs.py requires explicit commit(); dont know why
                     
                     o_logger.debug(u_name + ' with ' + dict_trigger_type[dict_row['s_trigger_type']] + ' trigger has been added')
@@ -318,6 +323,7 @@ def _sync_job_from_mysql():
     del lst_raw_mysql_jobs
     del dict_jobs_in_sqlite
     del dict_jobs_in_mysql
+
 
 def _parse_trigger_params(s_trig_type, s_trigger_params):
     """ should be streamlined with svdaemon.models """

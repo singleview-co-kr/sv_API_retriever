@@ -18,6 +18,7 @@ from svcommon import sv_mysql
 # singleview config
 from decouple import config
 
+
 # Create your views here.
 class UploadFileListView(LoginRequiredMixin, TemplateView):
     # template_name = 'analyze/index.html'
@@ -301,6 +302,7 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
         print('transform_edi_file done')
         # return HttpResponseRedirect('/redirect/')
 
+
 def get_brand_info(request, kwargs, o_sv_storage, o_sv_db=None):
     dict_rst = {'b_err': True, 's_msg': None, 'dict_ret': None}
     dict_owned_brand = get_owned_brand_list(request, kwargs)
@@ -334,13 +336,13 @@ def get_brand_info(request, kwargs, o_sv_storage, o_sv_db=None):
     del dict_rst_storage
 
     if o_sv_db is not None: 
-        o_sv_db.setTablePrefix(s_acct_id+'_'+s_brand_id)
+        o_sv_db.set_tbl_prefix(s_acct_id+'_'+s_brand_id)
         o_sv_db.set_app_name(__name__)
         o_sv_db.initialize({'n_acct_id':int(s_acct_id), 'n_brand_id': int(s_brand_id)})
 
     dict_rst['b_err'] = False
     dict_rst['s_msg'] = None
-    dict_rst['dict_ret'] =  {'s_acct_id': s_acct_id, 's_acct_ttl': s_acct_ttl,
+    dict_rst['dict_ret'] = {'s_acct_id': s_acct_id, 's_acct_ttl': s_acct_ttl,
                             's_brand_id': s_brand_id, 's_brand_name': s_brand_name,
                             # 's_storage_path_abs': s_storage_path_abs,
                             'lst_owned_brand': lst_owned_brand}

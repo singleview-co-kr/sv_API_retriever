@@ -285,7 +285,7 @@ class SearchApiRaw:
 
         if 'twitter' in lst_source_to_retrieve:
             # begin - Retrieve twitter API collection count
-            lst_raw_data = self.__g_oSvDb.executeQuery('getTwitterApiCntByLogdatePeriod',
+            lst_raw_data = self.__g_oSvDb.execute_query('getTwitterApiCntByLogdatePeriod',
                                                         self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
             if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
                 lst_raw_data = []
@@ -305,7 +305,7 @@ class SearchApiRaw:
 
         if 'youtube' in lst_source_to_retrieve:
             # begin - Retrieve youtube search API collection count
-            lst_raw_data = self.__g_oSvDb.executeQuery('getYoutubeApiCntByLogdatePeriod',
+            lst_raw_data = self.__g_oSvDb.execute_query('getYoutubeApiCntByLogdatePeriod',
                                                         self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
             if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
                 lst_raw_data = []
@@ -330,11 +330,11 @@ class SearchApiRaw:
             lst_gross_naver_raw_data = []
             for s_media_lbl, n_media_id in dict_media_lbl_id.items():
                 if s_media_lbl in lst_logdate_nvr_media:  # news blog kin > logdate, 
-                    lst_raw_data = self.__g_oSvDb.executeQuery('getNvrSearchApiCntByLogdatePeriod',
+                    lst_raw_data = self.__g_oSvDb.execute_query('getNvrSearchApiCntByLogdatePeriod',
                                                                 self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate,
                                                                 n_media_id)
                 else:  # other media > regdate 
-                    lst_raw_data = self.__g_oSvDb.executeQuery('getNvrSearchApiCntByRegdatePeriod',
+                    lst_raw_data = self.__g_oSvDb.execute_query('getNvrSearchApiCntByRegdatePeriod',
                                                                 self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate,
                                                                 n_media_id)
                 if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
@@ -443,7 +443,7 @@ class SearchApiRaw:
         return dict_media_lbl_id
 
     def __get_morpheme_id_lbl_dict(self):
-        lst_raw_data = self.__g_oSvDb.executeQuery('getSeoTrackingTermList')
+        lst_raw_data = self.__g_oSvDb.execute_query('getSeoTrackingTermList')
         dict_morpheme_srl_morpheme = {dict['morpheme_srl']: dict['morpheme'] for dict in lst_raw_data}
         del lst_raw_data
         return dict_morpheme_srl_morpheme

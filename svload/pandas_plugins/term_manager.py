@@ -34,18 +34,18 @@ class SeoTrackingTerm:
         data for SEO term list screen
         :return:
         """
-        return self.__g_oSvDb.executeQuery('getSeoTrackingTermList')
+        return self.__g_oSvDb.execute_query('getSeoTrackingTermList')
 
     def add_term(self, request):
         s_new_seo_tracking_term = request.POST.get('seo_tracking_term')
-        self.__g_oSvDb.executeQuery('insertSeoTrackingTerm', s_new_seo_tracking_term)
+        self.__g_oSvDb.execute_query('insertSeoTrackingTerm', s_new_seo_tracking_term)
         return
 
     def toggle_term(self, request):
         n_toggle_seo_tracking_term_srl = request.POST.get('toggle_morpheme_srl')
-        lst_rst = self.__g_oSvDb.executeQuery('getSeoTrackingTermBySrl', n_toggle_seo_tracking_term_srl)
+        lst_rst = self.__g_oSvDb.execute_query('getSeoTrackingTermBySrl', n_toggle_seo_tracking_term_srl)
         s_new_toggle = 1 if lst_rst[0]['b_toggle'] == '0' else '0'
-        self.__g_oSvDb.executeQuery('updateSeoTrackingTermToggleBySrl', s_new_toggle, n_toggle_seo_tracking_term_srl)
+        self.__g_oSvDb.execute_query('updateSeoTrackingTermToggleBySrl', s_new_toggle, n_toggle_seo_tracking_term_srl)
         return
 
 

@@ -105,7 +105,7 @@ class SvDocCollection():
         # case 1: bot server ask new documents and comments list since last sync date to SV XE Web Service
         """
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
@@ -144,11 +144,11 @@ class SvDocCollection():
                 # check already registered doc_srl
                 lst_doc_srl = [str(doc_srl) for doc_srl in dict_retrieve_stuff['aDocSrls']]
                 with sv_mysql.SvMySql() as o_sv_mysql:
-                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                    o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                     o_sv_mysql.set_app_name('svplugins.collect_svdoc')
                     o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                     dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
-                    lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
+                    lst_duplicated_doc_srls = o_sv_mysql.execute_dynamic_query('getOldDocumentLogByDocSrl', dict_param)
                 del dict_param
                 for dict_rec in lst_duplicated_doc_srls:
                     dict_retrieve_stuff['aDocSrls'].remove(dict_rec['document_srl'])
@@ -197,7 +197,7 @@ class SvDocCollection():
                 self.__print_debug(str(n_sentinel) + ' out of ' + str(n_doc_count) + ' documents will be registered into DB.')
                 if n_sentinel:
                     with sv_mysql.SvMySql() as o_sv_mysql:
-                        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                        o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                         o_sv_mysql.set_app_name('svplugins.collect_svdoc')
                         o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                         for dict_single_doc in o_rsp['variables']['d']:

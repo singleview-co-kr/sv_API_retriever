@@ -112,7 +112,7 @@ class SvGaMediaLog():
         s_data_year = self.__g_sReplaceYearMonth[:4]  # get year 4 digit
         s_data_mo = str(int(self.__g_sReplaceYearMonth[-2:]))  # get month 2 digit and remove 0
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.executeQuery('deleteCompiledLogByPeriod', s_data_year, s_data_mo)
@@ -121,7 +121,7 @@ class SvGaMediaLog():
         s_start_date = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-01'
         s_end_date = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-' + str(lstMonthRange[1])
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogPeriod', s_start_date, s_end_date)
@@ -130,7 +130,7 @@ class SvGaMediaLog():
         if n_sentinel:
             self.__print_debug('transfer ga media via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
                 for dict_single_log in lst_compiled_log:
@@ -164,7 +164,7 @@ class SvGaMediaLog():
         """
         # begin - ext bi denorm ga media date range
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
@@ -180,7 +180,7 @@ class SvGaMediaLog():
         del lst_wc_date_range
         # end - ext bi denorm ga media date range
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
@@ -200,7 +200,7 @@ class SvGaMediaLog():
         if n_sentinel:
             self.__print_debug('transfer ga media via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
                 for dict_single_log in lst_compiled_log:

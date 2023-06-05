@@ -66,7 +66,7 @@ class PnsInfo:
         :param s_period_to:
         :return:
         """
-        lst_contract_earliest = self.__g_oSvDb.executeQuery('getPnsContractEarliest')
+        lst_contract_earliest = self.__g_oSvDb.execute_query('getPnsContractEarliest')
         if 'err_code' in lst_contract_earliest[0]:  # if table not exists
             dict_budget_period = {'s_earliest_contract': '',
                                     's_latest_contract': '',
@@ -74,7 +74,7 @@ class PnsInfo:
                                     's_latest_req': ''}
             return {'dict_contract_period': dict_budget_period, 'lst_contract_rst': []}
 
-        lst_contract_latest = self.__g_oSvDb.executeQuery('getPnsContractLatest')
+        lst_contract_latest = self.__g_oSvDb.execute_query('getPnsContractLatest')
         if lst_contract_earliest[0]['min_date'] is None or lst_contract_latest[0]['max_date'] is None:
             dt_latest_contract = datetime.today()
             dt_earliest_contract = dt_latest_contract - relativedelta(months=6)
@@ -92,7 +92,7 @@ class PnsInfo:
             dt_earliest_req = dt_latest_req - relativedelta(months=6)
             dt_earliest_req = dt_earliest_req.replace(day=1)
         
-        lst_contract_rst = self.__g_oSvDb.executeQuery('getPnsContractDetailByPeriod', dt_earliest_req, dt_latest_req)
+        lst_contract_rst = self.__g_oSvDb.execute_query('getPnsContractDetailByPeriod', dt_earliest_req, dt_latest_req)
         for dict_single_contract in lst_contract_rst:
             dict_single_contract['source_name'] = self.__g_dictSource[dict_single_contract['source_id']]
             del dict_single_contract['source_id']
@@ -111,7 +111,7 @@ class PnsInfo:
         :param n_contract_id:
         :return:
         """
-        lst_contract_detail = self.__g_oSvDb.executeQuery('getPnsContractDetailBySrl', n_contract_id)
+        lst_contract_detail = self.__g_oSvDb.execute_query('getPnsContractDetailBySrl', n_contract_id)
         return lst_contract_detail[0]
 
     def add_contract_single(self, request):
@@ -169,10 +169,10 @@ class PnsInfo:
                 return dict_rst
         else:
             dt_regdate = datetime.today()
-        self.__g_oSvDb.executeQuery('insertPnsContract', lst_query_value[0], lst_query_value[1], 
-                                    lst_query_value[2].strip(), lst_query_value[3].strip(),
-                                    s_cost_incl_vat, s_agency_rate_percent, 
-                                    dt_execute_date_begin, dt_execute_date_end, dt_regdate)
+        self.__g_oSvDb.execute_query('insertPnsContract', lst_query_value[0], lst_query_value[1],
+                                     lst_query_value[2].strip(), lst_query_value[3].strip(),
+                                     s_cost_incl_vat, s_agency_rate_percent,
+                                     dt_execute_date_begin, dt_execute_date_end, dt_regdate)
 
     def add_contract_bulk(self, request):
         """ 
@@ -211,9 +211,9 @@ class PnsInfo:
             dt_execute_end = datetime.strptime(lst_contract_period[1], '%Y.%m.%d')
             del lst_contract_period
             dt_regdate = datetime.strptime(lst_single_line[9], '%Y-%m-%d')
-            self.__g_oSvDb.executeQuery('insertPnsContract', n_source_id, n_contract_type_id, s_targeted_term,
-                                        s_contractor_id, s_contract_amnt_incl_vat, '50%', 
-                                        dt_execute_begin, dt_execute_end, dt_regdate)
+            self.__g_oSvDb.execute_query('insertPnsContract', n_source_id, n_contract_type_id, s_targeted_term,
+                                         s_contractor_id, s_contract_amnt_incl_vat, '50%',
+                                         dt_execute_begin, dt_execute_end, dt_regdate)
             del dt_execute_begin
             del dt_execute_end
             del dt_regdate
@@ -241,7 +241,7 @@ class PnsInfo:
         #     s_contract_status = dict_contract['contract_status']
         # else:
         #     s_contract_status = '집행 중 취소'
-        # self.__g_oSvDb.executeQuery('updatePnsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
+        # self.__g_oSvDb.execute_query('updatePnsContractUaBySrl', s_contract_status, s_refund_amnt, s_ua, n_contract_srl)
         return
 
 
@@ -279,7 +279,7 @@ class NvrBrsInfo:
         :param s_period_to:
         :return:
         """
-        lst_contract_earliest = self.__g_oSvDb.executeQuery('getNvrBrsContractEarliest')
+        lst_contract_earliest = self.__g_oSvDb.execute_query('getNvrBrsContractEarliest')
         if 'err_code' in lst_contract_earliest[0]:  # if table not exists
             dict_budget_period = {'s_earliest_contract': '',
                                     's_latest_contract': '',
@@ -287,7 +287,7 @@ class NvrBrsInfo:
                                     's_latest_req': ''}
             return {'dict_contract_period': dict_budget_period, 'lst_contract_rst': []}
 
-        lst_contract_latest = self.__g_oSvDb.executeQuery('getNvrBrsContractLatest')
+        lst_contract_latest = self.__g_oSvDb.execute_query('getNvrBrsContractLatest')
         if lst_contract_earliest[0]['min_date'] is None or lst_contract_latest[0]['max_date'] is None:
             dt_latest_contract = datetime.today()
             dt_earliest_contract = dt_latest_contract - relativedelta(months=6)
@@ -305,7 +305,7 @@ class NvrBrsInfo:
             dt_earliest_req = dt_latest_req - relativedelta(months=6)
             dt_earliest_req = dt_earliest_req.replace(day=1)
         
-        lst_contract_rst = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailByPeriod', dt_earliest_req, dt_latest_req)
+        lst_contract_rst = self.__g_oSvDb.execute_query('getNvrBrsContractDetailByPeriod', dt_earliest_req, dt_latest_req)
         dict_budget_period = {'s_earliest_contract': dt_earliest_contract.strftime("%Y%m%d"),
                               's_latest_contract': dt_latest_contract.strftime("%Y%m%d"),
                               's_earliest_req': dt_earliest_req.strftime("%Y%m%d"),
@@ -319,7 +319,7 @@ class NvrBrsInfo:
         :param s_budget_id:
         :return:
         """
-        lst_contract_detail = self.__g_oSvDb.executeQuery('getNvrBrsContractDetailBySrl', n_contract_srl)
+        lst_contract_detail = self.__g_oSvDb.execute_query('getNvrBrsContractDetailBySrl', n_contract_srl)
         if len(lst_contract_detail):
             return lst_contract_detail[0]
         return None
@@ -358,7 +358,8 @@ class NvrBrsInfo:
             s_contract_status = dict_contract['contract_status']
         else:
             s_contract_status = '집행 중 취소'
-        self.__g_oSvDb.executeQuery('updateNvrBrsContractUaBySrl', s_contract_status, dt_contract_end, s_refund_amnt, s_ua, n_contract_srl)
+        self.__g_oSvDb.execute_query('updateNvrBrsContractUaBySrl',
+                                     s_contract_status, dt_contract_end, s_refund_amnt, s_ua, n_contract_srl)
         return dict_rst
 
     def delete_contract(self, request):
@@ -373,7 +374,7 @@ class NvrBrsInfo:
             dict_rst['b_error'] = True
             dict_rst['s_msg'] = 'invalid contract'
             return dict_rst
-        self.__g_oSvDb.executeQuery('deleteNvrBrsContractBySrl', n_contract_srl)
+        self.__g_oSvDb.execute_query('deleteNvrBrsContractBySrl', n_contract_srl)
         return dict_rst
 
     def add_contract_barter(self, request):
@@ -516,7 +517,7 @@ class NvrBrsInfo:
     def __register_contract(self, dict_contract_info):
         dict_rst = {'b_error': False, 's_msg': None}
         # check contract period duplication
-        lst_contract_rst = self.__g_oSvDb.executeQuery('getNvrBrsContractBackwardByDate', 
+        lst_contract_rst = self.__g_oSvDb.execute_query('getNvrBrsContractBackwardByDate',
                                                         dict_contract_info['contract_date_begin'],
                                                         dict_contract_info['contract_date_begin'],
                                                         dict_contract_info['ua'])
@@ -525,7 +526,7 @@ class NvrBrsInfo:
             dict_rst['s_msg'] = 'conflicted nvr brs contract period'
             return dict_rst
         del lst_contract_rst
-        lst_contract_rst = self.__g_oSvDb.executeQuery('getNvrBrsContractForwardByDate', 
+        lst_contract_rst = self.__g_oSvDb.execute_query('getNvrBrsContractForwardByDate',
                                                         dict_contract_info['contract_date_end'],
                                                         dict_contract_info['contract_date_end'],
                                                         dict_contract_info['ua'])
@@ -534,14 +535,14 @@ class NvrBrsInfo:
             dict_rst['s_msg'] = 'conflicted nvr brs contract period'
             return dict_rst
         del lst_contract_rst
-        self.__g_oSvDb.executeQuery('insertNvrBrsContract', 
-                                    dict_contract_info['contract_id'], dict_contract_info['contract_status'],
-                                    dict_contract_info['contract_regdate'], dict_contract_info['contract_name'], 
-                                    dict_contract_info['conntected_ad_group'], dict_contract_info['template_name'],
-                                    dict_contract_info['available_queries'], dict_contract_info['contract_date_begin'], 
-                                    dict_contract_info['contract_date_end'], dict_contract_info['contract_amnt'], 
-                                    dict_contract_info['refund_amnt'], dict_contract_info['ua'])
-        return dict_rst    
+        self.__g_oSvDb.execute_query('insertNvrBrsContract',
+                                     dict_contract_info['contract_id'], dict_contract_info['contract_status'],
+                                     dict_contract_info['contract_regdate'], dict_contract_info['contract_name'],
+                                     dict_contract_info['conntected_ad_group'], dict_contract_info['template_name'],
+                                     dict_contract_info['available_queries'], dict_contract_info['contract_date_begin'],
+                                     dict_contract_info['contract_date_end'], dict_contract_info['contract_amnt'],
+                                     dict_contract_info['refund_amnt'], dict_contract_info['ua'])
+        return dict_rst
 
     def __decide_ua(self, lst_single_line):
         # decide UA as correctly as possible depends on contract context

@@ -148,7 +148,7 @@ class svItemPerformance():
 
     def __get_item_srl(self):
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.ga_register_db')
             oSvMysql.initialize(self.__g_dictSvAcctInfo)
             for s_item_title, dict_item_info in self.__g_dictItemSrl.items():
@@ -165,7 +165,7 @@ class svItemPerformance():
         n_idx = 0
         n_sentinel = len(self.__g_dictGaItemPerfRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.ga_register_db')
             oSvMysql.initialize(self.__g_dictSvAcctInfo)
             for s_rpt_id, dict_single_raw in self.__g_dictGaItemPerfRaw.items():

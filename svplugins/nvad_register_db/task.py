@@ -58,21 +58,21 @@ else: # for platform running
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_lstTblTruncate = ['nvad_assembled_daily_log', 'nvad_master_ad', 'nvad_master_ad_extension',
-                        'nvad_master_ad_grp', 'nvad_master_ad_grp_budget', 'nvad_master_bizch',
-                        'nvad_master_campaign', 'nvad_master_campaign_budget', 'nvad_master_keyword',
-                        'nvad_master_qi', 'nvad_stat_ad', 'nvad_stat_ad_conversion', 
-                        'nvad_stat_ad_conversion_detail', 'nvad_stat_ad_detail', 'nvad_stat_ad_extension',
-                        'nvad_stat_ad_extension_conversion', 'nvad_stat_expkeyword', 
-                        'nvad_stat_naverpay_conversion']
+                          'nvad_master_ad_grp', 'nvad_master_ad_grp_budget', 'nvad_master_bizch',
+                          'nvad_master_campaign', 'nvad_master_campaign_budget', 'nvad_master_keyword',
+                          'nvad_master_qi', 'nvad_stat_ad', 'nvad_stat_ad_conversion',
+                          'nvad_stat_ad_conversion_detail', 'nvad_stat_ad_detail', 'nvad_stat_ad_extension',
+                          'nvad_stat_ad_extension_conversion', 'nvad_stat_expkeyword',
+                          'nvad_stat_naverpay_conversion']
     __g_nNvrBrsAcctId = None
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230604)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
-        self._g_dictParam.update({'mode':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'mode': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -117,7 +117,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sNvadDataPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'data')
         self.__g_sNvadConfPathAbs = os.path.join(self.__g_sNvadPathAbs, s_cid, 'conf')
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
 
@@ -141,10 +141,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
         elif self.__g_sMode == 'recompile':
             with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-                oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+                oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
                 oSvMysql.set_app_name('svplugins.nvad_register_db')
                 oSvMysql.initialize(self._g_dictSvAcctInfo)
-                oSvMysql.truncateTable('nvad_assembled_daily_log')
+                oSvMysql.truncate_tbl('nvad_assembled_daily_log')
                 lstStatDate = oSvMysql.executeQuery('getStatDateList')
                 for dictDate in lstStatDate:
                     sCompileDate = datetime.strptime(str(dictDate['date']), '%Y-%m-%d').strftime('%Y%m%d')
@@ -159,11 +159,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         elif self.__g_sMode == 'clear':
             self._printDebug('-> clear nvad raw data')
             with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-                oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+                oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
                 oSvMysql.set_app_name('svplugins.nvad_register_db')
                 oSvMysql.initialize(self._g_dictSvAcctInfo)
                 for s_tbl in self.__g_lstTblTruncate:
-                    oSvMysql.truncateTable(s_tbl)
+                    oSvMysql.truncate_tbl(s_tbl)
             self._task_post_proc(self._g_oCallback)
             return
         
@@ -194,7 +194,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dictNvBrsPageImpByUa = {'M': 0, 'P': 0}
         # oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             dictCampaignInfo = {}
@@ -396,7 +396,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # No warn if latest NVR BRS contract has been expired
         lst_ua = ['M', 'P']
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for s_ua in lst_ua:
@@ -411,7 +411,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_rst = {'M':0, 'P':0, 'detected':False}  # debug should be removed
         dt_touching_date = datetime.strptime(s_compile_date, '%Y-%m-%d').date()
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_contract_info = o_sv_mysql.executeQuery('getNvrBrsBudget', dt_touching_date, dt_touching_date, self.__g_nNvrBrsAcctId)
@@ -600,7 +600,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __retrieve_nv_brspage_manual_info_period(self, cid):
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             lstLatestBrsLogDate = oSvMysql.executeQuery('getLatestAssembledBrsLogDate', cid)
@@ -632,7 +632,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __retrieve_nv_brspage_manual_info_by_date(self, cid, sCompileDate):
         lstNvBrsManualInfo = []
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             lstBrsLogSrlByDate = oSvMysql.executeQuery('getAssembledBrsLogDaily', sCompileDate, cid)
@@ -665,7 +665,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -696,7 +696,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -743,7 +743,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -776,7 +776,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -809,7 +809,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -882,7 +882,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -944,7 +944,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -988,7 +988,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictMasterDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictMasterDataSorted:
@@ -1023,7 +1023,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1055,7 +1055,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1087,7 +1087,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1119,7 +1119,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1151,7 +1151,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1183,7 +1183,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1215,7 +1215,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(dictStatDataSorted)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:
@@ -1251,7 +1251,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         #dictStatDataSorted.update({20180506:'20170203_EXPKEYWORD.tsv'})
         # enforce test data file
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sDate in dictStatDataSorted:

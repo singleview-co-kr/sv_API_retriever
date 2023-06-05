@@ -277,7 +277,7 @@ class TransformEdiDb:
                 if n_limit >= n_edi_log_count:
                     n_limit = n_edi_log_count
 
-                lst_log_period = self.__g_oSvDb.executeDynamicQuery(s_performance_log_query, dict_param_tmp)
+                lst_log_period = self.__g_oSvDb.execute_dynamic_query(s_performance_log_query, dict_param_tmp)
                 # write csv body
                 for dict_single_log in lst_log_period:
                     b_refund = 0
@@ -316,7 +316,7 @@ class TransformEdiDb:
         """
         self.__print_debug('start - OAC desktop extraction')
         dict_param_tmp = {'s_req_sku_set': dict_param['s_req_sku_set'], 'n_owner_id': dict_param['n_owner_id']}
-        lst_log_count = self.__g_oSvDb.executeDynamicQuery('getEmartLogCountByItemId', dict_param_tmp)
+        lst_log_count = self.__g_oSvDb.execute_dynamic_query('getEmartLogCountByItemId', dict_param_tmp)
         n_lst_log_count = lst_log_count[0]['count(*)']
         del lst_log_count, dict_param_tmp
 
@@ -349,7 +349,7 @@ class TransformEdiDb:
                         n_limit = n_lst_log_count
 
                     # print(dict_param_tmp['n_offset'])
-                    lst_rst = self.__g_oSvDb.executeDynamicQuery('getEmartLogByItemId', dict_param_tmp)
+                    lst_rst = self.__g_oSvDb.execute_dynamic_query('getEmartLogByItemId', dict_param_tmp)
                     # https://strftime.org/
                     # write csv body
                     for dictSingleRow in lst_rst:
@@ -414,7 +414,7 @@ class TransformEdiDb:
                         n_limit = n_lst_log_count
 
                     # print(dict_param_tmp['n_offset'])
-                    lst_rst = self.__g_oSvDb.executeDynamicQuery('getGaMediaDailyLog', dict_param_tmp)
+                    lst_rst = self.__g_oSvDb.execute_dynamic_query('getGaMediaDailyLog', dict_param_tmp)
 
                     # |@| may occurs error on AWS quick sight
                     # AWS quick sight decides column as INT only by lookup first a few '00' and denies campaign string

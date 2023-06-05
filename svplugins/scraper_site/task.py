@@ -56,7 +56,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230421)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230605)')
 
         # self._g_dictParam.update({'target_url': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -89,7 +89,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_storage_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id)
 
         o_sv_mysql = sv_mysql.SvMySql()
-        o_sv_mysql.setTablePrefix(s_tbl_prefix)
+        o_sv_mysql.set_tbl_prefix(s_tbl_prefix)
         o_sv_mysql.set_app_name('svplugins.scraper_site')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 

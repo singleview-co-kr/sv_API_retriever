@@ -57,9 +57,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221021)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
 
-        # self._g_dictParam.update({'yyyymm':None, 'mode':None})
+        # self._g_dictParam.update({'yyyymm': None, 'mode': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -89,7 +89,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_yesterday = datetime.strftime(yesterday, '%Y-%m-%d')
         del yesterday
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(dict_acct_info['tbl_prefix'])
+            oSvMysql.set_tbl_prefix(dict_acct_info['tbl_prefix'])
             oSvMysql.set_app_name('svplugins.daily_cron')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             lst_rst = oSvMysql.executeQuery('getBudgetByDay', s_yesterday, s_yesterday)

@@ -86,7 +86,7 @@ class SvGaItemPerfLog():
         clear transferred compiled_ga_intsearch_daily table on BI db
         """
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_ga_itemperf_log_denorm')  # for google data studio
@@ -99,7 +99,7 @@ class SvGaItemPerfLog():
         """
         # begin - ext bi denorm ga item perf date range
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_ga_itemperf_log_denorm')  # for google data studio
@@ -116,7 +116,7 @@ class SvGaItemPerfLog():
 
         # begin - get ga item perf daily log
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
@@ -145,7 +145,7 @@ class SvGaItemPerfLog():
 
         # begin - set catalog hierarch
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
@@ -157,7 +157,7 @@ class SvGaItemPerfLog():
         if n_sentinel:
             self.__print_debug('transfer ga item performance via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
                 for dict_single_item_log in lst_daily_log:

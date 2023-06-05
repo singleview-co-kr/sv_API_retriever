@@ -64,11 +64,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self.__g_oSvStorage = sv_storage.SvStorage()
-        self._g_dictParam.update({'sv_file_id':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'sv_file_id': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -95,7 +95,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.cafe24_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
@@ -139,7 +139,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(df)
         with sv_mysql.SvMySql() as o_sv_mysql: # to enforce follow strict mysql connection mgmt
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.cafe24_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 

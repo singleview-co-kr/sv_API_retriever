@@ -245,7 +245,7 @@ class SvAgencyInfo(sv_object.ISvObject):
     #
     #     dt_touching_date = datetime.strptime(s_touching_date, '%Y-%m-%d').date()
     #     # sql file is in svplugins.integrate_db.queries
-    #     lst_contract_info = o_sv_db.executeQuery('getPnsContract', self.__g_dictPnsSource[s_source],
+    #     lst_contract_info = o_sv_db.execute_query('getPnsContract', self.__g_dictPnsSource[s_source],
     #                                              dt_touching_date, dt_touching_date)
     #     if len(lst_contract_info) > 0:
     #         n_pns_info_idx = 0

@@ -72,7 +72,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230522)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -128,7 +128,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if self.__g_sMode == 'collect_api':
             self._printDebug('-> communication begin')
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
@@ -158,7 +158,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             os.makedirs(self.__g_sStoragePath)
 
         o_sv_mysql = sv_mysql.SvMySql()
-        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+        o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
@@ -277,7 +277,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_media_lbl_id = o_sv_nvsearch.get_media_lbl_id_dict()
 
         o_sv_mysql = sv_mysql.SvMySql()
-        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+        o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 
@@ -370,7 +370,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __register_raw_xml_file(self):
         """ referring to raw_data_file, arrange raw data file to register """
         o_sv_mysql = sv_mysql.SvMySql()
-        o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+        o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
 

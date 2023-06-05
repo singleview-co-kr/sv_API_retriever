@@ -1344,10 +1344,10 @@ class GaSourceMediaRaw:
         idx_full_day = self.__g_idxFullPeriod
 
         if self.__g_nAgencyId:  # agency view mode
-            lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByPeriodAgencyId', self.__g_dtDesignatedFirstDate,
+            lst_raw_data = self.__g_oSvDb.execute_query('getGaMediaDailyLogByPeriodAgencyId', self.__g_dtDesignatedFirstDate,
                                                         self.__g_dtDesignatedLastDate, self.__g_nAgencyId)
         else:  # ga media main view mode
-            lst_raw_data = self.__g_oSvDb.executeQuery('getGaMediaDailyLogByPeriod', self.__g_dtDesignatedFirstDate,
+            lst_raw_data = self.__g_oSvDb.execute_query('getGaMediaDailyLogByPeriod', self.__g_dtDesignatedFirstDate,
                                                         self.__g_dtDesignatedLastDate)
         
         if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table

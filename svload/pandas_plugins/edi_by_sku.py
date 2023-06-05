@@ -111,8 +111,8 @@ class EdiSkuPerformance:
             raise Exception('invalid data period')
 
         # retrieve sku id list, convert int id to string id
-        lst_raw_data = o_db.executeQuery('getEmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
-                                         self.__g_dictPeriod['2ly'][0], self.__g_dictPeriod['tm'][1])
+        lst_raw_data = o_db.execute_query('getEmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
+                                          self.__g_dictPeriod['2ly'][0], self.__g_dictPeriod['tm'][1])
         # set daily raw data
         self.__g_dfPeriodDataRaw = pd.DataFrame(lst_raw_data)
         del lst_raw_data

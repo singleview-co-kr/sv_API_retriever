@@ -58,9 +58,9 @@ class Budget:
         # begin - construct budget list
         dict_budget = {}
         if n_agency_id:
-            lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
+            lst_budget_forward_rst = self.__g_oSvDb.execute_query('getBudgetAmntByStartMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
         else:
-            lst_budget_forward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
+            lst_budget_forward_rst = self.__g_oSvDb.execute_query('getBudgetAmntByStartMonth', dt_start.year, dt_start.month)
         
         if lst_budget_forward_rst and 'err_code' in lst_budget_forward_rst[0].keys():  # for an initial stage; no table
             lst_budget_forward_rst = []
@@ -69,9 +69,9 @@ class Budget:
         del lst_budget_forward_rst
 
         if n_agency_id:
-            lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
+            lst_budget_backward_rst = self.__g_oSvDb.execute_query('getBudgetAmntByEndMonthAgecyId', dt_start.year, dt_start.month, n_agency_id)
         else:
-            lst_budget_backward_rst = self.__g_oSvDb.executeQuery('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
+            lst_budget_backward_rst = self.__g_oSvDb.execute_query('getBudgetAmntByEndMonth', dt_end.year, dt_end.month)
         if lst_budget_backward_rst and 'err_code' in lst_budget_backward_rst[0].keys():  # for an initial stage; no table
             lst_budget_backward_rst = []
         for dict_row in lst_budget_backward_rst:
@@ -151,7 +151,7 @@ class Budget:
         :param n_budget_id:
         :return:
         """
-        lst_budget_detail = self.__g_oSvDb.executeQuery('getBudgetDetailByBudgetId', n_budget_id)
+        lst_budget_detail = self.__g_oSvDb.execute_query('getBudgetDetailByBudgetId', n_budget_id)
         lst_budget_detail[0]['s_budget_yrmo'] = '{0:04d}{1:02d}'.format(lst_budget_detail[0]['alloc_yr'], 
                                                                         lst_budget_detail[0]['alloc_mo'])
         del lst_budget_detail[0]['alloc_yr']
@@ -166,8 +166,8 @@ class Budget:
         :return:
         """
         dt_today = date.today()
-        lst_budget_earliest = self.__g_oSvDb.executeQuery('getBudgetEarliest')
-        lst_budget_latest = self.__g_oSvDb.executeQuery('getBudgetLatest')
+        lst_budget_earliest = self.__g_oSvDb.execute_query('getBudgetEarliest')
+        lst_budget_latest = self.__g_oSvDb.execute_query('getBudgetLatest')
         if lst_budget_earliest[0]['min_date'] is None or lst_budget_latest[0]['max_date'] is None:
             dt_latest_budget = datetime.today()
             dt_earliest_budget = dt_latest_budget - relativedelta(months=1)
@@ -192,7 +192,7 @@ class Budget:
             dict_budget_monthly[budget_month.strftime("%Y%m")] = {'tgt_budget_amnt_inc_vat': 0, 'act_spent_amnt_inc_vat': 0 }
         del idx_monthly_budget_period
         # end - build period slot for monthly budget progress graph
-        lst_rst = self.__g_oSvDb.executeQuery('getBudgetDetailByPeriod', dt_earliest_req, dt_latest_req)
+        lst_rst = self.__g_oSvDb.execute_query('getBudgetDetailByPeriod', dt_earliest_req, dt_latest_req)
         lst_added_rst = []
         n_tgt_budget_inc_vat = 0
         n_act_spent_inc_vat = 0
@@ -313,13 +313,13 @@ class Budget:
         dict_rst = self.__validate_budget_info(request)
         if not dict_rst['b_error']:
             dict_budget = dict_rst['dict_ret']
-            self.__g_oSvDb.executeQuery('updateBudgetByBudgetId', dict_budget['n_acct_id'],
-                                        dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
-                                        dict_budget['dt_budget_alloc_yr_mo'].month, 
-                                        dict_budget['s_budget_memo'], dict_budget['s_ua'],
-                                        dict_budget['n_budget_target_amnt_inc_vat'],
-                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'],
-                                        dict_budget['n_budget_deleted'],n_budget_id)
+            self.__g_oSvDb.execute_query('updateBudgetByBudgetId', dict_budget['n_acct_id'],
+                                         dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
+                                         dict_budget['dt_budget_alloc_yr_mo'].month,
+                                         dict_budget['s_budget_memo'], dict_budget['s_ua'],
+                                         dict_budget['n_budget_target_amnt_inc_vat'],
+                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'],
+                                         dict_budget['n_budget_deleted'],n_budget_id)
             del dict_budget
         return dict_rst
 
@@ -332,12 +332,12 @@ class Budget:
         dict_rst = self.__validate_budget_info(request)
         if not dict_rst['b_error']:
             dict_budget = dict_rst['dict_ret']
-            self.__g_oSvDb.executeQuery('insertBudget', request.user.pk, dict_budget['n_acct_id'],
-                                        dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
-                                        dict_budget['dt_budget_alloc_yr_mo'].month,
-                                        dict_budget['s_budget_memo'], dict_budget['s_ua'],
-                                        dict_budget['n_budget_target_amnt_inc_vat'],
-                                        dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'])
+            self.__g_oSvDb.execute_query('insertBudget', request.user.pk, dict_budget['n_acct_id'],
+                                         dict_budget['n_media_agency_id'], dict_budget['dt_budget_alloc_yr_mo'].year,
+                                         dict_budget['dt_budget_alloc_yr_mo'].month,
+                                         dict_budget['s_budget_memo'], dict_budget['s_ua'],
+                                         dict_budget['n_budget_target_amnt_inc_vat'],
+                                         dict_budget['dt_budget_date_begin'], dict_budget['dt_budget_date_end'])
             del dict_budget
         return dict_rst
 
@@ -416,24 +416,24 @@ class Budget:
                     break
         if b_campaign_lvl:  # campaign level aggregation
             lst_campaign_id = dict_budget['memo'].replace(s_prefix, '').split('_')
-            lst_cost_rst = self.__g_oSvDb.executeQuery('getCampaignLevelExpense',
-                                                       dict_acct_info['media_rst_type'],
-                                                       dict_acct_info['media_source'],
-                                                       dict_acct_info['media_media'],
-                                                       lst_campaign_id[0],
-                                                       lst_campaign_id[1],
-                                                       lst_campaign_id[2],
-                                                       dict_budget['date_begin'],
-                                                       dict_budget['date_end'])
+            lst_cost_rst = self.__g_oSvDb.execute_query('getCampaignLevelExpense',
+                                                        dict_acct_info['media_rst_type'],
+                                                        dict_acct_info['media_source'],
+                                                        dict_acct_info['media_media'],
+                                                        lst_campaign_id[0],
+                                                        lst_campaign_id[1],
+                                                        lst_campaign_id[2],
+                                                        dict_budget['date_begin'],
+                                                        dict_budget['date_end'])
         else:  # source medium level aggregation
             dt_first_day_budget_month = dict_budget['date_begin'].replace(day=1)
             dt_last_day_budget_month = self.__get_last_day_of_month(dt_first_day_budget_month)
-            lst_cost_rst = self.__g_oSvDb.executeQuery('getSourceRstMediaLevelExpense',
-                                                       dict_acct_info['media_rst_type'],
-                                                       dict_acct_info['media_source'],
-                                                       dict_acct_info['media_media'],
-                                                       dt_first_day_budget_month,
-                                                       dt_last_day_budget_month)
+            lst_cost_rst = self.__g_oSvDb.execute_query('getSourceRstMediaLevelExpense',
+                                                        dict_acct_info['media_rst_type'],
+                                                        dict_acct_info['media_source'],
+                                                        dict_acct_info['media_media'],
+                                                        dt_first_day_budget_month,
+                                                        dt_last_day_budget_month)
         n_gross_cost_inc_vat = 0
         for s_title, n_value in lst_cost_rst[0].items():
             if n_value is not None:

@@ -192,7 +192,7 @@ class SvMorphRetriever():
         if len(lst_ignore_word) == 0:
             return
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             for s_ignore_word in lst_ignore_word:
@@ -203,18 +203,18 @@ class SvMorphRetriever():
         if len(lst_custom_noun) == 0:
             return
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             for s_custom_noun in lst_custom_noun:
                 o_sv_mysql.executeQuery('insertCustomNoun', s_custom_noun)
         
-            o_sv_mysql.truncateTable('wc_word_cnt')  # reset word_cnt
+            o_sv_mysql.truncate_tbl('wc_word_cnt')  # reset word_cnt
             o_sv_mysql.executeQuery('updateAllDocNonProced')  # reset all document processed status
 
     def __load_custom_noun(self):
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             lst_rst = o_sv_mysql.executeQuery('getCustomDictionary')
@@ -230,7 +230,7 @@ class SvMorphRetriever():
     
     def __register_new_word_cnt(self):
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             lst_rst = o_sv_mysql.executeQuery('getRegisteredWords')
@@ -325,7 +325,7 @@ class SvMorphRetriever():
         
         if s_module_mode == 'specific':  # validate module srl
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svdoc')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                 lst_validate_module_srl = o_sv_mysql.executeQuery('getWordCntByModuleSrlCnt', n_module_srl)
@@ -335,7 +335,7 @@ class SvMorphRetriever():
 
         n_iter_cnt = 1
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                         

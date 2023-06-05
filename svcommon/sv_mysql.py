@@ -37,14 +37,14 @@ import pymysql  # http://pythonstudy.xyz/python/article/202-MySQL-%EC%BF%BC%EB%A
 from decouple import config  # https://pypi.org/project/python-decouple/
 
 # singleview config
-if __name__ == 'svcommon.sv_mysql': # for websocket running
+if __name__ == 'svcommon.sv_mysql':  # for websocket running
     from svcommon import sv_object
     from django.conf import settings
-elif __name__ == 'sv_mysql': # for plugin console debugging
+elif __name__ == 'sv_mysql':  # for plugin console debugging
     sys.path.append('../../svdjango')
     import sv_object
     import settings
-elif __name__ == '__main__': # for class console debugging
+elif __name__ == '__main__':  # for class console debugging
     pass
 
 
@@ -59,7 +59,7 @@ class SvMySql(sv_object.ISvObject):
     ]
     
     def __init__(self):  #, sCallingFrom=None , dict_brand_info=None):
-        # dict_brand_info shoud be streamlined with django_etl in the near futher
+        # dict_brand_info should be streamlined with django_etl in the near further
         self._g_oLogger = logging.getLogger(__file__)
         self.__g_sAppName = None
         self.__g_oConn = None
@@ -128,7 +128,7 @@ class SvMySql(sv_object.ISvObject):
 
     def initialize(self, dict_brand_info=None, s_ext_target_host=None):
         o_config = configparser.ConfigParser()
-        if dict_brand_info:  # set only internally separted database is requested
+        if dict_brand_info:  # set only internally separated database is requested
             s_brand_db_config_path = os.path.join(settings.SV_STORAGE_ROOT, str(dict_brand_info['n_acct_id']),
                                                   str(dict_brand_info['n_brand_id']), 'database.config.ini')
             if os.path.isfile(s_brand_db_config_path):
@@ -149,9 +149,9 @@ class SvMySql(sv_object.ISvObject):
                 self.__g_dictConfig['db_password'] = config('db_password')
                 self.__g_dictConfig['db_database'] = config('db_database')
                 self.__g_dictConfig['db_charset'] = config('db_charset')
-                #### begin - python dbs.py init to run daemonocle ########
+                # begin - python dbs.py init to run daemonocle
                 self.__g_dictConfig['db_table_prefix'] = config('db_table_prefix')  
-                #### end - python dbs.py init to run daemonocle ########
+                # end - python dbs.py init to run daemonocle
         elif s_ext_target_host == 'BI_SERVER':
             self.__g_dictConfig['db_hostname'] = o_config['BI_SERVER']['db_hostname']
             self.__g_dictConfig['db_port'] = int(o_config['BI_SERVER']['db_port'])
@@ -186,16 +186,13 @@ class SvMySql(sv_object.ISvObject):
             for _, _, files in os.walk(s_schema_path_abs):
                 for filename in files:
                     if not filename.startswith('_'):
-                        sTableName = re.sub(".sql", "", filename )
-                        self.__create_tbl(sTableName)
+                        s_tbl_mame = re.sub(".sql", "", filename)
+                        self.__create_tbl(s_tbl_mame)
 
     def set_tbl_prefix(self, s_table_prefix):
         if s_table_prefix is not None:
-            self.__g_dictConfig['db_table_prefix'] = s_table_prefix+'_'
+            self.__g_dictConfig['db_table_prefix'] = s_table_prefix + '_'
 
-    def setTablePrefix(self, s_table_prefix):  # will be deprecated 
-        self.set_tbl_prefix(s_table_prefix)
-                
     def set_reserved_tag_value(self, dict_tag):
         if not dict_tag:
             self._g_oLogger.debug('invalid tag dictionary')
@@ -203,7 +200,7 @@ class SvMySql(sv_object.ISvObject):
         for tag, value in dict_tag.items():
             self.__g_dictReservedTag[tag] = value
 
-    def truncateTable(self, s_table_name):
+    def truncate_tbl(self, s_table_name):
         s_real_tbl_name = self.__g_dictConfig['db_table_prefix'] + s_table_name
         s_sql_statement = 'truncate `' + s_real_tbl_name + '`;'
         self.__g_oCursor.execute(s_sql_statement)
@@ -212,7 +209,7 @@ class SvMySql(sv_object.ISvObject):
         if s_schema_filename.startswith('_'):  # _로 시작하는 스키마 파일은 명시 요청할 때만 생성
             self.__create_tbl(s_schema_filename)
 
-    def executeDynamicQuery(self, s_pysql_id, dict_param):
+    def execute_dynamic_query(self, s_pysql_id, dict_param):
         """ 
         execute hard-coded sql statement without params
         no cache allowed as this is dynamic query
@@ -224,20 +221,20 @@ class SvMySql(sv_object.ISvObject):
         if s_sql_compiled is None:
             return []
         # execute query
-        #try:
+        # try:
         # self.__g_oCursor.execute(s_sql_compiled)
         self.__execute_query(s_sql_compiled)
         # except Exception as e:  # eg, Duplicate entry Exception
         #     raise e
         return self.__arrange_query_rst(s_query_type)
 
-    def executeQuery(self, s_sql_filename, *params):  # params is tuple type
+    def execute_query(self, s_sql_filename, *params):  # params is tuple type
         # *params 앞머리에 있는 *는 언팩 연산자.
         # 언팩 연산자는 바인딩 시에 여러 개의 값이 이 이름에 튜플로 바인딩된다는 의미.
         # 튜플 언팩 연산자는 바인딩 구문에서도 활용될 수 있다. 우변의 연속된 값들이 해당 이름의 튜플이 된다는 의미이다.
         # **kwargs에서 **는 이름이 붙은 인자들을 dictionary로 언패킹한다는 의미.
         # no way to pass insert a list-like or comma-delimited one column to *param tuple
-        s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[self.__g_nThreadId].get(s_sql_filename, (None,None))
+        s_query_type, s_sql_compiled = self.__g_dictCompiledSqlStmt[self.__g_nThreadId].get(s_sql_filename, (None, None))
         if s_query_type is None and s_sql_compiled is None:
             s_query_type, s_sql_compiled = self.__compile_static_sql(s_sql_filename)
             if s_query_type == 'unknown':
@@ -246,7 +243,7 @@ class SvMySql(sv_object.ISvObject):
                 return []
             # cache compiled sql statement
             self.__g_dictCompiledSqlStmt[self.__g_nThreadId][s_sql_filename] = [s_query_type, s_sql_compiled]
-        #try:
+        # try:
         # self.__g_oCursor.execute(s_sql_compiled, params)
         self.__execute_query(s_sql_compiled, params)  # execute query
         # except Exception as e:  # eg, Duplicate entry Exception
@@ -436,10 +433,11 @@ class SvMySql(sv_object.ISvObject):
 
     def __connect(self):
         # MySQL Connection 연결
-        self.__g_oConn = pymysql.connect(host=self.__g_dictConfig['db_hostname'], port=self.__g_dictConfig['db_port'], user=self.__g_dictConfig['db_userid'], 
-            password=self.__g_dictConfig['db_password'], db=self.__g_dictConfig['db_database'], charset=self.__g_dictConfig['db_charset'])
+        self.__g_oConn = pymysql.connect(host=self.__g_dictConfig['db_hostname'], port=self.__g_dictConfig['db_port'],
+                                         user=self.__g_dictConfig['db_userid'], password=self.__g_dictConfig['db_password'],
+                                         db=self.__g_dictConfig['db_database'], charset=self.__g_dictConfig['db_charset'])
         # Connection 으로부터 Cursor 생성
-        self.__g_oCursor = self.__g_oConn.cursor(pymysql.cursors.DictCursor) # set Dictionary cursor, Array based cursor if None
+        self.__g_oCursor = self.__g_oConn.cursor(pymysql.cursors.DictCursor)  # set Dictionary cursor, Array based cursor if None
 
     def __disconnect(self):
         # unset, if thread memory for cached compiled stmt exists
@@ -448,8 +446,8 @@ class SvMySql(sv_object.ISvObject):
         # Connection close
         if self.__g_oConn is not None and self.__g_oConn.open:
             try:
-               self.__g_oConn.cursor()
-            except NameError: #	disconnected, whatever error raised, no difference
+                self.__g_oConn.cursor()
+            except NameError:  # disconnected, whatever error raised, no difference
                 pass
             else: # connected
                 self.__g_oConn.close()
@@ -457,24 +455,24 @@ class SvMySql(sv_object.ISvObject):
     def __create_tbl(self, s_tbl_name):
         # https://wikidocs.net/26
         s_schema_path_abs = os.path.join(self.__g_sAbsolutePath, 'schemas', s_tbl_name + '.sql')
-        f = open(s_schema_path_abs,'r')
+        f = open(s_schema_path_abs, 'r')
         s_sql_stmt = f.read()
         f.close()
         s_sql_stmt = re.sub("\n", " ", s_sql_stmt)  # make one line
         s_sql_stmt = re.sub("`", "", s_sql_stmt ) # 존재할 수 있는 sql 문자열 wrapper 기호 제거 `
         if s_tbl_name.startswith('_'):  # regarding on demand table name starts with _
             s_normalized_tbl_name = s_tbl_name.replace('_', '', 1)
-            s_sql_stmt = re.sub(s_tbl_name, s_normalized_tbl_name, s_sql_stmt )  # 테이블명이 _로 시작하면 on demand table이므로 _ 제거
+            s_sql_stmt = re.sub(s_tbl_name, s_normalized_tbl_name, s_sql_stmt)  # 테이블명이 _로 시작하면 on demand table이므로 _ 제거
         # m = oRegEx.search(s_sql_stmt) # match()와 search() 차이점 refer to 빠르게활용하는파이썬3.6프로그램 p241
         m = self.__g_dictRegEx['prefix_create_tbl'].search(s_sql_stmt)
-        if m: # if table name is existing in the sql statement
-            s_tbl_search_qry = "show tables like '"+self.__g_dictConfig['db_table_prefix']+m.group(0)+"'" # add table prefix on table name
+        if m:  # if table name is existing in the sql statement
+            s_tbl_search_qry = "show tables like '"+self.__g_dictConfig['db_table_prefix'] + m.group(0) + "'"  # add table prefix on table name
             self.__g_oCursor.execute(s_tbl_search_qry)
             rows = self.__g_oCursor.fetchall()
             if not self.__g_oCursor.rowcount: # table creation
                 if __name__ == '__main__':
                     self._printDebug("table creation")
-                s_sql_stmt = re.sub(m.group(0), self.__g_dictConfig['db_table_prefix']+m.group(0), s_sql_stmt ) # add table prefix on table name
+                s_sql_stmt = re.sub(m.group(0), self.__g_dictConfig['db_table_prefix']+m.group(0), s_sql_stmt)  # add table prefix on table name
                 self.__g_oCursor.execute(s_sql_stmt)
             else:
                 if __name__ == '__main__':
@@ -483,6 +481,6 @@ class SvMySql(sv_object.ISvObject):
 
 # if __name__ == '__main__': # for console debugging
 #     with SvMySql('job_plugins.nvadperformance_period') as oSvMysql:
-#         lstRows = oSvMysql.executeQuery('getJobList', 'Y')
-#         #lstRows = oSvMysql.executeQuery('updateJobDetail', '20181112255522', '1' )
+#         lstRows = oSvMysql.execute_query('getJobList', 'Y')
+#         #lstRows = oSvMysql.execute_query('updateJobDetail', '20181112255522', '1' )
 #         print(lstRows)

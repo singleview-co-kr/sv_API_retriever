@@ -62,18 +62,18 @@ else:
 
 class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()  # None
-    __g_lstIgnoreText = ['CRITERIA', # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
-                        'google', # for new google ads API report; ignore report title row: google_ads_api (v6)
-                        'Campaign', # ignore column title row
-                        'Total'] # for old adwords API report; ignore gross sum row
+    __g_lstIgnoreText = ['CRITERIA',  # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
+                         'google',  # for new google ads API report; ignore report title row: google_ads_api (v6)
+                         'Campaign',  # ignore column title row
+                         'Total']  # for old adwords API report; ignore gross sum row
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221104)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(_regist)')
         
-        self._g_dictParam.update({'yyyymm':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'yyyymm': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -109,7 +109,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lst_google_ads = dict_acct_info['adw_cid']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.aw_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         
@@ -148,7 +148,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sEndDateRetrieval = self.__g_sReplaceMonth[:4] + '-' + self.__g_sReplaceMonth[4:None] + '-' + str(lstMonthRange[1])
 
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.aw_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
@@ -361,7 +361,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(self.__g_dictAdwRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.aw_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
 

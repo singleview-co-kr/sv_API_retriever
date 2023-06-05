@@ -135,7 +135,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_module_srl = 162
         self._printDebug('-> __retrieve_chery_picker begin')
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             lst_latest_doc_srl = o_sv_mysql.executeQuery('getAllDocuments', n_module_srl)
@@ -143,7 +143,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             return
         # import time
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
            
@@ -176,7 +176,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         if 'date' == s_collection_base:
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svadr')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate', n_module_srl)
@@ -201,7 +201,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dict_date_param['s_end_date'] = s_end_date_to_sync
         elif 'document_srl' == s_collection_base:
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svadr')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 lst_latest_doc_srl = o_sv_mysql.executeQuery('getLatestDocumentSrl', n_module_srl)
@@ -239,11 +239,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 # check already registered doc_srl
                 lst_doc_srl = [str(doc_srl) for doc_srl in dictRetrieveStuff['aDocSrls']]
                 with sv_mysql.SvMySql() as o_sv_mysql:
-                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                    o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                     o_sv_mysql.set_app_name('svplugins.collect_svadr')
                     o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                     dict_param = {'s_updated_doc_srls': ','.join(lst_doc_srl)}
-                    lst_duplicated_doc_srls = o_sv_mysql.executeDynamicQuery('getOldDocumentLogByDocSrl', dict_param)
+                    lst_duplicated_doc_srls = o_sv_mysql.execute_dynamic_query('getOldDocumentLogByDocSrl', dict_param)
                 del dict_param
                 for dict_rec in lst_duplicated_doc_srls:
                     dictRetrieveStuff['aDocSrls'].remove(dict_rec['document_srl'])
@@ -278,7 +278,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         o_sv_addr_parser = sv_addr_parser.SvAddrParser()
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for dict_single_doc in dict_rsp['variables']['d']:

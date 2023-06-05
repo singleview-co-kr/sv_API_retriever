@@ -67,8 +67,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221127)')
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -112,7 +112,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
         self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.ga_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
         
@@ -231,7 +231,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             n_idx = 0
             n_sentinel = len(lst_transaction_log)
             with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-                oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+                oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
                 oSvMysql.set_app_name('svplugins.ga_register_db')
                 oSvMysql.initialize(self._g_dictSvAcctInfo)
                 for lst_single_row in lst_transaction_log:
@@ -343,7 +343,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         nIdx = 0
         nSentinel = len(self.__g_dictGaRaw)
         with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.ga_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             for sReportId, dict_single_raw in self.__g_dictGaRaw.items():

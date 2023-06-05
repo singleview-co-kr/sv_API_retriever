@@ -94,7 +94,7 @@ class SvKeywordQi():
         lst_nvad_master_qi = None
         # begin - ext bi denorm word count date range
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_sv_qi_log_denorm')  # for google data studio
@@ -109,7 +109,7 @@ class SvKeywordQi():
         # end - ext bi denorm naver master QI date range
 
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
@@ -147,7 +147,7 @@ class SvKeywordQi():
         if n_sentinel:
             self.__print_debug('transfer naver master QI via SQL')
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
                 for dict_single_qi in lst_nvad_master_qi:

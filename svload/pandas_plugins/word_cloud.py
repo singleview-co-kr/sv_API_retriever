@@ -85,7 +85,7 @@ class WordCloudVisual(ABC):
             return self._g_dictDictionary[n_word_id]
         else:
             if n_word_id:
-                lst_dictionary = self._g_oSvDb.executeQuery('getDictionaryByWordId', n_word_id)
+                lst_dictionary = self._g_oSvDb.execute_query('getDictionaryByWordId', n_word_id)
                 s_word = lst_dictionary[0]['word']
                 self._g_dictDictionary[n_word_id] = s_word
             else:  # n_word_id is 0
@@ -255,7 +255,7 @@ class MorphemeVisual(WordCloudVisual):
     def get_morpheme_id_by_morpheme(self, s_morpheme):
         lst_rec = []
         for s_morpheme_single in s_morpheme.split(','):
-            lst_rec.extend(self._g_oSvDb.executeQuery('getDictionaryByWord', '%' + s_morpheme_single + '%'))
+            lst_rec.extend(self._g_oSvDb.execute_query('getDictionaryByWord', '%' + s_morpheme_single + '%'))
         dict_rst = {'b_error': False, 's_msg': None, 'lst_morpheme': lst_rec}
         return dict_rst
 
@@ -315,8 +315,8 @@ class WordCloudRaw:
         if self.__g_dtDesignatedFirstDate is None or self.__g_dtDesignatedLastDate is None:
             raise Exception('not ready to load dataframe to analyze')
 
-        lst_raw_data = self.__g_oSvDb.executeQuery('getWordCount',
-                                                   self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+        lst_raw_data = self.__g_oSvDb.execute_query('getWordCount',
+                                                    self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
         if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
             lst_raw_data = []
 
@@ -361,7 +361,7 @@ class WordCloudRaw:
         # except KeyError:
         else:
             if n_word_id:
-                lst_dictionary = self.__g_oSvDb.executeQuery('getDictionaryByWordId', n_word_id)
+                lst_dictionary = self.__g_oSvDb.execute_query('getDictionaryByWordId', n_word_id)
                 s_word = lst_dictionary[0]['word']
                 s_ignore = lst_dictionary[0]['b_ignore']
                 self.__g_dictDictionary[self.__g_sClassId][n_word_id] = {'s_word': s_word, 's_ignore': s_ignore}
@@ -427,9 +427,9 @@ class MorphemeRaw:
         if self.__g_dtDesignatedFirstDate is None or self.__g_dtDesignatedLastDate is None:
             raise Exception('not ready to load dataframe to analyze')
 
-        lst_raw_data = self.__g_oSvDb.executeQuery('getMorphemeChronicle',
-                                                   self.__g_dictDictionary[self.__g_sClassId]['n_morpheme_id'],
-                                                   self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+        lst_raw_data = self.__g_oSvDb.execute_query('getMorphemeChronicle',
+                                                    self.__g_dictDictionary[self.__g_sClassId]['n_morpheme_id'],
+                                                    self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
         if len(lst_raw_data) == 0:
             df_period_data_raw = self.__set_nullify_dataframe()
         else:

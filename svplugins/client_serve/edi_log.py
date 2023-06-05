@@ -125,7 +125,7 @@ class SvEdiLog():
         # write selected sku info csv
         # retrieve account specific SKU info dictionary from account dependent table
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
@@ -146,7 +146,7 @@ class SvEdiLog():
         self.__print_debug('start EDI extraction')
         # begin - ext bi denorm EDI date range
         with sv_mysql.SvMySql() as o_sv_mysql:
-            o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_edi_daily_log_denorm')  # for google data studio
@@ -173,7 +173,7 @@ class SvEdiLog():
                                 ' to ' + dict_date_range['s_end_date'] + ' via SQL')
             s_log_cnt_query = 'getEdi{s_mart_title}LogCountByPeriod'.format(s_mart_title=s_mart_title)
             with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.client_serve')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                 if not self.__continue_iteration():
@@ -204,15 +204,15 @@ class SvEdiLog():
                     n_limit = n_edi_log_count
 
                 with sv_mysql.SvMySql() as o_sv_mysql:
-                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                    o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                     o_sv_mysql.set_app_name('svplugins.client_serve')
                     o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                     if not self.__continue_iteration():
                         return
-                    lst_log_period = o_sv_mysql.executeDynamicQuery(s_performance_log_query, dict_param_tmp)
+                    lst_log_period = o_sv_mysql.execute_dynamic_query(s_performance_log_query, dict_param_tmp)
                 # insert de-norm table
                 with sv_mysql.SvMySql() as o_sv_mysql:
-                    o_sv_mysql.setTablePrefix(self.__g_sTblPrefix)
+                    o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                     o_sv_mysql.set_app_name('svplugins.client_serve')
                     o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
                     o_sv_mysql.create_table_on_demand('_edi_daily_log_denorm')  # for google data studio

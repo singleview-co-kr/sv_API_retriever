@@ -84,15 +84,13 @@ class CampaignAliasInfo:
         :param s_period_to:
         :return:
         """
-        lst_alias_earliest = self.__g_oSvDb.executeQuery('getCampaignAliasEarliest')
+        lst_alias_earliest = self.__g_oSvDb.execute_query('getCampaignAliasEarliest')
         if 'err_code' in lst_alias_earliest[0]:  # if table not exists
-            dict_alias_period = {'s_earliest_alias': '',
-                                    's_latest_alias': '',
-                                    's_earliest_req': '',
-                                    's_latest_req': ''}
+            dict_alias_period = {'s_earliest_alias': '', 's_latest_alias': '',
+                                 's_earliest_req': '', 's_latest_req': ''}
             return {'dict_alias_period': dict_alias_period, 'lst_alias_rst': []}
 
-        lst_alias_latest = self.__g_oSvDb.executeQuery('getCampaignAliasLatest')
+        lst_alias_latest = self.__g_oSvDb.execute_query('getCampaignAliasLatest')
         if lst_alias_earliest[0]['min_date'] is None or lst_alias_latest[0]['max_date'] is None:
             dt_latest_alias = datetime.today()
             dt_earliest_alias = dt_latest_alias - relativedelta(months=6)
@@ -110,7 +108,7 @@ class CampaignAliasInfo:
             dt_earliest_req = dt_latest_req - relativedelta(months=6)
             dt_earliest_req = dt_earliest_req.replace(day=1)
 
-        lst_alias_rst = self.__g_oSvDb.executeQuery('getCampaignAliasListByPeriod', dt_earliest_req, dt_latest_req) #self.__g_oSvDb.executeQuery('getCampaignAliasList')
+        lst_alias_rst = self.__g_oSvDb.execute_query('getCampaignAliasListByPeriod', dt_earliest_req, dt_latest_req)
         for dict_single_alias in lst_alias_rst:
             dict_single_alias['source_name'] = self.__g_dictSourceIdTitle[dict_single_alias['source_id']]
             dict_sv_convention = self.__construct_sv_campaign_convention(dict_single_alias)
@@ -144,7 +142,7 @@ class CampaignAliasInfo:
                                 'medium': '', 'medium_code': '', 'brd': 0,
                                 'campaign1st': '00', 'campaign2nd': '00', 'campaign3rd': '00',
                                 'detected': False}
-        lst_alias_detail = self.__g_oSvDb.executeQuery('getCampaignAliasDetailByMediaCampaign', 
+        lst_alias_detail = self.__g_oSvDb.execute_query('getCampaignAliasDetailByMediaCampaign',
                                                         s_media_campaign_title)
         if len(lst_alias_detail) == 0:  # add new
             b_rst = self.__reserve_alias_single(s_media_campaign_title)
@@ -177,7 +175,7 @@ class CampaignAliasInfo:
         :param n_alias_id:
         :return:
         """
-        lst_alias_detail = self.__g_oSvDb.executeQuery('getCampaignAliasDetailById', n_alias_id)
+        lst_alias_detail = self.__g_oSvDb.execute_query('getCampaignAliasDetailById', n_alias_id)
         dict_sv_convention = self.__construct_sv_campaign_convention(lst_alias_detail[0])
         s_sv_convention = dict_sv_convention['s_source_tag'] + '_' + \
                             dict_sv_convention['s_search_rst_id_tag'] + '_' + \
@@ -192,17 +190,12 @@ class CampaignAliasInfo:
         dict_rst = self.__validate_alias_single(request)
         if dict_rst['b_error']:
             return dict_rst
-        self.__g_oSvDb.executeQuery('insertCampaignAlias', 
-                                        dict_rst['dict_ret']['n_source_id'],
-                                        dict_rst['dict_ret']['s_media_campaign_title'], 
-                                        dict_rst['dict_ret']['n_search_rst_id'],
-                                        dict_rst['dict_ret']['n_medium_id'], 
-                                        dict_rst['dict_ret']['s_sv_lvl_1'],
-                                        dict_rst['dict_ret']['s_sv_lvl_2'], 
-                                        dict_rst['dict_ret']['s_sv_lvl_3'],
-                                        dict_rst['dict_ret']['s_sv_lvl_4'], 
-                                        dict_rst['dict_ret']['memo'], 
-                                        dict_rst['dict_ret']['dt_regdate'])
+        self.__g_oSvDb.execute_query('insertCampaignAlias', dict_rst['dict_ret']['n_source_id'],
+                                     dict_rst['dict_ret']['s_media_campaign_title'],
+                                     dict_rst['dict_ret']['n_search_rst_id'], dict_rst['dict_ret']['n_medium_id'],
+                                     dict_rst['dict_ret']['s_sv_lvl_1'], dict_rst['dict_ret']['s_sv_lvl_2'],
+                                     dict_rst['dict_ret']['s_sv_lvl_3'], dict_rst['dict_ret']['s_sv_lvl_4'],
+                                     dict_rst['dict_ret']['memo'], dict_rst['dict_ret']['dt_regdate'])
         return dict_rst
     
     def update_alias(self, request):
@@ -214,16 +207,11 @@ class CampaignAliasInfo:
         dict_rst = self.__validate_alias_single(request)
         if dict_rst['b_error']:
             return dict_rst
-        self.__g_oSvDb.executeQuery('updateCampaignAliasById', 
-                                        dict_rst['dict_ret']['n_source_id'],
-                                        dict_rst['dict_ret']['n_search_rst_id'],
-                                        dict_rst['dict_ret']['n_medium_id'], 
-                                        dict_rst['dict_ret']['s_sv_lvl_1'],
-                                        dict_rst['dict_ret']['s_sv_lvl_2'], 
-                                        dict_rst['dict_ret']['s_sv_lvl_3'],
-                                        dict_rst['dict_ret']['s_sv_lvl_4'],
-                                        dict_rst['dict_ret']['memo'], 
-                                        n_alias_id)
+        self.__g_oSvDb.execute_query('updateCampaignAliasById', dict_rst['dict_ret']['n_source_id'],
+                                     dict_rst['dict_ret']['n_search_rst_id'], dict_rst['dict_ret']['n_medium_id'],
+                                     dict_rst['dict_ret']['s_sv_lvl_1'], dict_rst['dict_ret']['s_sv_lvl_2'],
+                                     dict_rst['dict_ret']['s_sv_lvl_3'], dict_rst['dict_ret']['s_sv_lvl_4'],
+                                     dict_rst['dict_ret']['memo'], n_alias_id)
         return
 
     def add_alias_bulk(self, request):
@@ -256,8 +244,9 @@ class CampaignAliasInfo:
             s_sv_lvl_3 = o_sv_campaign_parser.validate_sv_campaign_level_tag(lst_single_line[6])['dict_ret']
             s_sv_lvl_4 = None
             dt_regdate = datetime.strptime(lst_single_line[7], '%Y-%m-%d')
-            self.__g_oSvDb.executeQuery('insertCampaignAlias', n_source_id, s_media_campaign_title,
-                                        n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4, '', dt_regdate)  # blank memo
+            self.__g_oSvDb.execute_query('insertCampaignAlias', n_source_id, s_media_campaign_title,
+                                         n_search_rst_id, n_medium_id, s_sv_lvl_1, s_sv_lvl_2, s_sv_lvl_3, s_sv_lvl_4,
+                                         '', dt_regdate)  # blank memo
 
             del dt_regdate
         del lst_line
@@ -267,17 +256,17 @@ class CampaignAliasInfo:
     
     def __reserve_alias_single(self, s_media_campaign_title):
         """ reserve alias for newly found non-sv-conventional campaign title """
-        lst_rst = self.__g_oSvDb.executeQuery('insertCampaignAlias', 
-                                        0, # ['n_source_id'],
-                                        s_media_campaign_title, 
-                                        0, # ['n_search_rst_id'],
-                                        0, # ['n_medium_id'], 
-                                        None, # ['s_sv_lvl_1'],
-                                        None, # ['s_sv_lvl_2'], 
-                                        None, # ['s_sv_lvl_3'],
-                                        None, # ['s_sv_lvl_4'],
-                                        None, # ['memo'], 
-                                        datetime.today())
+        lst_rst = self.__g_oSvDb.execute_query('insertCampaignAlias',
+                                               0,  # ['n_source_id'],
+                                               s_media_campaign_title,
+                                               0,  # ['n_search_rst_id'],
+                                               0,  # ['n_medium_id'],
+                                               None,  # ['s_sv_lvl_1'],
+                                               None,  # ['s_sv_lvl_2'],
+                                               None,  # ['s_sv_lvl_3'],
+                                               None,  # ['s_sv_lvl_4'],
+                                               None,  # ['memo'],
+                                               datetime.today())
         if 'id' in lst_rst[0]:
             return True
         else:  # if sql insert failed
@@ -286,7 +275,7 @@ class CampaignAliasInfo:
     def __validate_alias_single(self, request):
         dict_rst = {'b_error': False, 's_msg': None, 'dict_ret': None}
         lst_query_title = ['media_campaign_title', 'source_id', 'search_rst_type_id', 
-                            'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'memo', 'regdate']
+                           'media_type_id', 'sv_lvl_1', 'sv_lvl_2', 'sv_lvl_3', 'memo', 'regdate']
         lst_query_value = []
         for s_ttl in lst_query_title:
             lst_query_value.append(request.POST.get(s_ttl))

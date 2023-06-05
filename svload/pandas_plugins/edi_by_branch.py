@@ -218,7 +218,7 @@ class EdiBranchPerformance:
                                                                          self.__g_dictSingleBranch['n_hypermart_id'])
             # dict_param_tmp['s_period_start'] = dt_first_date
             # dict_param_tmp['s_period_end'] = dt_last_date
-            # lst_raw_data = o_db.executeDynamicQuery('getEmartLogByItemId', dict_param_tmp)
+            # lst_raw_data = o_db.execute_dynamic_query('getEmartLogByItemId', dict_param_tmp)
             # if len(lst_raw_data) == 0:  # eg., first day of month before latest data appended
             #     lst_raw_data = [{'id': 0, 'item_id': 0, 'branch_id': self.__g_dictSingleBranch['n_branch_id'],
             #                      'qty': 0, 'amnt': 0, 'logdate': dt_first_date}]
@@ -322,8 +322,8 @@ class EdiBranchPerformance:
         except ValueError:
             return False
         # end - validation
-        o_sv_db.executeQuery('insertBranchMemo', request.user.pk, n_branch_id, s_memo,
-                                dt_memo_date_begin, dt_memo_date_end)
+        o_sv_db.execute_query('insertBranchMemo',
+                              request.user.pk, n_branch_id, s_memo, dt_memo_date_begin, dt_memo_date_end)
         return {}
 
 
@@ -450,7 +450,7 @@ class EdiBranchRaw:
         del dict_hypermart_type[2]  # remove NOT_SURE
         lst_extract_hypermart_type = []
         for n_hypermart_id in dict_hypermart_type:  # .keys():
-            lst_raw_data = self.__g_oSvDb.executeQuery('getEdiSkuCountByMartId', n_hypermart_id)
+            lst_raw_data = self.__g_oSvDb.execute_query('getEdiSkuCountByMartId', n_hypermart_id)
             if lst_raw_data and 'err_code' in lst_raw_data[0].keys():  # for an initial stage; no table
                 lst_raw_data = []
             if len(lst_raw_data):
@@ -464,7 +464,7 @@ class EdiBranchRaw:
             lst_raw_data_emart = []
         # lst_raw_data_emart = []
         # if SvHyperMartType.EMART.value in lst_extract_hypermart_type:
-        #    lst_raw_data_emart = o_db.executeDynamicQuery('getEmartLogByItemId', dict_param_tmp)
+        #    lst_raw_data_emart = o_db.execute_dynamic_query('getEmartLogByItemId', dict_param_tmp)
         # end - Emart
 
         # begin - Lotte mart
@@ -475,7 +475,7 @@ class EdiBranchRaw:
         # lst_raw_data_ltmart = []
         # if SvHyperMartType.LOTTEMART.value in lst_extract_hypermart_type:
         #    if self.__g_sFreqMode == 'day':
-        #        lst_raw_data_ltmart = o_db.executeDynamicQuery('getLtmartLogByItemIdLogdateSince', dict_param_tmp)
+        #        lst_raw_data_ltmart = o_db.execute_dynamic_query('getLtmartLogByItemIdLogdateSince', dict_param_tmp)
         #        lst_raw_data_ltmart_daily_allocated = []
         #        for dict_single_row in lst_raw_data_ltmart:
         #            lst_date_range = list(pd.date_range(dict_single_row['logdate_since'], dict_single_row['logdate']))
@@ -498,7 +498,7 @@ class EdiBranchRaw:
         #        lst_raw_data_ltmart = lst_raw_data_ltmart_daily_allocated
         #        del lst_raw_data_ltmart_daily_allocated
         #    else:
-        #        lst_raw_data_ltmart = o_db.executeDynamicQuery('getLtmartLogByItemId', dict_param_tmp)
+        #        lst_raw_data_ltmart = o_db.execute_dynamic_query('getLtmartLogByItemId', dict_param_tmp)
         # end - Lotte mart
         national_raw_data = lst_raw_data_emart + lst_raw_data_ltmart
         del lst_raw_data_emart
@@ -528,11 +528,11 @@ class EdiBranchRaw:
         # retrieve sku id list, convert int id to string id
         n_hypermart_id = dict_single_branch_info['hypermart_id']
         if n_hypermart_id == SvHyperMartType.EMART.value:
-            lst_branch_raw_data = self.__g_oSvDb.executeQuery('getEmartLogByBranchId', self.__g_dtDesignatedFirstDate,
-                                                                self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
+            lst_branch_raw_data = self.__g_oSvDb.execute_query('getEmartLogByBranchId', self.__g_dtDesignatedFirstDate,
+                                                               self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
         elif n_hypermart_id == SvHyperMartType.LOTTEMART.value:
-            lst_branch_raw_data = self.__g_oSvDb.executeQuery('getLtmartLogByBranchId', self.__g_dtDesignatedFirstDate,
-                                                                self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
+            lst_branch_raw_data = self.__g_oSvDb.execute_query('getLtmartLogByBranchId', self.__g_dtDesignatedFirstDate,
+                                                               self.__g_dtDesignatedLastDate, dict_single_branch_info['id'])
             if self.__g_sFreqMode == 'day':
                 print('regnerate daily data')
 
@@ -565,11 +565,11 @@ class EdiBranchRaw:
         dict_single_sku_info = list(self.__g_dictEdiSku.values())[0]
         n_hypermart_id = dict_single_sku_info['mart_id']
         if n_hypermart_id == SvHyperMartType.EMART.value:
-            lst_raw_data = self.__g_oSvDb.executeQuery('getEmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
-                                                       self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+            lst_raw_data = self.__g_oSvDb.execute_query('getEmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
+                                                        self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
         elif n_hypermart_id == SvHyperMartType.LOTTEMART.value:
-            lst_raw_data = self.__g_oSvDb.executeQuery('getLtmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
-                                                       self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
+            lst_raw_data = self.__g_oSvDb.execute_query('getLtmartLogSingleItemId', str(next(iter(self.__g_dictEdiSku))),
+                                                        self.__g_dtDesignatedFirstDate, self.__g_dtDesignatedLastDate)
             if self.__g_sFreqMode == 'day':
                 print('regnerate daily data')
 
@@ -622,7 +622,8 @@ class EdiBranchRaw:
         """
         if 's_period_start' not in dict_param and 's_period_end' not in dict_param:
             return []
-        return self.__g_oSvDb.executeQuery('getEmartLogByPeriod', dict_param['s_period_start'], dict_param['s_period_end'])
+        return self.__g_oSvDb.execute_query('getEmartLogByPeriod',
+                                            dict_param['s_period_start'], dict_param['s_period_end'])
 
     def __load_ltmart_edi(self, dict_param):
         """
@@ -634,7 +635,8 @@ class EdiBranchRaw:
             return []
 
         if self.__g_sFreqMode == 'day':
-            lst_raw_data_ltmart = self.__g_oSvDb.executeQuery('getLtmartLogWithLogdateSince', dict_param['s_period_start'], dict_param['s_period_end'])
+            lst_raw_data_ltmart = self.__g_oSvDb.execute_query('getLtmartLogWithLogdateSince',
+                                                               dict_param['s_period_start'], dict_param['s_period_end'])
             lst_raw_data_ltmart_daily_allocated = []
             for dict_single_row in lst_raw_data_ltmart:
                 lst_date_range = list(pd.date_range(dict_single_row['logdate_since'], dict_single_row['logdate']))
@@ -656,4 +658,5 @@ class EdiBranchRaw:
                                                                 'logdate': dict_single_row['logdate']})
             return lst_raw_data_ltmart_daily_allocated
         else:
-            return self.__g_oSvDb.executeQuery('getLtmartLogByPeriod', dict_param['s_period_start'], dict_param['s_period_end'])
+            return self.__g_oSvDb.execute_query('getLtmartLogByPeriod',
+                                                dict_param['s_period_start'], dict_param['s_period_end'])

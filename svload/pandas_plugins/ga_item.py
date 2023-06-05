@@ -36,7 +36,7 @@ class GaItem:
         dict_arranged_catalog_depth = self.__get_cat_depth_dictionary()
         # begin - construct item list
         lst_cleaned_catalog = []
-        lst_rst = self.__g_oSvDb.executeQuery('getGaItemList')
+        lst_rst = self.__g_oSvDb.execute_query('getGaItemList')
         if lst_rst and 'err_code' in lst_rst[0].keys():  # for an initial stage; no table
             lst_rst = []
         if len(lst_rst):
@@ -108,12 +108,13 @@ class GaItem:
                             if s_cat_depth == str(dict_cat_depth['cat_depth']):
                                 if dict_cat_depth['cat_title'] != s_val:
                                     # print('update', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'], 'to', s_val)
-                                    self.__g_oSvDb.executeQuery('updateCatalogDepthBySrl', s_val, dict_cat_depth['catalog_srl'])
+                                    self.__g_oSvDb.execute_query('updateCatalogDepthBySrl',
+                                                                 s_val, dict_cat_depth['catalog_srl'])
                                     b_changed_something = True
                                 b_proc = True
                     if not b_proc:  # add new cat depth info
                         # print('add new', s_cat_depth, s_val)
-                        self.__g_oSvDb.executeQuery('insertCatalogDepth', n_item_srl, s_cat_depth, s_val)
+                        self.__g_oSvDb.execute_query('insertCatalogDepth', n_item_srl, s_cat_depth, s_val)
                         b_changed_something = True
                 else:  # remove existed depth
                     s_cat_depth = s_key.replace('s_cat', '')
@@ -122,14 +123,14 @@ class GaItem:
                              if s_cat_depth == str(dict_cat_depth['cat_depth']):
                                 if dict_cat_depth['cat_title'] != s_val:
                                     # print('remove', dict_cat_depth['catalog_srl'], dict_cat_depth['cat_title'])
-                                    self.__g_oSvDb.executeQuery('deleteCatalogDepthBySrl', dict_cat_depth['catalog_srl'])
+                                    self.__g_oSvDb.execute_query('deleteCatalogDepthBySrl', dict_cat_depth['catalog_srl'])
                                     b_changed_something = True
                                 b_proc = True
         
         # begin - proc ignore item
         lst_item_srl_tobe_ignored = request.POST.getlist('item_hide[]')
         lst_ignored_item = []
-        lst_ignored_item_rst = self.__g_oSvDb.executeQuery('getGaItemListIgnored')
+        lst_ignored_item_rst = self.__g_oSvDb.execute_query('getGaItemListIgnored')
         for dict_item_ignored in lst_ignored_item_rst:
             lst_ignored_item.append(str(dict_item_ignored['item_srl']))
         del lst_ignored_item_rst
@@ -137,13 +138,13 @@ class GaItem:
         # item to change to hide
         lst_change_hide = list(set(lst_item_srl_tobe_ignored) - set(lst_ignored_item))
         for s_item_srl in lst_change_hide:
-            self.__g_oSvDb.executeQuery('updateGaItemListIgnored', 1, s_item_srl)
+            self.__g_oSvDb.execute_query('updateGaItemListIgnored', 1, s_item_srl)
             b_changed_something = True
 
         # item to change to display
         lst_change_display = list(set(lst_ignored_item) - set(lst_item_srl_tobe_ignored))
         for s_item_srl in lst_change_display:
-            self.__g_oSvDb.executeQuery('updateGaItemListIgnored', 0, s_item_srl)
+            self.__g_oSvDb.execute_query('updateGaItemListIgnored', 0, s_item_srl)
             b_changed_something = True
         del lst_change_hide
         del lst_change_display
@@ -154,7 +155,7 @@ class GaItem:
             s_plugin_name = 'client_serve'
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
             lst_command = [s_plugin_name, 'mode=clear_ga_itemperf_sql', 'config_loc='+str(n_sv_acct_id) + '/' + str(n_brand_id)]
-            with o_job_plugin.svJobPlugin() as o_job: # to enforce each plugin follow strict guideline or remove from scheduler
+            with o_job_plugin.svJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
                 o_job.set_my_name(s_plugin_name)
                 o_job.parse_command(lst_command)
                 o_job.do_task(None)
@@ -167,7 +168,7 @@ class GaItem:
         this method should be streamlined with svplugins.client_serve.ga_itemperf_log.__get_cat_depth_dictionary()
         """
         dict_arranged_catalog_depth = {}
-        lst_cat_depth_rst = self.__g_oSvDb.executeQuery('getGaItemDepthAll')
+        lst_cat_depth_rst = self.__g_oSvDb.execute_query('getGaItemDepthAll')
         if lst_cat_depth_rst and 'err_code' in lst_cat_depth_rst[0].keys():  # for an initial stage; no table
             lst_cat_depth_rst = []
         for dict_single_cat in lst_cat_depth_rst:

@@ -231,7 +231,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         lstRows = []
         nGrossSizeBytesToSync = 0
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.client_serve')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             # parse respond about retrieval date range
@@ -323,7 +323,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         sStartDateRetrieval = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-01'
         sEndDateRetrieval = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-' + str(lstMonthRange[1])
         with sv_mysql.SvMySql('svplugins.client_serve', self._g_dictSvAcctInfo) as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.client_serve')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)

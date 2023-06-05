@@ -411,7 +411,7 @@ class EdiFilter:
         if s_sku_filter_mode != '':  # sku filter designated
             lst_selected_sku_for_ui = [int(item) for item in lst_selected_sku]  # SKU 일련번호를 문자열에서 정수로 변경
 
-        lst_sku_rst = o_sv_db.executeQuery('getEdiSkuInfoByAccept', 1)
+        lst_sku_rst = o_sv_db.execute_query('getEdiSkuInfoByAccept', 1)
         if lst_sku_rst and 'err_code' in lst_sku_rst[0].keys():  # for an initial stage; no table
             lst_sku_rst = []
         lst_selected_sku = []
@@ -455,13 +455,13 @@ class EdiFilter:
         #     lst_unique_mart_id = [str(n_mart_id) for n_mart_id in list(set(lst_mart_id))]  # for uniqueness
         #     dict_param_tmp = {'n_brand_id': n_brand_id, 's_req_mart_id_set': ','.join(lst_unique_mart_id)}
         #     print(dict_param_tmp)
-        #     lst_sku_rst = o_sv_db.executeDynamicQuery('getEdiSkuInfoByBrandBranchId', dict_param_tmp)
+        #     lst_sku_rst = o_sv_db.execute_dynamic_query('getEdiSkuInfoByBrandBranchId', dict_param_tmp)
         #     del dict_param_tmp
         # elif n_sku_id:  # sku designated
-        #     lst_sku_rst = o_sv_db.executeQuery('getEdiSkuInfoByBrandSkuId', n_sku_id)
+        #     lst_sku_rst = o_sv_db.execute_query('getEdiSkuInfoByBrandSkuId', n_sku_id)
         #     # {19: {'mart_id': 3, 'mart_name': 'Emart', 'name': '유한락스 욕실청소 900ML*2', 'first_detect_logdate': datetime.date(2019, 1, 1)}}
         # else:  # all branch & all sku mode
-        #     lst_sku_rst = o_sv_db.executeQuery('getEdiSkuInfoByBrandId', n_brand_id)
+        #     lst_sku_rst = o_sv_db.execute_query('getEdiSkuInfoByBrandId', n_brand_id)
         dict_hyper_mart_type = SvHyperMartType.get_dict_by_idx()
         dict_sku_info_by_id = {}
         if len(lst_selected_sku):

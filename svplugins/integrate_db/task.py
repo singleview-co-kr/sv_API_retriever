@@ -72,10 +72,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230517)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self._g_dictParam.update({'yyyymm': None, 'mode': None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -140,7 +140,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_dictSourceTitleTag = self.__g_oSvCampaignParser.get_source_tag_title_dict(b_inverted=True)
         
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
         
@@ -187,10 +187,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __truncate_compiled_tbl(self):
         self._printDebug('-> clear ga media daily compiled log')
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            oSvMysql.truncateTable('compiled_ga_media_daily_log')
+            oSvMysql.truncate_tbl('compiled_ga_media_daily_log')
 
     def __delete_specific_month(self):
         dict_rst = {'start_date': None, 'end_date': None}
@@ -221,7 +221,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_end_date_retrieval = self.__g_sRetrieveMonth[:4] + '-' + self.__g_sRetrieveMonth[4:None] + '-' + str(
             lst_month_range[1])
         with sv_mysql.SvMySql() as oSvMysql:
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             oSvMysql.executeQuery('deleteCompiledGaMediaLogByPeriod', s_start_date_retrieval, s_end_date_retrieval)
@@ -315,7 +315,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self.__g_bFbProcess = False
 
         with sv_mysql.SvMySql() as oSvMysql:  # to enforce follow strict mysql connection mgmt
-            oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.integrate_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             # define last date of process
@@ -354,7 +354,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_dictOtherMergedDailyLog.clear()
         # connect to database to register
         self.__g_oSvMysql = sv_mysql.SvMySql()
-        self.__g_oSvMysql.setTablePrefix(self.__g_sTblPrefix)
+        self.__g_oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
         self.__g_oSvMysql.set_app_name('svplugins.integrate_db')
         self.__g_oSvMysql.initialize(self._g_dictSvAcctInfo)
         lst_ga_log_daily = self.__g_oSvMysql.executeQuery('getGaLogDaily', self.__g_sDate)

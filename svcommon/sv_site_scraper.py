@@ -137,7 +137,7 @@ class ISvSiteScraper(ABC):
         dt_today = date.today()
         dt_old = dt_today - timedelta(days=5)
         # for initialize only
-        lst_sub_page_all = self.__g_oSvMysql.executeQuery('getScrapeLogAll', dt_old)
+        lst_sub_page_all = self.__g_oSvMysql.execute_query('getScrapeLogAll', dt_old)
         n_rec_cnt = len(lst_sub_page_all)
         del lst_sub_page_all
         if n_rec_cnt == 0:
@@ -150,7 +150,7 @@ class ISvSiteScraper(ABC):
                 s_href = self.__is_effective_sub_url(s_href)
                 if s_href:
                     dict_sub_rst = self.__analyze_url(s_href)
-                    lst_subpage = self.__g_oSvMysql.executeQuery('getScrapeLogByFingerprint',
+                    lst_subpage = self.__g_oSvMysql.execute_query('getScrapeLogByFingerprint',
                                                                  dict_sub_rst['s_fingerprint'])
                     n_rec_cnt = len(lst_subpage)
                     del lst_subpage
@@ -160,7 +160,7 @@ class ISvSiteScraper(ABC):
                                             dict_sub_rst['s_document_date'])
         while True:  # for traverse
             # traverse newly appended sub-urls only
-            lst_sub_page_all = self.__g_oSvMysql.executeQuery('getScrapeLogAll', dt_old)
+            lst_sub_page_all = self.__g_oSvMysql.execute_query('getScrapeLogAll', dt_old)
             if len(lst_sub_page_all) == 0:
                 self._printDebug('no urls to traverse')
                 return
@@ -178,7 +178,7 @@ class ISvSiteScraper(ABC):
                     s_href = self.__is_effective_sub_url(s_new_href_validation)
                     if s_href:
                         dict_sub_rst = self.__analyze_url(s_href)
-                        lst_sub_page = self.__g_oSvMysql.executeQuery('getScrapeLogByFingerprint',
+                        lst_sub_page = self.__g_oSvMysql.execute_query('getScrapeLogByFingerprint',
                                                                       dict_sub_rst['s_fingerprint'])
                         n_rec_cnt = len(lst_sub_page)
                         del lst_sub_page
@@ -189,7 +189,7 @@ class ISvSiteScraper(ABC):
                     else:
                         self.__append_url_ineffective(s_href)
                 # tag scraped date sub url
-                self.__g_oSvMysql.executeQuery('updateScrapeDateByLogSrl', dt_today, dict_row['log_srl'])
+                self.__g_oSvMysql.execute_query('updateScrapeDateByLogSrl', dt_today, dict_row['log_srl'])
             self._printDebug(str(self.__g_nRequestCnt) + ' requested')
             del lst_sub_page_all
 
@@ -241,10 +241,10 @@ class ISvSiteScraper(ABC):
 
     def __register_url(self, s_url, s_fingerprint, s_content, s_html, n_status_code, s_document_date):
         if s_document_date:
-            lst_rst = self.__g_oSvMysql.executeQuery('insertScrapeLogDocdate', s_url, s_fingerprint, s_content,
+            lst_rst = self.__g_oSvMysql.execute_query('insertScrapeLogDocdate', s_url, s_fingerprint, s_content,
                                                      n_status_code, s_document_date)
         else:
-            lst_rst = self.__g_oSvMysql.executeQuery('insertScrapeLog', s_url, s_fingerprint, s_content, n_status_code)
+            lst_rst = self.__g_oSvMysql.execute_query('insertScrapeLog', s_url, s_fingerprint, s_content, n_status_code)
         if 'id' in lst_rst[0]:
             s_backup_path = os.path.join(self.__g_sStoragePath, str(lst_rst[0]['id']) + '.html')
             with open(s_backup_path, 'w', encoding='utf-8') as out:
