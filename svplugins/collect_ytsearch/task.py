@@ -109,7 +109,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_ytsearch')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
+                lst_morpheme = o_sv_mysql.execute_query('getMorphemeActivated')
             
             n_idx = 0
             n_sentinel = len(lst_morpheme)
@@ -206,7 +206,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return f_new_rate  # return new item rate
     
     def __is_duplicated(self, o_sv_mysql, n_morpheme_srl, s_video_id):
-        lst_rst = o_sv_mysql.executeQuery('getSearchLogByMorphemeVideoId', n_morpheme_srl, s_video_id) 
+        lst_rst = o_sv_mysql.execute_query('getSearchLogByMorphemeVideoId', n_morpheme_srl, s_video_id)
         if len(lst_rst) and 'log_srl' in lst_rst[0]:
             return True
         else:
@@ -253,10 +253,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             # check duplication before registration
             if not self.__is_duplicated(o_sv_mysql, s_morpheme_srl, dict_single_item['id']['videoId']):
                 dict_snippet = dict_single_item['snippet']
-                o_sv_mysql.executeQuery('insertSearchLog', s_morpheme_srl, dict_snippet['channelId'], 
-                                        dict_snippet['channelTitle'], dict_single_item['id']['videoId'],
-                                        dict_snippet['title'], dict_snippet['description'], dict_snippet['publishedAt'],
-                                        s_log_date)
+                o_sv_mysql.execute_query('insertSearchLog', s_morpheme_srl, dict_snippet['channelId'],
+                                         dict_snippet['channelTitle'], dict_single_item['id']['videoId'],
+                                         dict_snippet['title'], dict_snippet['description'],
+                                         dict_snippet['publishedAt'], s_log_date)
                 del dict_snippet
 
     def __archive_data_file(self, s_current_filename):

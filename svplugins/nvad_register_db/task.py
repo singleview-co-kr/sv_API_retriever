@@ -145,7 +145,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 oSvMysql.set_app_name('svplugins.nvad_register_db')
                 oSvMysql.initialize(self._g_dictSvAcctInfo)
                 oSvMysql.truncate_tbl('nvad_assembled_daily_log')
-                lstStatDate = oSvMysql.executeQuery('getStatDateList')
+                lstStatDate = oSvMysql.execute_query('getStatDateList')
                 for dictDate in lstStatDate:
                     sCompileDate = datetime.strptime(str(dictDate['date']), '%Y-%m-%d').strftime('%Y%m%d')
                     self.__g_lstDatadateToCompile.append(int(sCompileDate))
@@ -202,7 +202,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             dictKwInfo = {}
             dictCompliedDailyLog = {}
             # retrieve daily nvad media log ignore weird cid
-            lstDailyMediaLog = oSvMysql.executeQuery('getDailyMediaLogs', sCompileDate, cid)
+            lstDailyMediaLog = oSvMysql.execute_query('getDailyMediaLogs', sCompileDate, cid)
 
             # compile daily nvad log by campaign_id & ad_group_id & ad_keyword_id & ua
             for lstMediLog in lstDailyMediaLog:
@@ -215,7 +215,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if dictCampaignInfo.get(lstMediLog['campaign_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedCampaignTitle = dictCampaignInfo[lstMediLog['campaign_id']]
                     else:  # if new campaign id requested
-                        lstCampaign = oSvMysql.executeQuery('getCampaignInfo', lstMediLog['campaign_id'], sCompileDate)
+                        lstCampaign = oSvMysql.execute_query('getCampaignInfo', lstMediLog['campaign_id'], sCompileDate)
                         try:
                             dictCampaignInfo[lstMediLog['campaign_id']] = lstCampaign[0]['campaign_name']
                             sTranslatedCampaignTitle = lstCampaign[0]['campaign_name']
@@ -230,7 +230,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if dictAdGrpInfo.get(lstMediLog['ad_group_id'], 0):  # returns 0 if sRowId does not exist
                         sTranslatedGrpTitle = dictAdGrpInfo[lstMediLog['ad_group_id']]
                     else:  # if new ad group id requested
-                        lstAdGrp = oSvMysql.executeQuery('getAdGrpInfo', lstMediLog['ad_group_id'], sCompileDate)
+                        lstAdGrp = oSvMysql.execute_query('getAdGrpInfo', lstMediLog['ad_group_id'], sCompileDate)
                         try:
                             dictAdGrpInfo[lstMediLog['ad_group_id']] = lstAdGrp[0]['ad_group_name']
                             sTranslatedGrpTitle = lstAdGrp[0]['ad_group_name']
@@ -246,7 +246,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         if dictKwInfo.get(lstMediLog['ad_keyword_id'], 0):  # returns 0 if sRowId does not exist
                             sTranslatedKw = dictKwInfo[lstMediLog['ad_keyword_id']]
                         else:  # if new ad keyword id requested
-                            lstKw = oSvMysql.executeQuery('getKwInfo', lstMediLog['ad_keyword_id'], sCompileDate )
+                            lstKw = oSvMysql.execute_query('getKwInfo', lstMediLog['ad_keyword_id'], sCompileDate )
                             try:
                                 dictKwInfo[lstMediLog['ad_keyword_id']] = lstKw[0]['ad_keyword']
                                 sTranslatedKw = lstKw[0]['ad_keyword']
@@ -268,14 +268,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         'ua':lstMediLog['pc_mobile_type']
                     }            
             # retrieve daily nvad conversion log
-            lstDailyConvLogs = oSvMysql.executeQuery('getDailyConversionLogs', sCompileDate, cid)
+            lstDailyConvLogs = oSvMysql.execute_query('getDailyConversionLogs', sCompileDate, cid)
             for lstSingleConvlog in lstDailyConvLogs:
                 sConvId = lstSingleConvlog['campaign_id']+'|@|'+lstSingleConvlog['ad_group_id']+'|@|'+lstSingleConvlog['ad_keyword_id']+'|@|'+lstSingleConvlog['pc_mobile_type'] 
                 try:
                     dictCompliedDailyLog[sConvId]['conv_cnt'] += int(lstSingleConvlog['conversion_count'])
                     dictCompliedDailyLog[sConvId]['conv_amnt'] += int(lstSingleConvlog['sales_by_conversion'])
                 except KeyError:  # it is possible to exist conversion log without same day media impression data, in a word, supposed to be a delayed conversion
-                    lstCampaign = oSvMysql.executeQuery('getCampaignInfo', lstSingleConvlog['campaign_id'], sCompileDate)
+                    lstCampaign = oSvMysql.execute_query('getCampaignInfo', lstSingleConvlog['campaign_id'], sCompileDate)
                     try:
                         sTranslatedCampaignTitle = lstCampaign[0]['campaign_name']
                     except IndexError:  # if campaign was existed but permanently removed or unidentified
@@ -285,7 +285,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self._print_debug(lstSingleConvlog['campaign_id'])
                         sTranslatedCampaignTitle = lstSingleConvlog['campaign_id']
                     
-                    lstAdGrp = oSvMysql.executeQuery('getAdGrpInfo', lstSingleConvlog['ad_group_id'], sCompileDate)
+                    lstAdGrp = oSvMysql.execute_query('getAdGrpInfo', lstSingleConvlog['ad_group_id'], sCompileDate)
                     try:
                         sTranslatedGrpTitle = lstAdGrp[0]['ad_group_name']
                     except IndexError:  # if ad grp was existed but permanently removed or unidentified
@@ -296,7 +296,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sTranslatedGrpTitle = lstSingleConvlog['ad_group_id']
 
                     if lstSingleConvlog['ad_keyword_id'] != '-': # ignore non keyword media eg) nvr shopping
-                        lstKw = oSvMysql.executeQuery('getKwInfo', lstSingleConvlog['ad_keyword_id'], sCompileDate)
+                        lstKw = oSvMysql.execute_query('getKwInfo', lstSingleConvlog['ad_keyword_id'], sCompileDate)
                         try:
                             sTranslatedKw = lstKw[0]['ad_keyword']
                         except IndexError:  # if ad keyword was existed but permanently removed or unidentified
@@ -361,12 +361,15 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 else:
                     nCost = dict_daily_log['cost']
 
-                oSvMysql.executeQuery('insertAssembledNvadLog', 
-                    cid, dict_daily_log['campaign_id'], dict_daily_log['campaign_name'], dict_daily_log['group_id'],
-                    dict_daily_log['ua'], dict_daily_log['kw_id'], dict_daily_log['term'], dict_daily_log['rst_type'],
-                    self.__g_oSvCampaignParser.get_sv_medium_tag(dict_daily_log['media']), dict_daily_log['brd'], 
-                    dict_daily_log['campaign_1st'], dict_daily_log['campaign_2nd'], dict_daily_log['campaign_3rd'], nCost, 
-                    dict_daily_log['imp'], dict_daily_log['click'], dict_daily_log['conv_cnt'], dict_daily_log['conv_amnt'], sLogDate)
+                oSvMysql.execute_query('insertAssembledNvadLog',
+                                       cid, dict_daily_log['campaign_id'], dict_daily_log['campaign_name'],
+                                       dict_daily_log['group_id'], dict_daily_log['ua'], dict_daily_log['kw_id'],
+                                       dict_daily_log['term'], dict_daily_log['rst_type'],
+                                       self.__g_oSvCampaignParser.get_sv_medium_tag(dict_daily_log['media']),
+                                       dict_daily_log['brd'], dict_daily_log['campaign_1st'],
+                                       dict_daily_log['campaign_2nd'], dict_daily_log['campaign_3rd'], nCost,
+                                       dict_daily_log['imp'], dict_daily_log['click'], dict_daily_log['conv_cnt'],
+                                       dict_daily_log['conv_amnt'], sLogDate)
             
             # register manual BRS info if allowed
             if bBrsInfoFromApiExist == False: # API brs info is primary always!
@@ -383,12 +386,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         sCamp2nd = 'PC'
                     sCamp3rd = '00'
                     nCost = 0
-                    oSvMysql.executeQuery('insertAssembledNvadLog', 
-                        cid, sCampaignId, sCampaignName, sGrpId,
-                        dictNvBrsManualInfo['ua'], sKwId, dictNvBrsManualInfo['term'],
-                        sRstType, sMedia, sBrd, sCamp1st, sCamp2nd, sCamp3rd, nCost, dictNvBrsManualInfo['imp'], 
-                        dictNvBrsManualInfo['click'], dictNvBrsManualInfo['conv_cnt'], 
-                        dictNvBrsManualInfo['conv_amnt'], sLogDate )
+                    oSvMysql.execute_query('insertAssembledNvadLog',
+                                           cid, sCampaignId, sCampaignName, sGrpId, dictNvBrsManualInfo['ua'], sKwId,
+                                           dictNvBrsManualInfo['term'], sRstType, sMedia, sBrd, sCamp1st, sCamp2nd,
+                                           sCamp3rd, nCost, dictNvBrsManualInfo['imp'], dictNvBrsManualInfo['click'],
+                                           dictNvBrsManualInfo['conv_cnt'], dictNvBrsManualInfo['conv_amnt'], sLogDate )
         return True
 
     def __check_nv_brspage_contract_last(self):
@@ -400,7 +402,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for s_ua in lst_ua:
-                lst_last_contract_info = o_sv_mysql.executeQuery('getNvrBrsBudgetLastByUa', s_ua)
+                lst_last_contract_info = o_sv_mysql.execute_query('getNvrBrsBudgetLastByUa', s_ua)
                 if len(lst_last_contract_info) > 0:
                     dt_contract_days = lst_last_contract_info[0]['date_end'] - date.today()
                     if 0 <= dt_contract_days.days <= 2:
@@ -414,7 +416,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.nvad_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_contract_info = o_sv_mysql.executeQuery('getNvrBrsBudget', dt_touching_date, dt_touching_date, self.__g_nNvrBrsAcctId)
+            lst_contract_info = o_sv_mysql.execute_query('getNvrBrsBudget',
+                                                         dt_touching_date, dt_touching_date, self.__g_nNvrBrsAcctId)
         if len(lst_contract_info) > 0:
             dict_rst['detected'] = True  # tag brs info detected even if cost is 0
             for dict_single_contract in lst_contract_info:
@@ -448,7 +451,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._print_debug('weird campaign info detected')
                 self._print_debug(dict_parse_rst)
         else:
-            lst_campaign = o_sv_mysql.executeQuery('getCampaignInfo', dict_complied_daily_log['campaign_id'], s_compile_date)
+            lst_campaign = o_sv_mysql.execute_query('getCampaignInfo',
+                                                    dict_complied_daily_log['campaign_id'], s_compile_date)
             n_campaign_type = lst_campaign[0]['campaign_type']
             del lst_campaign
             if n_campaign_type == 1:
@@ -603,7 +607,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lstLatestBrsLogDate = oSvMysql.executeQuery('getLatestAssembledBrsLogDate', cid)
+            lstLatestBrsLogDate = oSvMysql.execute_query('getLatestAssembledBrsLogDate', cid)
         
         nLatestBrspageLogDate = 19700101 # set sentinel data date
         if lstLatestBrsLogDate[0]['maxdate'] is not None:
@@ -635,7 +639,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.nvad_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lstBrsLogSrlByDate = oSvMysql.executeQuery('getAssembledBrsLogDaily', sCompileDate, cid)
+            lstBrsLogSrlByDate = oSvMysql.execute_query('getAssembledBrsLogDaily', sCompileDate, cid)
         
         if len(lstBrsLogSrlByDate) > 0: # API brs info is primary always!
             pass
@@ -682,7 +686,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             #sCheckDate = datetime.strptime( row[0], "%Y%m%d" )
-                            oSvMysql.executeQuery('insertMasterQi', row[0], row[1], row[2], row[3], row[4], sCheckDate)
+                            oSvMysql.execute_query('insertMasterQi', row[0], row[1], row[2], row[3], row[4], sCheckDate)
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -729,9 +733,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[16] = datetime.strptime( row[16], "%Y-%m-%dT%H:%M:%SZ")
                             else:
                                 row[16] = '0000-00-00 00:00:00'
-                            oSvMysql.executeQuery('insertMasterAdExt', row[0], row[1], row[2], row[3], row[4], row[5],
-                                                  row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13],
-                                                  row[14], row[15], row[16])
+                            oSvMysql.execute_query('insertMasterAdExt', row[0], row[1], row[2], row[3], row[4], row[5],
+                                                   row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13],
+                                                   row[14], row[15], row[16])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -764,7 +768,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[10] = datetime.strptime( row[10], "%Y-%m-%dT%H:%M:%SZ")
                             else:
                                 row[10] = '0000-00-00 00:00:00'
-                            oSvMysql.executeQuery('insertMasterAd', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10])
+                            oSvMysql.execute_query('insertMasterAd', row[0], row[1], row[2], row[3], row[4], row[5],
+                                                   row[6], row[7], row[8], row[9], row[10])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self.printDebug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -797,7 +802,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[11] = datetime.strptime( row[11], "%Y-%m-%dT%H:%M:%SZ" )
                             else:
                                 row[11] = '0000-00-00 00:00:00'						
-                            oSvMysql.executeQuery('insertMasterKeyword', row[0], row[1], row[2], row[3], row[4], row[5],row[6], row[7], row[8], row[9], row[10], row[11])
+                            oSvMysql.execute_query('insertMasterKeyword', row[0], row[1], row[2], row[3], row[4],
+                                                   row[5], row[6], row[7], row[8], row[9], row[10], row[11])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -830,7 +836,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[5] = datetime.strptime( row[5], "%Y-%m-%dT%H:%M:%SZ")
                             else:
                                 row[5] = '0000-00-00 00:00:00'						
-                            oSvMysql.executeQuery('insertMasterAdGroupBudget', row[0], row[1], row[2], row[3], row[4], row[5])
+                            oSvMysql.execute_query('insertMasterAdGroupBudget',
+                                                   row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -930,8 +937,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             else:
                                 row[15] = '0000-00-00 00:00:00'
 
-                            oSvMysql.executeQuery('insertMasterAdGroup', row[0], row[1], row[2], row[3], row[4], row[5], 
-                                row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15])
+                            oSvMysql.execute_query('insertMasterAdGroup', row[0], row[1], row[2], row[3], row[4],
+                                                   row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12],
+                                                   row[13], row[14], row[15])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -976,7 +984,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             else:
                                 row[9] = '0000-00-00 00:00:00'
                                                             
-                            oSvMysql.executeQuery('insertMasterCampaign', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
+                            oSvMysql.execute_query('insertMasterCampaign', row[0], row[1], row[2], row[3], row[4],
+                                                   row[5], row[6], row[7], row[8], row[9])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -1011,7 +1020,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 row[5] = datetime.strptime(row[5], "%Y-%m-%dT%H:%M:%SZ")
                             else:
                                 row[5] = '0000-00-00 00:00:00'						
-                            oSvMysql.executeQuery('insertMasterCampaignBudget', row[0], row[1], row[2], row[3], row[4], row[5])
+                            oSvMysql.execute_query('insertMasterCampaignBudget',
+                                                   row[0], row[1], row[2], row[3], row[4], row[5])
                     self.__archiveNvadDataFile(self.__g_sNvadDataPathAbs, sCurrentFileName)
                 else:
                     self._print_debug('pass ' + sDataFileFullpathname + ' does not exist')
@@ -1039,7 +1049,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatNpayConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
+                                oSvMysql.execute_query('insertStatNpayConversion', row[0], row[1], row[2], row[3],
+                                                       row[4], row[5], row[6], row[7], row[8], row[9])
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1071,7 +1082,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatAdExtensionConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13] )
+                                oSvMysql.execute_query('insertStatAdExtensionConversion', row[0], row[1], row[2],
+                                                       row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10],
+                                                       row[11], row[12], row[13] )
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1103,7 +1116,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatAdExtension', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
+                                oSvMysql.execute_query('insertStatAdExtension', row[0], row[1], row[2], row[3], row[4],
+                                                       row[5], row[6], row[7], row[8], row[9], row[10], row[11],
+                                                       row[12], row[13])
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1135,7 +1150,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatAdConversionDetail', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14] )
+                                oSvMysql.execute_query('insertStatAdConversionDetail', row[0], row[1], row[2], row[3],
+                                                       row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11],
+                                                       row[12], row[13], row[14] )
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1167,7 +1184,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatAdConversion', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12] )
+                                oSvMysql.execute_query('insertStatAdConversion', row[0], row[1], row[2], row[3], row[4],
+                                                       row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1199,7 +1217,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         reader = csv.reader(tsvfile, delimiter='\t')
                         for row in reader:
                             try: 
-                                oSvMysql.executeQuery('insertStatAdDetail', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14] )
+                                oSvMysql.execute_query('insertStatAdDetail', row[0], row[1], row[2], row[3], row[4],
+                                                       row[5], row[6], row[7], row[8], row[9], row[10], row[11],
+                                                       row[12], row[13], row[14] )
                                 pass
                             except Exception as err:
                                 self._print_debug(err)
@@ -1232,7 +1252,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         for row in reader:
                             try: 
                                 #row[1] # cant index 1 if file contains the string like {"timestamp":1517205663149,"status":500,"error":"Internal Server Error","exception":"java.net.SocketException","message":"Connection reset"}
-                                oSvMysql.executeQuery('insertStatAd', row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
+                                oSvMysql.execute_query('insertStatAd', row[0], row[1], row[2], row[3], row[4], row[5],
+                                                       row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                                 pass
                             except Exception as err:
                                 self._print_debug( sDataFileFullpathname)
@@ -1279,8 +1300,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                 # some expkeyword.tsv file has been encoded as ANSI which should be encoded as UTF-8 and lead pymysql occurs Warning like: (1366, "Incorrect string value: '\\xF0\\x9F\\x92\\x90\\xEB\\xA
                                 if int(row[8]) > 0 or nCost > 0:
                                     row[4] = re.sub('[^\w|ㄱ-ㅎ|ㅏ-ㅣ|가-힣|\.|%|\-|\+|\?|\||\#|\/|\*|\;]', '', row[4])
-                                    oSvMysql.executeQuery('insertStatExpKeyword', row[0], row[1], row[2], row[3], row[4], 
-                                        row[5], row[6], row[7], row[8], row[9] )
+                                    oSvMysql.execute_query('insertStatExpKeyword', row[0], row[1], row[2], row[3],
+                                                           row[4], row[5], row[6], row[7], row[8], row[9])
                             except Exception as err:
                                 self._print_debug( err)
                     

@@ -156,7 +156,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_purchaser_id = None if pd.isnull(o_row['주문자ID']) else o_row['주문자ID']
                 s_purchaser_dob = None if pd.isnull(o_row['주문자 생년월일']) else o_row['주문자 생년월일']
                 s_ext_order_id = None if pd.isnull(o_row['주문경로 주문번호(마켓/네이버페이 등)']) else str(int(o_row['주문경로 주문번호(마켓/네이버페이 등)']))
-                o_sv_mysql.executeQuery('insertCafe24OrderLog', o_row['품목별 주문번호'], o_row['상품명(DOMESTIC)'], 
+                o_sv_mysql.execute_query('insertCafe24OrderLog', o_row['품목별 주문번호'], o_row['상품명(DOMESTIC)'],
                     s_item_option, s_item_code, 
                     str(dict_addr_parsed['do']), str(dict_addr_parsed['si']),
                     str(dict_addr_parsed['gu_gun']), str(dict_addr_parsed['dong_myun_eup']),

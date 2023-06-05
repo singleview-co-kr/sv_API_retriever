@@ -196,7 +196,7 @@ class SvMorphRetriever():
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             for s_ignore_word in lst_ignore_word:
-                o_sv_mysql.executeQuery('updateIgnoreWord', s_ignore_word)
+                o_sv_mysql.execute_query('updateIgnoreWord', s_ignore_word)
     
     def __add_custom_noun(self):
         lst_custom_noun = self.__g_sCommaSeparatedWords.split(',')
@@ -207,17 +207,17 @@ class SvMorphRetriever():
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             for s_custom_noun in lst_custom_noun:
-                o_sv_mysql.executeQuery('insertCustomNoun', s_custom_noun)
+                o_sv_mysql.execute_query('insertCustomNoun', s_custom_noun)
         
             o_sv_mysql.truncate_tbl('wc_word_cnt')  # reset word_cnt
-            o_sv_mysql.executeQuery('updateAllDocNonProced')  # reset all document processed status
+            o_sv_mysql.execute_query('updateAllDocNonProced')  # reset all document processed status
 
     def __load_custom_noun(self):
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-            lst_rst = o_sv_mysql.executeQuery('getCustomDictionary')
+            lst_rst = o_sv_mysql.execute_query('getCustomDictionary')
             
         lst_customized_nouns = []
         for dict_row in lst_rst:
@@ -233,13 +233,13 @@ class SvMorphRetriever():
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-            lst_rst = o_sv_mysql.executeQuery('getRegisteredWords')
+            lst_rst = o_sv_mysql.execute_query('getRegisteredWords')
             for dict_row in lst_rst:
                 self.__g_dictRegisteredNouns[dict_row['word']] = {'word_srl': dict_row['word_srl'], 'b_ignore': dict_row['b_ignore']}
             del lst_rst
 
             n_iter_cnt = 0
-            lst_new_doc_detail = o_sv_mysql.executeQuery('getNonProcedDocs')
+            lst_new_doc_detail = o_sv_mysql.execute_query('getNonProcedDocs')
             for dict_row in lst_new_doc_detail:
                 lst_counting_word = self.__get_noun(dict_row['content'])
                 counter_noun_count = Counter(lst_counting_word)
@@ -254,14 +254,14 @@ class SvMorphRetriever():
                     if self.__g_dictRegisteredNouns.get(s_word, 0):  # returns 0 if sRowId does not exist
                         n_word_srl = self.__g_dictRegisteredNouns[s_word]['word_srl']
                     else:
-                        lst_rst = o_sv_mysql.executeQuery('insertDictionary', s_word )
+                        lst_rst = o_sv_mysql.execute_query('insertDictionary', s_word )
                         n_word_srl = lst_rst[0]['id']
                         self.__g_dictRegisteredNouns[s_word] = {'word_srl': n_word_srl, 'b_ignore': 0}
 
-                    o_sv_mysql.executeQuery('insertWordCnt', dict_row['referral'], dict_row['document_srl'], dict_row['module_srl'], n_word_srl, n_cnt, dict_row['logdate'])
+                    o_sv_mysql.execute_query('insertWordCnt', dict_row['referral'], dict_row['document_srl'], dict_row['module_srl'], n_word_srl, n_cnt, dict_row['logdate'])
                 del counter_noun_count
                 # set document processed to avoid duplicated analyze
-                o_sv_mysql.executeQuery('updateDocProcedByLogSrl', dict_row['log_srl'])
+                o_sv_mysql.execute_query('updateDocProcedByLogSrl', dict_row['log_srl'])
             del lst_new_doc_detail
     
     def __get_noun(self, s_phrase):
@@ -328,7 +328,7 @@ class SvMorphRetriever():
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svdoc')
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-                lst_validate_module_srl = o_sv_mysql.executeQuery('getWordCntByModuleSrlCnt', n_module_srl)
+                lst_validate_module_srl = o_sv_mysql.execute_query('getWordCntByModuleSrlCnt', n_module_srl)
                 if lst_validate_module_srl[0]['count(*)'] == 0:
                     self.__print_debug('invalid module_srl')
                     return
@@ -339,19 +339,19 @@ class SvMorphRetriever():
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                         
-            lst_counting_words_rst = o_sv_mysql.executeQuery('getCollectedDictionary')
+            lst_counting_words_rst = o_sv_mysql.execute_query('getCollectedDictionary')
             for dict_row in lst_counting_words_rst:
                 self.__g_dictCountingNouns[dict_row['word_srl']] = dict_row['word']
             del lst_counting_words_rst
             
             if s_period_mode == 'full_period' and s_module_mode == 'all':
-                lst_rst = o_sv_mysql.executeQuery('getWordCnt')
+                lst_rst = o_sv_mysql.execute_query('getWordCnt')
             elif s_period_mode == 'partial_period' and s_module_mode == 'all':
-                lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriodAllModule', dict_period['dt_start'], dict_period['dt_end'])
+                lst_rst = o_sv_mysql.execute_query('getWordCntByPeriodAllModule', dict_period['dt_start'], dict_period['dt_end'])
             elif s_period_mode == 'full_period' and s_module_mode == 'specific':
-                lst_rst = o_sv_mysql.executeQuery('getWordCntByModuleSrl', n_module_srl)
+                lst_rst = o_sv_mysql.execute_query('getWordCntByModuleSrl', n_module_srl)
             elif s_period_mode == 'partial_period' and s_module_mode == 'specific':
-                lst_rst = o_sv_mysql.executeQuery('getWordCntByPeriodModuleSrl', dict_period['dt_start'], dict_period['dt_end'], n_module_srl)
+                lst_rst = o_sv_mysql.execute_query('getWordCntByPeriodModuleSrl', dict_period['dt_start'], dict_period['dt_end'], n_module_srl)
             
             self.__print_debug(str(len(lst_rst)) + ' documents')
             for dict_row in lst_rst:

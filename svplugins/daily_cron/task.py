@@ -92,7 +92,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(dict_acct_info['tbl_prefix'])
             oSvMysql.set_app_name('svplugins.daily_cron')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lst_rst = oSvMysql.executeQuery('getBudgetByDay', s_yesterday, s_yesterday)
+            lst_rst = oSvMysql.execute_query('getBudgetByDay', s_yesterday, s_yesterday)
         # end - retrieve PS budget list for yesterday
         # begin - decide jobs to do now
         o_budget = budget.Budget(None)

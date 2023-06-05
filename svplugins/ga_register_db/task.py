@@ -240,11 +240,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     if not self._continue_iteration():
                         break
                     # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                    oSvMysql.executeQuery('insertGaTransactionDailyLog', 
-                        lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3], lst_single_row[4], 
-                        lst_single_row[5], lst_single_row[6], lst_single_row[7], lst_single_row[8], lst_single_row[9], 
-                        str(lst_single_row[10]), lst_single_row[11])
-
+                    oSvMysql.execute_query('insertGaTransactionDailyLog',
+                                           lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3],
+                                           lst_single_row[4], lst_single_row[5], lst_single_row[6], lst_single_row[7],
+                                           lst_single_row[8], lst_single_row[9], str(lst_single_row[10]),
+                                           lst_single_row[11])
                     self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Register DB:', suffix='Complete', length=50)
                     n_idx += 1
             del lst_transaction_log
@@ -365,11 +365,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sTerm = aReportType[9]
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertGaCompiledDailyLog', sUaType, sSource, sRstType, sMedium, 
-                    bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm, 
-                    dict_single_raw['sess'], str(dict_single_raw['new_per']), str(dict_single_raw['b_per']), 
-                    str(dict_single_raw['dur_sec']), str(dict_single_raw['pvs']), dict_single_raw['trs'], 
-                    dict_single_raw['rev'], 0, sDataDate)
+                oSvMysql.execute_query('insertGaCompiledDailyLog', sUaType, sSource, sRstType, sMedium,
+                                       bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm,
+                                       dict_single_raw['sess'], str(dict_single_raw['new_per']),
+                                       str(dict_single_raw['b_per']), str(dict_single_raw['dur_sec']),
+                                       str(dict_single_raw['pvs']), dict_single_raw['trs'], dict_single_raw['rev'], 0,
+                                       sDataDate)
 
                 self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1

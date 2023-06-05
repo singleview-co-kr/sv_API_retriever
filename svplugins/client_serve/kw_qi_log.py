@@ -98,7 +98,7 @@ class SvKeywordQi():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_sv_qi_log_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getSvQiDenormDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getSvQiDenormDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -118,15 +118,15 @@ class SvKeywordQi():
             s_end_date = datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
             if self.__g_dictDateRange['s_start_date'] == 'na':  # get whole wc
                 self.__print_debug('get whole naver master QI')
-                lst_nvad_master_qi = o_sv_mysql.executeQuery('getAllNvadMasterQiTo', s_end_date)
+                lst_nvad_master_qi = o_sv_mysql.execute_query('getAllNvadMasterQiTo', s_end_date)
             else:
                 s_start_date = datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('naver master QI get from ' + s_start_date + ' to ' + s_end_date)
-                lst_nvad_master_qi = o_sv_mysql.executeQuery('getNvadMasterQiFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
+                lst_nvad_master_qi = o_sv_mysql.execute_query('getNvadMasterQiFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
             # end - retrieve naver master QI
 
             # begin - retrieve naver master ad grp
-            lst_nvad_ad_grp = o_sv_mysql.executeQuery('getAllNvadAdGrp')
+            lst_nvad_ad_grp = o_sv_mysql.execute_query('getAllNvadAdGrp')
             # end - retrieve naver master ad grp
 
         dict_naver_ad_grp = {}
@@ -153,9 +153,9 @@ class SvKeywordQi():
                 for dict_single_qi in lst_nvad_master_qi:
                     if not self.__continue_iteration():
                         return
-                    o_sv_mysql.executeQuery('insertNvadMasterQiDenorm', 'naver', 
-                                                dict_single_qi['ad_group_name'], dict_single_qi['ad_keyword'], 
-                                                dict_single_qi['quality_index'], dict_single_qi['check_date'])
+                    o_sv_mysql.execute_query('insertNvadMasterQiDenorm', 'naver',
+                                             dict_single_qi['ad_group_name'], dict_single_qi['ad_keyword'],
+                                             dict_single_qi['quality_index'], dict_single_qi['check_date'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer naver master QI data:', suffix='Complete', length = 50)
                     n_idx += 1
         del lst_nvad_master_qi

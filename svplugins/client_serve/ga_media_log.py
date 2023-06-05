@@ -115,7 +115,7 @@ class SvGaMediaLog():
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
-            o_sv_mysql.executeQuery('deleteCompiledLogByPeriod', s_data_year, s_data_mo)
+            o_sv_mysql.execute_query('deleteCompiledLogByPeriod', s_data_year, s_data_mo)
 
         self.__print_debug('add period data')
         s_start_date = self.__g_sReplaceYearMonth[:4] + '-' + self.__g_sReplaceYearMonth[4:None] + '-01'
@@ -124,7 +124,7 @@ class SvGaMediaLog():
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-            lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogPeriod', s_start_date, s_end_date)
+            lst_compiled_log = o_sv_mysql.execute_query('getCompiledGaMediaLogPeriod', s_start_date, s_end_date)
         n_idx = 0
         n_sentinel = len(lst_compiled_log)
         if n_sentinel:
@@ -136,21 +136,21 @@ class SvGaMediaLog():
                 for dict_single_log in lst_compiled_log:
                     if not self.__continue_iteration():
                         return
-                    o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
-                                            dict_single_log['log_srl'],
-                                            dict_single_log['media_agency_name'], dict_single_log['media_ua'],
-                                            dict_single_log['media_term'], dict_single_log['media_source'],
-                                            dict_single_log['media_rst_type'], dict_single_log['media_media'],
-                                            dict_single_log['media_brd'], dict_single_log['media_camp1st'],
-                                            dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
-                                            dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
-                                            dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
-                                            dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
-                                            dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
-                                            dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
-                                            dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
-                                            dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
-                                            dict_single_log['in_site_registrations'], dict_single_log['logdate'])
+                    o_sv_mysql.execute_query('insertCompiledGaMediaDailyLog',
+                                             dict_single_log['log_srl'],
+                                             dict_single_log['media_agency_name'], dict_single_log['media_ua'],
+                                             dict_single_log['media_term'], dict_single_log['media_source'],
+                                             dict_single_log['media_rst_type'], dict_single_log['media_media'],
+                                             dict_single_log['media_brd'], dict_single_log['media_camp1st'],
+                                             dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
+                                             dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
+                                             dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
+                                             dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
+                                             dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
+                                             dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
+                                             dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
+                                             dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
+                                             dict_single_log['in_site_registrations'], dict_single_log['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer ga data:', suffix='Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
@@ -168,7 +168,7 @@ class SvGaMediaLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_compiled_ga_media_daily_log')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getCompiledGaMediaDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getCompiledGaMediaDateRange')
         if lst_wc_date_range[0]['maxdate']:  # if table contains data
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -189,10 +189,10 @@ class SvGaMediaLog():
                 s_start_date = self.__g_dictDateRange['s_start_date']
                 s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('get from ' + s_start_date)
-                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogFrom', s_start_date)
+                lst_compiled_log = o_sv_mysql.execute_query('getCompiledGaMediaLogFrom', s_start_date)
             elif int(s_startdate) <= int(self.__g_sYesterday):  # stop if execute twice today
                 self.__print_debug('get whole')
-                lst_compiled_log = o_sv_mysql.executeQuery('getCompiledGaMediaLogGross')
+                lst_compiled_log = o_sv_mysql.execute_query('getCompiledGaMediaLogGross')
             else:
                 lst_compiled_log = []
         n_idx = 0
@@ -206,21 +206,21 @@ class SvGaMediaLog():
                 for dict_single_log in lst_compiled_log:
                     if not self.__continue_iteration():
                         return
-                    o_sv_mysql.executeQuery('insertCompiledGaMediaDailyLog', 
-                                            dict_single_log['log_srl'],
-                                            dict_single_log['media_agency_name'], dict_single_log['media_ua'],
-                                            dict_single_log['media_term'], dict_single_log['media_source'],
-                                            dict_single_log['media_rst_type'], dict_single_log['media_media'],
-                                            dict_single_log['media_brd'], dict_single_log['media_camp1st'],
-                                            dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
-                                            dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
-                                            dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
-                                            dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
-                                            dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
-                                            dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
-                                            dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
-                                            dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
-                                            dict_single_log['in_site_registrations'], dict_single_log['logdate'])
+                    o_sv_mysql.execute_query('insertCompiledGaMediaDailyLog',
+                                             dict_single_log['log_srl'],
+                                             dict_single_log['media_agency_name'], dict_single_log['media_ua'],
+                                             dict_single_log['media_term'], dict_single_log['media_source'],
+                                             dict_single_log['media_rst_type'], dict_single_log['media_media'],
+                                             dict_single_log['media_brd'], dict_single_log['media_camp1st'],
+                                             dict_single_log['media_camp2nd'], dict_single_log['media_camp3rd'],
+                                             dict_single_log['media_raw_cost'], dict_single_log['media_agency_cost'],
+                                             dict_single_log['media_cost_vat'], dict_single_log['media_imp'],
+                                             dict_single_log['media_click'], dict_single_log['media_conv_cnt'],
+                                             dict_single_log['media_conv_amnt'], dict_single_log['in_site_tot_session'],
+                                             dict_single_log['in_site_tot_new'], dict_single_log['in_site_tot_bounce'],
+                                             dict_single_log['in_site_tot_duration_sec'], dict_single_log['in_site_tot_pvs'],
+                                             dict_single_log['in_site_trs'], dict_single_log['in_site_revenue'],
+                                             dict_single_log['in_site_registrations'], dict_single_log['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer ga media data:', suffix = 'Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:

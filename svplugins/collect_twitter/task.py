@@ -119,7 +119,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_twitter')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
+                lst_morpheme = o_sv_mysql.execute_query('getMorphemeActivated')
 
             for dict_single_morpheme in lst_morpheme:
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
@@ -137,7 +137,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_rst = o_sv_mysql.executeQuery('getLatestStatusId', n_morpheme_srl)
+            lst_rst = o_sv_mysql.execute_query('getLatestStatusId', n_morpheme_srl)
             n_since_id = lst_rst[0]['status_id']
 
         o_sv_twitter = sv_twitter.SvTwitter()
@@ -195,17 +195,17 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_twt_status = o_sv_mysql.executeQuery('getTwtStatusByMorphemeSrl', n_morpheme_srl, s_status_id)
+            lst_twt_status = o_sv_mysql.execute_query('getTwtStatusByMorphemeSrl', n_morpheme_srl, s_status_id)
             if len(lst_twt_status) == 0:  # register new twt status
-                o_sv_mysql.executeQuery('insertTwtStatus', n_morpheme_srl, s_status_id, s_user_id, 
-                                        s_rtweet_status_id, s_qtweet_status_id, n_retweet_cnt, n_favorite_cnt,
-                                        dt_regdate)
+                o_sv_mysql.execute_query('insertTwtStatus', n_morpheme_srl, s_status_id, s_user_id,
+                                         s_rtweet_status_id, s_qtweet_status_id, n_retweet_cnt, n_favorite_cnt,
+                                         dt_regdate)
                 if s_rtweet_status_id == 0:
-                    lst_rst = o_sv_mysql.executeQuery('insertTwtFullText', dict_single_status['s_full_text'])
-                    o_sv_mysql.executeQuery('updateTwtStatusFulltextSrl', lst_rst[0]['id'], s_status_id)
+                    lst_rst = o_sv_mysql.execute_query('insertTwtFullText', dict_single_status['s_full_text'])
+                    o_sv_mysql.execute_query('updateTwtStatusFulltextSrl', lst_rst[0]['id'], s_status_id)
                     return lst_rst[0]['id']
                 else:
-                    o_sv_mysql.executeQuery('updateTwtStatusFulltextSrl', n_full_text_srl, s_status_id)
+                    o_sv_mysql.execute_query('updateTwtStatusFulltextSrl', n_full_text_srl, s_status_id)
 
         return None
 
@@ -215,11 +215,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_twitter')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_twt_user = o_sv_mysql.executeQuery('getTwtUserInfoById', s_user_id)
+            lst_twt_user = o_sv_mysql.execute_query('getTwtUserInfoById', s_user_id)
             if len(lst_twt_user) == 0:  # register new twt user
-                o_sv_mysql.executeQuery('insertTwtUserInfo', s_user_id, n_followers_cnt, n_friends_cn, n_favourites_cnt)
+                o_sv_mysql.execute_query('insertTwtUserInfo', s_user_id, n_followers_cnt, n_friends_cn, n_favourites_cnt)
             else:  # update twt user
-                o_sv_mysql.executeQuery('updateTwtUserInfo', n_followers_cnt, n_friends_cn, n_favourites_cnt, s_user_id)
+                o_sv_mysql.execute_query('updateTwtUserInfo', n_followers_cnt, n_friends_cn, n_favourites_cnt, s_user_id)
 
     def __get_keyword_from_db(self, lst_status_registered=None):
         """ debug method; retrieve text from SV DB """
@@ -233,29 +233,29 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lst_status_id = o_sv_mysql.execute_dynamic_query('getStatusById', dict_param)
                 del dict_param
             else:
-                lst_status_id = o_sv_mysql.executeQuery('getAllStatus')
+                lst_status_id = o_sv_mysql.execute_query('getAllStatus')
             
             for dict_single_status in lst_status_id:
                 print('https://twitter.com/i/web/status/' + str(dict_single_status['status_id']))
 
                 if dict_single_status['rtweet_status_id']:
-                    lst_rtwt_status = o_sv_mysql.executeQuery('getTwtStatusInfoById', dict_single_status['rtweet_status_id'])
+                    lst_rtwt_status = o_sv_mysql.execute_query('getTwtStatusInfoById', dict_single_status['rtweet_status_id'])
                     print(str(dict_single_status['user_id']) + ' has retwitted status by user ' + str(lst_rtwt_status[0]['user_id']))
                     print('https://twitter.com/i/web/status/' + str(dict_single_status['rtweet_status_id']))
-                    lst_rtwt_fulltext = o_sv_mysql.executeQuery('getTwtFulltextBySrl', lst_rtwt_status[0]['full_text_srl'])
+                    lst_rtwt_fulltext = o_sv_mysql.execute_query('getTwtFulltextBySrl', lst_rtwt_status[0]['full_text_srl'])
                     print(lst_rtwt_fulltext[0]['full_text'] + ' at ' + str(lst_rtwt_status[0]['logdate']))
                     del lst_rtwt_fulltext, lst_rtwt_status
 
                     if dict_single_status['qtweet_status_id']:
-                        lst_qtwt_status = o_sv_mysql.executeQuery('getTwtStatusInfoById', dict_single_status['qtweet_status_id'])
+                        lst_qtwt_status = o_sv_mysql.execute_query('getTwtStatusInfoById', dict_single_status['qtweet_status_id'])
                         print('this twit quoted status by user ' + str(lst_qtwt_status[0]['user_id']))
                         print('https://twitter.com/i/web/status/' + str(dict_single_status['qtweet_status_id']))
-                        lst_qtwt_fulltext = o_sv_mysql.executeQuery('getTwtFulltextBySrl', lst_qtwt_status[0]['full_text_srl'])
+                        lst_qtwt_fulltext = o_sv_mysql.execute_query('getTwtFulltextBySrl', lst_qtwt_status[0]['full_text_srl'])
                         print(lst_qtwt_fulltext[0]['full_text'] + ' at ' + str(lst_qtwt_status[0]['logdate']))
                         del lst_qtwt_fulltext, lst_qtwt_status
                 else:
                     print(str(dict_single_status['user_id']) + ' twitted')
-                    lst_twt_fulltext = o_sv_mysql.executeQuery('getTwtFulltextBySrl', dict_single_status['full_text_srl'])
+                    lst_twt_fulltext = o_sv_mysql.execute_query('getTwtFulltextBySrl', dict_single_status['full_text_srl'])
                     print(lst_twt_fulltext[0]['full_text'] + ' at ' + str(dict_single_status['logdate']))
                     del lst_twt_fulltext
 

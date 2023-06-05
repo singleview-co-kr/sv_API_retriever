@@ -90,7 +90,7 @@ class SvGaItemPerfLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_ga_itemperf_log_denorm')  # for google data studio
-            o_sv_mysql.executeQuery('deleteGaItemPerfDenormAll')
+            o_sv_mysql.execute_query('deleteGaItemPerfDenormAll')
         self.__print_debug('cleared')
 
     def __add_ga_itemperf_sql(self):
@@ -103,7 +103,7 @@ class SvGaItemPerfLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_ga_itemperf_log_denorm')  # for google data studio
-            lst_catalog_date_range = o_sv_mysql.executeQuery('getGaItemPerfDenormDateRange')
+            lst_catalog_date_range = o_sv_mysql.execute_query('getGaItemPerfDenormDateRange')
         
         if lst_catalog_date_range[0]['maxdate']:
             dt_maxdate = lst_catalog_date_range[0]['maxdate']
@@ -125,16 +125,16 @@ class SvGaItemPerfLog():
                 s_start_date = self.__g_dictDateRange['s_start_date']
                 s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('get from ' + s_start_date)
-                lst_daily_log = o_sv_mysql.executeQuery('getGaItemPerfLogFrom', s_start_date)
+                lst_daily_log = o_sv_mysql.execute_query('getGaItemPerfLogFrom', s_start_date)
             else:
                 self.__print_debug('get whole')
-                lst_daily_log = o_sv_mysql.executeQuery('getGaItemPerfLogGross')
+                lst_daily_log = o_sv_mysql.execute_query('getGaItemPerfLogGross')
 
             if len(lst_daily_log):
                 # retrieve catalog info if item log exists
                 self.__print_debug('get whole catalog info')
                 dict_item_info = {}
-                lst_item_info = o_sv_mysql.executeQuery('getAllGaItemInfo')
+                lst_item_info = o_sv_mysql.execute_query('getAllGaItemInfo')
                 for dict_single_word in lst_item_info:
                     if not self.__continue_iteration():
                         return
@@ -169,21 +169,21 @@ class SvGaItemPerfLog():
                             s_cat1 = lst_cat_depth_info[0] if self.__is_index_in_list(lst_cat_depth_info, 0) else ''
                             s_cat2 = lst_cat_depth_info[1] if self.__is_index_in_list(lst_cat_depth_info, 1) else ''
                             s_cat3 = lst_cat_depth_info[2] if self.__is_index_in_list(lst_cat_depth_info, 2) else ''
-                            o_sv_mysql.executeQuery('insertGaItemPerfDenormDailyLog', 
-                                                dict_item_info[dict_single_item_log['item_srl']]['item_title'],
-                                                s_cat1, s_cat2, s_cat3,
-                                                dict_single_item_log['ua'], 
-                                                dict_single_item_log['imp_list'],
-                                                dict_single_item_log['click_list'],
-                                                dict_single_item_log['imp_detail'],
-                                                dict_single_item_log['freq_cart'],
-                                                dict_single_item_log['qty_cart'],
-                                                dict_single_item_log['qty_cart_remove'],
-                                                dict_single_item_log['amnt_pur'],
-                                                dict_single_item_log['freq_pur'],
-                                                dict_single_item_log['freq_cko'],
-                                                dict_single_item_log['qty_cko'],
-                                                dict_single_item_log['logdate'])
+                            o_sv_mysql.execute_query('insertGaItemPerfDenormDailyLog',
+                                                     dict_item_info[dict_single_item_log['item_srl']]['item_title'],
+                                                     s_cat1, s_cat2, s_cat3,
+                                                     dict_single_item_log['ua'],
+                                                     dict_single_item_log['imp_list'],
+                                                     dict_single_item_log['click_list'],
+                                                     dict_single_item_log['imp_detail'],
+                                                     dict_single_item_log['freq_cart'],
+                                                     dict_single_item_log['qty_cart'],
+                                                     dict_single_item_log['qty_cart_remove'],
+                                                     dict_single_item_log['amnt_pur'],
+                                                     dict_single_item_log['freq_pur'],
+                                                     dict_single_item_log['freq_cko'],
+                                                     dict_single_item_log['qty_cko'],
+                                                     dict_single_item_log['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer ga item performance:', suffix='Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:
@@ -202,7 +202,7 @@ class SvGaItemPerfLog():
         """
         dict_max_depth = {}
         dict_arranged_catalog_depth = {}
-        lst_cat_depth_rst = o_sv_mysql.executeQuery('getGaItemDepthAll')
+        lst_cat_depth_rst = o_sv_mysql.execute_query('getGaItemDepthAll')
         for dict_single_cat in lst_cat_depth_rst:
             n_item_srl = dict_single_cat['item_srl']
             if n_item_srl not in dict_arranged_catalog_depth:

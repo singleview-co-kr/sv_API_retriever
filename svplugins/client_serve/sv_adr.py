@@ -94,7 +94,7 @@ class SvAddress():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_sv_adr_log_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getSvAdrDenormDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getSvAdrDenormDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -114,11 +114,11 @@ class SvAddress():
             s_end_date = datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
             if self.__g_dictDateRange['s_start_date'] == 'na':  # get whole wc
                 self.__print_debug('get whole sv addr')
-                lst_sv_addr = o_sv_mysql.executeQuery('getAllSvAdrTo', s_end_date)
+                lst_sv_addr = o_sv_mysql.execute_query('getAllSvAdrTo', s_end_date)
             else:
                 s_start_date = datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
-                lst_sv_addr = o_sv_mysql.executeQuery('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
+                lst_sv_addr = o_sv_mysql.execute_query('getSvAdrFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
 
         o_sv_addr_parser = sv_addr_parser.SvAddrParser()
         dict_standardize_metropolis = o_sv_addr_parser.get_metropolis_dict()
@@ -150,10 +150,10 @@ class SvAddress():
                         s_addr_full += ' ' + dict_single_wc['addr_gu_gun']
                     if dict_single_wc['addr_dong_myun_eup'] != 'None':
                         s_addr_full += ' ' + dict_single_wc['addr_dong_myun_eup']
-                    o_sv_mysql.executeQuery('insertSvAdrDenorm', dict_single_wc['document_srl'], 
-                                        dict_single_wc['addr_do'], dict_single_wc['addr_si'], dict_single_wc['addr_gu_gun'],
-                                        dict_single_wc['addr_dong_myun_eup'], s_addr_full,
-                                        dict_single_wc['logdate'])
+                    o_sv_mysql.execute_query('insertSvAdrDenorm', dict_single_wc['document_srl'],
+                                             dict_single_wc['addr_do'], dict_single_wc['addr_si'],
+                                             dict_single_wc['addr_gu_gun'], dict_single_wc['addr_dong_myun_eup'],
+                                             s_addr_full, dict_single_wc['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer sv adr data:', suffix='Complete', length = 50)
                     n_idx += 1
         del lst_sv_addr

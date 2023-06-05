@@ -108,7 +108,7 @@ class SvDocCollection():
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svdoc')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
-            lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestDocumentDate')
+            lst_latest_doc_date = o_sv_mysql.execute_query('getLatestDocumentDate')
         if not self.__continue_iteration():
             return
 
@@ -209,9 +209,10 @@ class SvDocCollection():
                             s_content = dict_single_doc['content'].replace(u'\xa0', u'')
                             s_answer = dict_single_doc['answer'].replace(u'\xa0', u'')
                             dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
-                            o_sv_mysql.executeQuery('insertDocumentLog', n_singleview_referral_code, 
-                                n_sv_doc_srl, n_sv_module_srl, s_title, s_content, s_answer, dt_regdate)
-                            self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'register sv documents:', suffix = 'Complete', length = 50)
+                            o_sv_mysql.execute_query('insertDocumentLog', n_singleview_referral_code,
+                                                     n_sv_doc_srl, n_sv_module_srl, s_title, s_content, s_answer,
+                                                     dt_regdate)
+                            self.__print_progress_bar(n_idx+1, n_sentinel, prefix='register sv documents:', suffix='Complete', length=50)
                             n_idx += 1
                 n_doc_count -= len(lst_transmit)
             del lst_transmit

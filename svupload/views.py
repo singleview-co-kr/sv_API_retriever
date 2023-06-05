@@ -283,7 +283,7 @@ class AjaxHandling(LoginRequiredMixin, TemplateView):
         # oDb.set_tbl_prefix(s_analytical_namespace)
         # oDb.set_app_name(__name__)
         # oDb.initialize()
-        # lst_rst = oDb.executeQuery('getEmartExistingLog', 1, 1, 20190103)
+        # lst_rst = oDb.execute_query('getEmartExistingLog', 1, 1, 20190103)
         # print(lst_rst)
         dict_param = {
             's_tbl_prefix': s_tbl_prefix,

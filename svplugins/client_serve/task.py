@@ -239,11 +239,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sStartDate = dictRetrievalDateRange['start_date']
                 sStartDate = datetime.strptime(sStartDate, '%Y%m%d').strftime('%Y-%m-%d')
                 self._print_debug('get from ' + sStartDate)
-                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogFrom', sStartDate)
+                lstRetrievedCompiledLog = oSvMysql.execute_query('getCompiledGaMediaLogFrom', sStartDate)
             except ValueError: # if sStartDate == 'na'
                 self._print_debug('get whole')
                 sEndDate = dictRetrievalDateRange['end_date']
-                lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogGross')
+                lstRetrievedCompiledLog = oSvMysql.execute_query('getCompiledGaMediaLogGross')
 
             nRecCount = len(lstRetrievedCompiledLog)
             if nRecCount == 0:
@@ -326,8 +326,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.client_serve')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lstRetrievedCompiledLog = oSvMysql.executeQuery('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
-            nRecCount = len(lstRetrievedCompiledLog )
+            lstRetrievedCompiledLog = oSvMysql.execute_query('getCompiledGaMediaLogPeriod', sStartDateRetrieval, sEndDateRetrieval)
+            nRecCount = len(lstRetrievedCompiledLog)
             if nRecCount == 0:
                 self._print_debug('stop communication - no more data to update')
                 raise Exception('stop')

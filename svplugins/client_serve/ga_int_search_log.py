@@ -93,7 +93,7 @@ class SvGaIntSearchLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_ga_intsearch_log_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getGaIntSearchDenormDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getGaIntSearchDenormDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -114,16 +114,16 @@ class SvGaIntSearchLog():
                 s_start_date = self.__g_dictDateRange['s_start_date']
                 s_start_date = datetime.strptime(s_start_date, '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('get from ' + s_start_date)
-                lst_daily_log = o_sv_mysql.executeQuery('getGaIntSearchLogFrom', s_start_date)
+                lst_daily_log = o_sv_mysql.execute_query('getGaIntSearchLogFrom', s_start_date)
             else:
                 self.__print_debug('get whole')
-                lst_daily_log = o_sv_mysql.executeQuery('getGaIntSearchLogGross')
+                lst_daily_log = o_sv_mysql.execute_query('getGaIntSearchLogGross')
 
             if len(lst_daily_log):
                 # retrieve dictionary if word count log exists
                 self.__print_debug('get whole dictionary')
                 dict_dictionary = {}
-                lst_dictionary = o_sv_mysql.executeQuery('getAllGaIntSearchDictionary')
+                lst_dictionary = o_sv_mysql.execute_query('getAllGaIntSearchDictionary')
                 for dict_single_word in lst_dictionary:
                     if not self.__continue_iteration():
                         return
@@ -155,10 +155,10 @@ class SvGaIntSearchLog():
                         return
                     if dict_dictionary[dict_single_int_search['word_srl']]['b_ignore'] == '0':
                         if dict_single_int_search['word_srl'] in lst_word_srl_to_trans:
-                            o_sv_mysql.executeQuery('insertGaIntSearchDenormDailyLog',
-                                                    dict_dictionary[dict_single_int_search['word_srl']]['word'],
-                                                    dict_single_int_search['ua'], dict_single_int_search['cnt'],
-                                                    dict_single_int_search['logdate'])
+                            o_sv_mysql.execute_query('insertGaIntSearchDenormDailyLog',
+                                                     dict_dictionary[dict_single_int_search['word_srl']]['word'],
+                                                     dict_single_int_search['ua'], dict_single_int_search['cnt'],
+                                                     dict_single_int_search['logdate'])
                     self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer ga intsearch data:', suffix='Complete', length = 50)
                     n_idx += 1
         elif n_sentinel == 0:

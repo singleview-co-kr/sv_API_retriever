@@ -152,12 +152,12 @@ class svItemPerformance():
             oSvMysql.set_app_name('svplugins.ga_register_db')
             oSvMysql.initialize(self.__g_dictSvAcctInfo)
             for s_item_title, dict_item_info in self.__g_dictItemSrl.items():
-                lst_rst = oSvMysql.executeQuery('getItemTitle', s_item_title)
+                lst_rst = oSvMysql.execute_query('getItemTitle', s_item_title)
                 if len(lst_rst):
                     n_item_srl = lst_rst[0]['item_srl']
                 else:
-                    lst_insert = oSvMysql.executeQuery('insertItemTitle', s_item_title,
-                        str(dict_item_info['n_first_detected_date']))
+                    lst_insert = oSvMysql.execute_query('insertItemTitle', s_item_title,
+                                                        str(dict_item_info['n_first_detected_date']))
                     n_item_srl = lst_insert[0]['id']
                 self.__g_dictItemSrl[s_item_title]['n_item_srl'] = n_item_srl
 
@@ -177,16 +177,15 @@ class svItemPerformance():
                 s_item_title = lst_rpt_type[2]
                 # # should check if there is duplicated date + SM log
                 # # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertItemPerfLog', self.__g_dictItemSrl[s_item_title]['n_item_srl'], s_ua_type, 
-                    str(dict_single_raw['imp_list']), str(dict_single_raw['click_list']),
-                    str(dict_single_raw['imp_detail']), 
-                    # str(dict_single_raw['rate_detail_pur']), str(dict_single_raw['rate_detail_cart']), 
-                    str(dict_single_raw['freq_cart']),
-                    str(dict_single_raw['qty_cart']), str(dict_single_raw['qty_cart_remove']),
-                    str(dict_single_raw['amnt_pur']), str(dict_single_raw['freq_pur']),
-                    str(dict_single_raw['freq_cko']), str(dict_single_raw['qty_cko']), s_data_date)
-
-                self.__print_progress_bar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
+                oSvMysql.execute_query('insertItemPerfLog', self.__g_dictItemSrl[s_item_title]['n_item_srl'], s_ua_type,
+                                       str(dict_single_raw['imp_list']), str(dict_single_raw['click_list']),
+                                       str(dict_single_raw['imp_detail']),
+                                       # str(dict_single_raw['rate_detail_pur']), str(dict_single_raw['rate_detail_cart']),
+                                       str(dict_single_raw['freq_cart']), str(dict_single_raw['qty_cart']),
+                                       str(dict_single_raw['qty_cart_remove']), str(dict_single_raw['amnt_pur']),
+                                       str(dict_single_raw['freq_pur']), str(dict_single_raw['freq_cko']),
+                                       str(dict_single_raw['qty_cko']), s_data_date)
+                self.__print_progress_bar(n_idx + 1, n_sentinel, prefix='Register DB:', suffix='Complete', length=50)
                 n_idx += 1
 
     def __archive_ga_data_file(self, s_cur_filename):

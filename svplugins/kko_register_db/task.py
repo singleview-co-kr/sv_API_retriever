@@ -349,14 +349,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCampaign1st = aReportType[7]
                 sCampaign2nd = aReportType[8]
                 sCampaign3rd = aReportType[9]
-                sTerm = '' #aReportType[10]
+                sTerm = ''  # aReportType[10]
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertKkoCompiledDailyLog', sKkoCid, sUaType, sSource, sRstType, sMedium, 
-                    bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,sTerm,
-                    str(dict_single_row['cost_inc_vat']), dict_single_row['imp'], str(dict_single_row['clk']),
-                    str(dict_single_row['conv_cnt_direct']), str(dict_single_row['conv_amnt_direct']),
-                    str(dict_single_row['conv_cnt_indirect']), str(dict_single_row['conv_amnt_indirect']), sDataDate )
+                oSvMysql.execute_query('insertKkoCompiledDailyLog', sKkoCid, sUaType, sSource, sRstType, sMedium,
+                                       bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,sTerm,
+                                       str(dict_single_row['cost_inc_vat']), dict_single_row['imp'],
+                                       str(dict_single_row['clk']), str(dict_single_row['conv_cnt_direct']),
+                                       str(dict_single_row['conv_amnt_direct']),
+                                       str(dict_single_row['conv_cnt_indirect']),
+                                       str(dict_single_row['conv_amnt_indirect']), sDataDate)
                 self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1
 

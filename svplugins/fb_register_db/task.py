@@ -370,11 +370,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sCampaign3rd = aReportType[9]
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertFbCompiledDailyLog', sFbBizAcctId, sUaType, sSource, sRstType, 
-                    sMedium, bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,
-                    str(dict_single_raw['cost']), str(dict_single_raw['reach']), dict_single_raw['imp'],
-                    str(dict_single_raw['clk']), str(dict_single_raw['u_clk']), str(dict_single_raw['conv_cnt']),
-                    str(dict_single_raw['conv_amnt']), sDataDate)
+                oSvMysql.execute_query('insertFbCompiledDailyLog', sFbBizAcctId, sUaType, sSource, sRstType,
+                                       sMedium, bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd,
+                                       str(dict_single_raw['cost']), str(dict_single_raw['reach']),
+                                       dict_single_raw['imp'], str(dict_single_raw['clk']),
+                                       str(dict_single_raw['u_clk']), str(dict_single_raw['conv_cnt']),
+                                       str(dict_single_raw['conv_amnt']), sDataDate)
 
                 self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
                 nIdx += 1

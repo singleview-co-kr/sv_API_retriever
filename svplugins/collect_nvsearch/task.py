@@ -131,7 +131,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_morpheme = o_sv_mysql.executeQuery('getMorphemeActivated')
+                lst_morpheme = o_sv_mysql.execute_query('getMorphemeActivated')
             
             for dict_single_morpheme in lst_morpheme:
                 n_morpheme_srl=dict_single_morpheme['morpheme_srl']
@@ -161,7 +161,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
         o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
         o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-        lst_nvsearch_log = o_sv_mysql.executeQuery('getNvrSearchApiKinByLogdate')
+        lst_nvsearch_log = o_sv_mysql.execute_query('getNvrSearchApiKinByLogdate')
         n_sentinel = len(lst_nvsearch_log)
         if n_sentinel == 0:
             self._print_debug('no more crawling task to proceed')
@@ -214,10 +214,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         pass
                     else:  # 15시간 전
                         s_pub_date = datetime.today().strftime('%Y.%m.%d')
-                    o_sv_mysql.executeQuery('updateNvrSearchApiByLogSrl', s_pub_date, dict_log['log_srl'])
+                    o_sv_mysql.execute_query('updateNvrSearchApiByLogSrl', s_pub_date, dict_log['log_srl'])
                     self.__save_html(dict_log['log_srl'], o_resp.text)
                 else:  # adult only kin posting has been restricted
-                    o_sv_mysql.executeQuery('updateNvrSearchApiCrawledByLogSrl', dict_log['log_srl'])
+                    o_sv_mysql.execute_query('updateNvrSearchApiCrawledByLogSrl', dict_log['log_srl'])
                 del o_resp
                 del o_dom
                 dict_log = None
@@ -357,7 +357,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return f_new_rate  # return new item rate
     
     def __is_duplicated(self, o_sv_mysql, n_morpheme_srl, n_media_id, s_link):
-        lst_rst = o_sv_mysql.executeQuery('getSearchLogByMorphemeMediaLink', n_morpheme_srl, n_media_id, s_link) 
+        lst_rst = o_sv_mysql.execute_query('getSearchLogByMorphemeMediaLink', n_morpheme_srl, n_media_id, s_link)
         if len(lst_rst) and 'log_srl' in lst_rst[0]:
             return True
         else:
@@ -410,9 +410,9 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for dict_single_item in lst_standardized_log:
             # check duplication before registration
             if not self.__is_duplicated(o_sv_mysql, dict_single_item['n_morpheme_srl'], dict_single_item['n_media_id'], dict_single_item['link']):
-                o_sv_mysql.executeQuery('insertSearchLog', dict_single_item['n_morpheme_srl'], dict_single_item['n_media_id'], 
-                                        dict_single_item['title'], dict_single_item['link'], dict_single_item['description'], 
-                                        dict_single_item['s_jsonfy_extra'], dict_single_item['s_local_time'], s_log_date) 
+                o_sv_mysql.execute_query('insertSearchLog', dict_single_item['n_morpheme_srl'], dict_single_item['n_media_id'],
+                                         dict_single_item['title'], dict_single_item['link'], dict_single_item['description'],
+                                         dict_single_item['s_jsonfy_extra'], dict_single_item['s_local_time'], s_log_date)
 
     def __archive_xml_file(self, s_current_filename):
         if not os.path.exists(self.__g_sDownloadPath):

@@ -154,7 +154,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(s_tbl_prefix)
             oSvMysql.set_app_name('svplugins.daily_cron')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            lst_rst = oSvMysql.executeQuery('getBudgetPeriodByPeriod', s_start_date_retrieval, s_end_date_retrieval)
+            lst_rst = oSvMysql.execute_query('getBudgetPeriodByPeriod', s_start_date_retrieval, s_end_date_retrieval)
         # end - get budget list for designated month
 
         lst_date_begin = []

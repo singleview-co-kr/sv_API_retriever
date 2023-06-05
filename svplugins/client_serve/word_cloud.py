@@ -100,7 +100,7 @@ class SvWordCloud():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_wc_word_cnt_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getWordCountDenormDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getWordCountDenormDateRange')
         if lst_wc_date_range[0]['maxdate']:
             dt_maxdate = lst_wc_date_range[0]['maxdate']
             dt_startdate = dt_maxdate + timedelta(1)
@@ -120,22 +120,22 @@ class SvWordCloud():
             s_end_date = datetime.strptime(self.__g_dictDateRange['s_end_date'], '%Y%m%d').strftime('%Y-%m-%d')
             if self.__g_dictDateRange['s_start_date'] == 'na':  # get whole wc
                 self.__print_debug('get whole wc')
-                lst_word_cnt = o_sv_mysql.executeQuery('getAllWordCountTo', s_end_date)
+                lst_word_cnt = o_sv_mysql.execute_query('getAllWordCountTo', s_end_date)
             else:
                 s_start_date = datetime.strptime(self.__g_dictDateRange['s_start_date'], '%Y%m%d').strftime('%Y-%m-%d')
                 self.__print_debug('wc get from ' + s_start_date + ' to ' + s_end_date)
-                lst_word_cnt = o_sv_mysql.executeQuery('getWordCountFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
+                lst_word_cnt = o_sv_mysql.execute_query('getWordCountFromTo', self.__g_dictDateRange['s_start_date'], s_end_date)
 
             if len(lst_word_cnt):
                 # retrieve dictionary if word count log exists
                 self.__print_debug('get whole dictionary')
                 dict_dictionary = {}
-                lst_dictionary = o_sv_mysql.executeQuery('getAllSvdocDictionary')
+                lst_dictionary = o_sv_mysql.execute_query('getAllSvdocDictionary')
                 for dict_single_word in lst_dictionary:
                     if not self.__continue_iteration():
                         return
                     dict_dictionary[dict_single_word['word_srl']] = {'word': dict_single_word['word'],
-                                                                    'b_ignore': dict_single_word['b_ignore']}
+                                                                     'b_ignore': dict_single_word['b_ignore']}
                 del lst_dictionary
         n_sentinel = len(lst_word_cnt)
         # regarding ignored word, retrieve doubled rank than requested 
@@ -159,10 +159,10 @@ class SvWordCloud():
                         return
                     if dict_dictionary[dict_single_wc['word_srl']]['b_ignore'] == '0':
                         if dict_single_wc['word_srl'] in lst_word_srl_to_trans:
-                            o_sv_mysql.executeQuery('insertWordCountDenorm', dict_single_wc['module_srl'], 
-                                                dict_dictionary[dict_single_wc['word_srl']]['word'],
-                                                dict_single_wc['cnt'], dict_single_wc['logdate'])
-                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix = 'transfer wc data:', suffix = 'Complete', length = 50)
+                            o_sv_mysql.execute_query('insertWordCountDenorm', dict_single_wc['module_srl'],
+                                                     dict_dictionary[dict_single_wc['word_srl']]['word'],
+                                                     dict_single_wc['cnt'], dict_single_wc['logdate'])
+                    self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer wc data:', suffix='Complete', length=50)
                     n_idx += 1
         del lst_word_srl_to_trans
         del lst_word_cnt

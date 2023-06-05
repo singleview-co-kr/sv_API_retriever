@@ -138,7 +138,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.collect_svadr')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-            lst_latest_doc_srl = o_sv_mysql.executeQuery('getAllDocuments', n_module_srl)
+            lst_latest_doc_srl = o_sv_mysql.execute_query('getAllDocuments', n_module_srl)
         if not self._continue_iteration():
             return
         # import time
@@ -148,8 +148,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
            
             for dict_row in lst_latest_doc_srl:
-                lst_close_doc_list = o_sv_mysql.executeQuery('getCloseDocumentsByPostcode', n_module_srl,
-                                                            dict_row['postcode'], dict_row['document_srl'])
+                lst_close_doc_list = o_sv_mysql.execute_query('getCloseDocumentsByPostcode', n_module_srl,
+                                                              dict_row['postcode'], dict_row['document_srl'])
                 
                 if len(lst_close_doc_list):
                     print('document_srl: ' + str(dict_row['document_srl']) + ' @ ' + str(dict_row['logdate']))
@@ -179,7 +179,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svadr')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_latest_doc_date = o_sv_mysql.executeQuery('getLatestAdrDate', n_module_srl)
+                lst_latest_doc_date = o_sv_mysql.execute_query('getLatestAdrDate', n_module_srl)
             if not self._continue_iteration():
                 return
 
@@ -204,7 +204,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
                 o_sv_mysql.set_app_name('svplugins.collect_svadr')
                 o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_latest_doc_srl = o_sv_mysql.executeQuery('getLatestDocumentSrl', n_module_srl)
+                lst_latest_doc_srl = o_sv_mysql.execute_query('getLatestDocumentSrl', n_module_srl)
             if not self._continue_iteration():
                 return
 
@@ -296,10 +296,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dt_regdate = datetime.strptime(dict_single_doc['regdate'], '%Y%m%d%H%M%S')
                 if dict_addr_parsed['do'] or dict_addr_parsed['si'] or \
                    dict_addr_parsed['gu_gun'] or dict_addr_parsed['dong_myun_eup']:
-                    o_sv_mysql.executeQuery('insertAdrLog', n_sv_doc_srl, n_sv_module_srl, s_postcode,
-                                        str(dict_addr_parsed['do']), str(dict_addr_parsed['si']),
-                                        str(dict_addr_parsed['gu_gun']), str(dict_addr_parsed['dong_myun_eup']), 
-                                        s_addr, dt_regdate)
+                    o_sv_mysql.execute_query('insertAdrLog', n_sv_doc_srl, n_sv_module_srl, s_postcode,
+                                             str(dict_addr_parsed['do']), str(dict_addr_parsed['si']),
+                                             str(dict_addr_parsed['gu_gun']), str(dict_addr_parsed['dong_myun_eup']),
+                                             s_addr, dt_regdate)
                 del dict_addr_parsed
         del o_sv_addr_parser
         return

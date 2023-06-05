@@ -264,11 +264,12 @@ class ExtractEdiExcel:
     def __add_hypermart_sku_info(self, b_accept, s_mart_type, s_mart_item_code, s_mart_sku_name, s_first_detect_date):
         """ register brand specific SKU info table """
         try:
-            self.__g_oSvDb.executeQuery('insertEdiSkuInfo', b_accept, s_mart_type, s_mart_item_code, s_mart_sku_name, s_first_detect_date)
-        except pymysql.err.IntegrityError:  # change to latest item name if item code is duplicated 
-            lst_rst = self.__g_oSvDb.executeQuery('getEdiSkuInfoByMartIdSkuName', s_mart_type, s_mart_item_code)
+            self.__g_oSvDb.execute_query('insertEdiSkuInfo', b_accept, s_mart_type, s_mart_item_code, s_mart_sku_name,
+                                         s_first_detect_date)
+        except pymysql.err.IntegrityError:  # change to the latest item name if item code is duplicated
+            lst_rst = self.__g_oSvDb.execute_query('getEdiSkuInfoByMartIdSkuName', s_mart_type, s_mart_item_code)
             n_sku_id = lst_rst[0]['id']
-            self.__g_oSvDb.executeQuery('updateEdiSkuName', s_mart_sku_name, n_sku_id)
+            self.__g_oSvDb.execute_query('updateEdiSkuName', s_mart_sku_name, n_sku_id)
         return
 
     def __emart_csv_to_db(self, s_csv_file, n_emart_data_type):
@@ -303,14 +304,14 @@ class ExtractEdiExcel:
                 return # raise Exception('new branch detected ' + line[2] + ' ' + s_branch_name)  # need user define Exception
             
             # check an existing log
-            lst_rst = self.__g_oSvDb.executeQuery('getEmartLogByItemBranchDate', n_sku_id, n_branch_id, line[5])
+            lst_rst = self.__g_oSvDb.execute_query('getEmartLogByItemBranchDate', n_sku_id, n_branch_id, line[5])
             s_query_stmt = None
             if len(lst_rst) == 0:  # add new log; emart separate QTY and AMNT report
                 if n_emart_data_type == sv_hypermart_model.EdiDataType.QTY:
                     s_query_stmt = 'insertEmartDailyQtyLog'
                 elif n_emart_data_type == sv_hypermart_model.EdiDataType.AMNT:
                     s_query_stmt = 'insertEmartDailyAmntLog'
-                self.__g_oSvDb.executeQuery(s_query_stmt, n_sku_id, n_branch_id, line[4], line[5])
+                self.__g_oSvDb.execute_query(s_query_stmt, n_sku_id, n_branch_id, line[4], line[5])
             elif len(lst_rst) == 1:  # update existing log; emart separate QTY and AMNT report
                 n_log_id = lst_rst[0]['id']
                 if lst_rst[0]['qty'] != 0:
@@ -330,7 +331,7 @@ class ExtractEdiExcel:
                 if s_query_stmt is None:
                     raise Exception('data corrupted')  # need user define Exception    
                 else:
-                    self.__g_oSvDb.executeQuery(s_query_stmt, line[4], n_log_id)
+                    self.__g_oSvDb.execute_query(s_query_stmt, line[4], n_log_id)
             else:
                 raise Exception('data corrupted')  # need user define Exception
             if i % 50000 == 0:
@@ -373,27 +374,27 @@ class ExtractEdiExcel:
             s_to_logdate = line[8]
 
             # check an existing log
-            lst_since_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
-                                                        s_since_logdate, s_since_logdate)
+            lst_since_rst = self.__g_oSvDb.execute_query('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
+                                                         s_since_logdate, s_since_logdate)
             if len(lst_since_rst) >= 1:  # deny adding log
                 self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_since_rst[0]['id']) + ' on since date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
-            lst_to_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
-                                                     s_to_logdate, s_to_logdate)
+            lst_to_rst = self.__g_oSvDb.execute_query('getLtmartLogByItemBranchDateIn', n_sku_id, n_branch_id,
+                                                      s_to_logdate, s_to_logdate)
             if len(lst_to_rst) >= 1:  # deny adding log
                 self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_to_rst[0]['id']) + ' on to date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
-            lst_range_rst = self.__g_oSvDb.executeQuery('getLtmartLogByItemBranchDateOut', n_sku_id, n_branch_id,
-                                                        s_since_logdate, s_to_logdate)
+            lst_range_rst = self.__g_oSvDb.execute_query('getLtmartLogByItemBranchDateOut', n_sku_id, n_branch_id,
+                                                         s_since_logdate, s_to_logdate)
             if len(lst_range_rst) >= 1:  # deny adding log
                 self.__print_debug('denied: duplicated qty for log id -> ' + str(lst_range_rst[0]['id']) + ' on range date ' + str(
                     line[5]) + ' qty -> ' + str(line[4]))
                 continue
             # add new -> owner_id`, `item_id`, `branch_id`, `qty`, `original_amnt(판매액)`, `amnt(공급액)`, `since_logdate`, `logdate`
-            self.__g_oSvDb.executeQuery('insertLtmartDailyLog', n_sku_id, n_branch_id, line[5], line[6],
-                                        line[9], s_since_logdate, s_to_logdate)
+            self.__g_oSvDb.execute_query('insertLtmartDailyLog', n_sku_id, n_branch_id, line[5], line[6],
+                                         line[9], s_since_logdate, s_to_logdate)
             if i % 50000 == 0:
                 self.__print_debug('beacon:' + str(i))
             # if i == 50:  # for shorten test
@@ -411,9 +412,9 @@ class ExtractEdiExcel:
     def __get_hypermart_old_sku_info(self, b_accepted=None):
         # retrieve account specific SKU info dictionary from account dependent table
         if b_accepted is None:
-            lst_rst = self.__g_oSvDb.executeQuery('getEdiSkuCodeAll')  # to check new sku only
+            lst_rst = self.__g_oSvDb.execute_query('getEdiSkuCodeAll')  # to check new sku only
         else:
-            lst_rst = self.__g_oSvDb.executeQuery('getEdiSkuAccepted', 1)
+            lst_rst = self.__g_oSvDb.execute_query('getEdiSkuAccepted', 1)
         for dictSingleRow in lst_rst:
             self.__g_dictSkuInfo[str(dictSingleRow['mart_id']) + '_' + dictSingleRow['item_code']] = dictSingleRow['id']
         return

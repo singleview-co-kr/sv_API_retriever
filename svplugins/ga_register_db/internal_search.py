@@ -132,11 +132,11 @@ class svInternalSearch():
             oSvMysql.set_app_name('svplugins.ga_register_db')
             oSvMysql.initialize(self.__g_dictSvAcctInfo)
             for s_term, _ in self.__g_dictWordSrl.items():
-                lst_rst = oSvMysql.executeQuery('getIntSearchTermInfo', s_term)
+                lst_rst = oSvMysql.execute_query('getIntSearchTermInfo', s_term)
                 if len(lst_rst):
                     n_word_srl = lst_rst[0]['word_srl']
                 else:
-                    lst_insert = oSvMysql.executeQuery('insertIntSearchTerm', s_term)
+                    lst_insert = oSvMysql.execute_query('insertIntSearchTerm', s_term)
                     n_word_srl = lst_insert[0]['id']
                 self.__g_dictWordSrl[s_term] = n_word_srl
 
@@ -157,8 +157,8 @@ class svInternalSearch():
                 s_search_term = lst_rpt_type[2]
                 # # should check if there is duplicated date + SM log
                 # # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertIntSearchLog', self.__g_dictWordSrl[s_search_term], s_ua_type,
-                                      dict_single_raw['search_term'], s_data_date)
+                oSvMysql.execute_query('insertIntSearchLog', self.__g_dictWordSrl[s_search_term], s_ua_type,
+                                       dict_single_raw['search_term'], s_data_date)
 
                 self.__print_progress_bar(n_idx + 1, n_sentinel, prefix = 'Register DB:', suffix = 'Complete', length = 50)
                 n_idx += 1

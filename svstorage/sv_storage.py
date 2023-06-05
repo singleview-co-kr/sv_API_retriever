@@ -119,7 +119,7 @@ class SvStorage():
         # end - file write
         del lst_file_info
         # begin - file registration into db
-        self.__g_oSvMysql.executeQuery('insertUploadedFile', n_request_user_id, 
+        self.__g_oSvMysql.execute_query('insertUploadedFile', n_request_user_id,
                                         s_original_file_name, s_file_ext, s_secured_file_name, '')
         # end - file registration into db
         dict_rst['b_err'] = False
@@ -150,7 +150,7 @@ class SvStorage():
         # print(json.dumps(o_config, ensure_ascii=False, indent='\t'))
 
     def get_uploaded_file_all(self):
-        return self.__g_oSvMysql.executeQuery('getUploadedFileAll')
+        return self.__g_oSvMysql.execute_query('getUploadedFileAll')
 
     def get_uploaded_file(self, n_file_id):
         # access right control - n_user_id, b_admin, 
@@ -268,7 +268,7 @@ class SvStorage():
                                                 s_acct_id, s_brand_id, dict_req_file['secured_filename'])
         if os.path.isfile(s_removing_file_path_abs):
             os.remove(s_removing_file_path_abs)
-            self.__g_oSvMysql.executeQuery('updateUploadedFileDeletedById', n_file_id)
+            self.__g_oSvMysql.execute_query('updateUploadedFileDeletedById', n_file_id)
             dict_rst['b_err'] = False
             dict_rst['s_msg'] = None
         else:
@@ -300,7 +300,7 @@ class SvStorage():
         return dict_rst
 
     def __get_file_info_by_id(self, n_file_id):
-        lst_req_file = self.__g_oSvMysql.executeQuery('getUploadedFileById', n_file_id)
+        lst_req_file = self.__g_oSvMysql.execute_query('getUploadedFileById', n_file_id)
         if len(lst_req_file):
             return lst_req_file[0]
         else:

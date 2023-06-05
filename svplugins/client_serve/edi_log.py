@@ -130,7 +130,7 @@ class SvEdiLog():
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
             if not self.__continue_iteration():
                 return
-            lst_sku_info_rst = o_sv_mysql.executeQuery('getEdiSkuAccepted', 1)
+            lst_sku_info_rst = o_sv_mysql.execute_query('getEdiSkuAccepted', 1)
         
         if len(lst_sku_info_rst):
             for dict_single_sku in lst_sku_info_rst:
@@ -150,7 +150,7 @@ class SvEdiLog():
             o_sv_mysql.set_app_name('svplugins.client_serve')
             o_sv_mysql.initialize(self.__g_dictSvAcctInfo, s_ext_target_host='BI_SERVER')
             o_sv_mysql.create_table_on_demand('_edi_daily_log_denorm')  # for google data studio
-            lst_wc_date_range = o_sv_mysql.executeQuery('getEdiDenormDateRange')
+            lst_wc_date_range = o_sv_mysql.execute_query('getEdiDenormDateRange')
         if lst_wc_date_range[0]['mindate'] is None and lst_wc_date_range[0]['maxdate'] is None:
             self.__print_debug('init mode')
             self.__g_dictDateRange['s_start_date'] = self.__g_sBirthOftheEdiWorld
@@ -178,7 +178,7 @@ class SvEdiLog():
                 o_sv_mysql.initialize(self.__g_dictSvAcctInfo)
                 if not self.__continue_iteration():
                     return
-                lst_log_count = o_sv_mysql.executeQuery(s_log_cnt_query, 
+                lst_log_count = o_sv_mysql.execute_query(s_log_cnt_query,
                                     dict_date_range['s_start_date'], dict_date_range['s_end_date'])
             
             n_edi_log_count = lst_log_count[0]['count(*)']
@@ -229,17 +229,17 @@ class SvEdiLog():
                                                     self.__g_dictBranchInfoById[dict_single_log['branch_id']]['longi']
                         else:
                             s_latitude_longitude = None
-                        o_sv_mysql.executeQuery('insertEdiDailyLogDenorm',
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
-                                                self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
-                                                dict_single_log['qty'], n_amnt,
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
-                                                self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
-                                                s_latitude_longitude, dict_single_log['logdate'])
+                        o_sv_mysql.execute_query('insertEdiDailyLogDenorm',
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['mart'],
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['type'],
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['name'],
+                                                 self.__g_dictSkuInfoById[dict_single_log['item_id']]['name'],
+                                                 dict_single_log['qty'], n_amnt,
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['do'],
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['si'],
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['gu'],
+                                                 self.__g_dictBranchInfoById[dict_single_log['branch_id']]['dong'],
+                                                 s_latitude_longitude, dict_single_log['logdate'])
                         self.__print_progress_bar(n_idx+1, n_sentinel, prefix='transfer EDI data:', suffix='Complete', length = 50)
                         n_idx += 1
                 del lst_log_period

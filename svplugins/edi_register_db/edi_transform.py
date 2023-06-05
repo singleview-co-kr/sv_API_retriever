@@ -192,8 +192,8 @@ class TransformEdiDb:
         #     self.__g_dictSkuInfoById[str(dictSingleRow['mart_id']) + '_' + dictSingleRow['item_code']] = dictSingleRow['id']
         # return
 
-        # lst_sku_info_rst = self.__g_oSvDb.executeQuery('getEdiSkuByBrandId', dict_param['n_brand_id'])
-        lst_sku_info_rst = self.__g_oSvDb.executeQuery('getEdiSkuAccepted', 1)
+        # lst_sku_info_rst = self.__g_oSvDb.execute_query('getEdiSkuByBrandId', dict_param['n_brand_id'])
+        lst_sku_info_rst = self.__g_oSvDb.execute_query('getEdiSkuAccepted', 1)
         if len(lst_sku_info_rst):
             for dict_single_sku in lst_sku_info_rst:
                 self.__g_dictSkuInfoById[dict_single_sku['id']] = {
@@ -245,7 +245,8 @@ class TransformEdiDb:
         lst_mart = ['Emart', 'Ltmart']
         for s_mart_title in lst_mart:
             s_log_cnt_query = 'get{s_mart_title}LogCountByPeriod'.format(s_mart_title=s_mart_title)
-            lst_log_count = self.__g_oSvDb.executeQuery(s_log_cnt_query, dict_param['s_period_start'], dict_param['s_period_end'])
+            lst_log_count = self.__g_oSvDb.execute_query(s_log_cnt_query, dict_param['s_period_start'],
+                                                         dict_param['s_period_end'])
             n_edi_log_count = lst_log_count[0]['count(*)']
             del lst_log_count
 
@@ -376,8 +377,8 @@ class TransformEdiDb:
         # write gross GA-media daily log info csv
         dict_tag = {'brand_id': dict_param['n_brand_id']}
         self.__g_oSvDb.set_reserved_tag_value(dict_tag)
-        # lst_rst = self.__g_oSvDb.executeQuery('getGaMediaDailyLog')
-        lst_rst_count = self.__g_oSvDb.executeQuery('getGaMediaDailyLogCount')
+        # lst_rst = self.__g_oSvDb.execute_query('getGaMediaDailyLog')
+        lst_rst_count = self.__g_oSvDb.execute_query('getGaMediaDailyLogCount')
         n_lst_log_count = lst_rst_count[0]['count(*)']
         del lst_rst_count
 
@@ -469,7 +470,7 @@ class TransformEdiDb:
         self.__g_oSvDb.set_reserved_tag_value(dict_tag)
 
         # write gross GA-media-EDI unioned daily log info csv
-        lst_rst = self.__g_oSvDb.executeQuery('getEdiGaUnionAll')
+        lst_rst = self.__g_oSvDb.execute_query('getEdiGaUnionAll')
         # print(lst_rst)
         if len(lst_rst):
             s_full_path_extracted_csv = os.path.join(settings.MEDIA_ROOT, settings.EDI_STORAGE_ROOT,

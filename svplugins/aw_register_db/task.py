@@ -152,7 +152,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
             oSvMysql.set_app_name('svplugins.aw_register_db')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
-            oSvMysql.executeQuery('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
+            oSvMysql.execute_query('deleteCompiledLogByPeriod', sStartDateRetrieval, sEndDateRetrieval)
 
     def __validate_campaign_code(self, sSvAcctId, s_brand_id, lstGoogleads):
         """ referring to raw_data_file, validate raw data file without registration """
@@ -384,7 +384,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 sPlacement = aReportType[11].strip()
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.executeQuery('insertAwCompiledDailyLog', sAdwordsCid, sUaType, sSource, sRstType, sMedium, 
+                oSvMysql.execute_query('insertAwCompiledDailyLog', sAdwordsCid, sUaType, sSource, sRstType, sMedium,
                     bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm, sPlacement, 
                     str(dict_row['cost']), dict_row['imp'], str(dict_row['clk']),
                     str(dict_row['conv_cnt']), str(dict_row['conv_amnt']), sDataDate)
