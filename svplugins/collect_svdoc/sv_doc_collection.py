@@ -221,7 +221,7 @@ class SvDocCollection():
         dict_params['secret'] = self.__g_oConfig['basic']['sv_secret_key']
         dict_params['iv'] = self.__g_oConfig['basic']['sv_iv']
         o_sv_http = sv_http.SvHttpCom(s_target_url)
-        o_rsp = o_sv_http.postUrl(dict_params)
+        o_rsp = o_sv_http.post_url(dict_params)
         o_sv_http.close()
         if o_rsp['error'] == -1:
             s_todo = o_rsp['variables']['todo']

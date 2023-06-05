@@ -57,11 +57,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20221008)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
         
         self.__g_oConfig = configparser.ConfigParser()
-        self._g_dictParam.update({'target_host_url':None, 'mode':None})
-        # Declaring a dict outside of __init__ is declaring a class-level variable.
+        self._g_dictParam.update({'target_host_url': None, 'mode': None})
+        # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
         # To create instance variables, you declare them with self in __init__.
@@ -308,7 +308,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         dict_params['secret'] = self.__g_oConfig['basic']['sv_secret_key']
         dict_params['iv'] = self.__g_oConfig['basic']['sv_iv']
         o_sv_http = sv_http.SvHttpCom(s_target_url)
-        dict_rsp = o_sv_http.postUrl(dict_params)
+        dict_rsp = o_sv_http.post_url(dict_params)
         o_sv_http.close()
         del o_sv_http
         if dict_rsp['error'] == -1:

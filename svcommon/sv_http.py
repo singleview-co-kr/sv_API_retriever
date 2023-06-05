@@ -104,7 +104,7 @@ class SvHttpCom(sv_object.ISvObject):
         self._g_oLogger = logging.getLogger(__file__)
         self.__g_oCipher = sv_cipher.SvCipherOpenSsl()  # sv_cipher.SvCipherMcrypt()
 
-    def getSecuredUrl(self, dict_params):
+    def get_secured_url(self, dict_params):
         # oResp = None
         # refer to https://velog.io/@city7310/%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%9C%BC%EB%A1%9C-URL-%EA%B0%80%EC%A7%80%EA%B3%A0-%EB%86%80%EA%B8%B0
         o_original_parts = urllib.parse.urlparse(self.__g_sSubUrl)
@@ -156,7 +156,7 @@ class SvHttpCom(sv_object.ISvObject):
         finally:
             return self.__g_dictRet
 
-    def getUrl(self):
+    def get_url(self):
         o_resp = None
         try:
             self.__g_oHttpConn.request('GET', self.__g_sSubUrl)
@@ -176,7 +176,7 @@ class SvHttpCom(sv_object.ISvObject):
         finally:
             return o_resp  # should be changed to self.__g_dictRet
 
-    def postUrl(self, dict_params):
+    def post_url(self, dict_params):
         try:
             if isinstance(dict_params, dict):
                 self.__g_oCipher.set_iv(dict_params.pop('iv'))
@@ -243,7 +243,7 @@ class SvHttpCom(sv_object.ISvObject):
 if __name__ == '__main__':  # for console debugging
     o_sv_http_com = SvHttpCom('localhost')
     dict_params = {'@key': 234, '@type': 'issue', '@action': 'show'}
-    o_resp = o_sv_http_com.postUrl('/devel/api/', dict_params)
+    o_resp = o_sv_http_com.post_url('/devel/api/', dict_params)
     o_sv_http_com.close()
     # print(del o_resp)
     del o_resp
