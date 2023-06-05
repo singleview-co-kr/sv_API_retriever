@@ -102,24 +102,24 @@ class SvHttpCom(sv_object.ISvObject):
         del o_server_name_regex
 
         self._g_oLogger = logging.getLogger(__file__)
-        self.__g_oCipher = sv_cipher.SvCipherOpenSsl()  # sv_cipher.svCipherMcrypt()
+        self.__g_oCipher = sv_cipher.SvCipherOpenSsl()  # sv_cipher.SvCipherMcrypt()
 
     def getSecuredUrl(self, dictParams):
         # oResp = None
         # refer to https://velog.io/@city7310/%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%9C%BC%EB%A1%9C-URL-%EA%B0%80%EC%A7%80%EA%B3%A0-%EB%86%80%EA%B8%B0
         oOriginalParts = urllib.parse.urlparse(self.__g_sSubUrl)
-        #oOriginalParts.scheme == 'https'
-        #oOriginalParts.netloc == 'velog.io:80'
-        #oOriginalParts.path == '/tags/'
-        #oOriginalParts.params == ''
-        #oOriginalParts.query == 'sort=name&dd=33'
-        #oOriginalParts.fragment == ''
+        # oOriginalParts.scheme == 'https'
+        # oOriginalParts.netloc == 'velog.io:80'
+        # oOriginalParts.path == '/tags/'
+        # oOriginalParts.params == ''
+        # oOriginalParts.query == 'sort=name&dd=33'
+        # oOriginalParts.fragment == ''
         if len(oOriginalParts.query) > 0:
             dictQuery = json.dumps(urllib.parse.parse_qs(oOriginalParts.query))
         
-        self.__g_oCipher.setIv(dictParams.pop('iv'))
-        self.__g_oCipher.setSecretKey(dictParams.pop('secret'))
-        sJson = self.__g_oCipher.encryptString(dictQuery)
+        self.__g_oCipher.set_iv(dictParams.pop('iv'))
+        self.__g_oCipher.set_secret_key(dictParams.pop('secret'))
+        sJson = self.__g_oCipher.encrypt_str(dictQuery)
         sEncryptedJsonQuery = sJson.decode('utf-8')
         sEncodedEncryptedJsonQuery = urllib.parse.urlencode({self.__g_sReservedQueryName:sEncryptedJsonQuery})
         oDecryptedParts = urllib.parse.ParseResult(scheme=oOriginalParts.scheme, netloc=oOriginalParts.netloc, path=oOriginalParts.path, params='', query=sEncodedEncryptedJsonQuery, fragment='')
@@ -134,9 +134,9 @@ class SvHttpCom(sv_object.ISvObject):
             oHttpResp = self.__g_oHttpConn.getresponse()
             if oHttpResp.status == 200 and oHttpResp.reason == 'OK':
                 sResp = oHttpResp.read().decode('utf-8')   # This will return entire content.
-                #self._printDebug(sResp)
+                # self._printDebug(sResp)
                 if sResp is not 'NULL':
-                    sTmp = self.__g_oCipher.decryptString(sResp)
+                    sTmp = self.__g_oCipher.decrypt_str(sResp)
                     oTmp = json.loads(sTmp)
                 self.__g_dictRet['error'] = 0
                 self.__g_dictRet['variables'] = oTmp
@@ -174,12 +174,12 @@ class SvHttpCom(sv_object.ISvObject):
     def postUrl(self, dictParams):
         try:
             if isinstance(dictParams, dict):
-                self.__g_oCipher.setIv(dictParams.pop('iv'))
-                self.__g_oCipher.setSecretKey(dictParams.pop('secret'))
+                self.__g_oCipher.set_iv(dictParams.pop('iv'))
+                self.__g_oCipher.set_secret_key(dictParams.pop('secret'))
                 sJson = json.dumps(dictParams)
-                #self._printDebug(sJson)
-                sJson = self.__g_oCipher.encryptString(sJson)
-                #self._printDebug(sJson)
+                # self._printDebug(sJson)
+                sJson = self.__g_oCipher.encrypt_str(sJson)
+                # self._printDebug(sJson)
                 oHeaders = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'application/json'}
                 sParams = urllib.parse.urlencode({self.__g_sReservedQueryName: sJson})
                 # self._printDebug(self.__g_sSubUrl)
@@ -205,15 +205,15 @@ class SvHttpCom(sv_object.ISvObject):
                         self.__g_dictRet['error'] = -1
                         self.__g_dictRet['variables']['todo'] = 'stop'
                     elif sResp != 'NULL':
-                        sTmp = self.__g_oCipher.decryptString(sResp)
+                        sTmp = self.__g_oCipher.decrypt_str(sResp)
                         oTmp = json.loads(sTmp )
-                        #self._printDebug('' )
-                        #self._printDebug(oTmp )
-                        #self._printDebug('' )
+                        # self._printDebug('' )
+                        # self._printDebug(oTmp )
+                        # self._printDebug('' )
                         self.__g_dictRet['error'] = 0
                         self.__g_dictRet['variables'] = oTmp
-                    #while not r1.closed:
-                    #	print(r1.read(200))  # 200 bytes
+                    # while not r1.closed:
+                    # 	print(r1.read(200))  # 200 bytes
                 else: # what if HTTP failed
                     self._printDebug('invalid URL -> status:' + str(oHttpResp.status) + ' reason:' + oHttpResp.reason)
             else:
