@@ -229,7 +229,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         del o_sv_mysql
         s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
         o_slack = sv_slack.SvSlack('dbs')
-        o_slack.sendMsg(s_brand_name + ' scraping has been finished successfully')
+        o_slack.send_msg(s_brand_name + ' scraping has been finished successfully')
         del o_slack
 
     def __save_html(self, n_log_srl, s_html):

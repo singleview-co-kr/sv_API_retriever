@@ -661,4 +661,4 @@ class SvCampaignParser(sv_object.ISvObject):
 
 # if __name__ == '__main__': # for console debugging
 #	oSvCampaignParser = SvCampaignParser()
-#	oSvCampaignParser.sendMsg('ddd')
+#	oSvCampaignParser.send_msg('ddd')
