@@ -564,7 +564,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             raise Exception('stop')
         # monitor weird source name - begin
         return {'source': sSource, 'rst_type': sRstType, 'medium': sMedium, 'brd': bBrd,
-                'campaign1st': sCampaign1st, 'campaign2nd': sCampaign2nd,' campaign3rd': sCampaign3rd}
+                'campaign1st': sCampaign1st, 'campaign2nd': sCampaign2nd, 'campaign3rd': sCampaign3rd}
 
     def __archive_ga_data_file(self, s_data_path, s_cur_filename):
         if not os.path.exists(s_data_path):
