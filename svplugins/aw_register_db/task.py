@@ -60,7 +60,7 @@ else:
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()  # None
     __g_lstIgnoreText = ['CRITERIA',  # for old adwords API report; ignore report title row: CRITERIA_PERFORMANCE_REPORT (Nov 14, 2015)
                          'google',  # for new google ads API report; ignore report title row: google_ads_api (v6)
@@ -414,11 +414,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         shutil.move(sSourceFilePath, sArchiveDataFilePath)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # python task.py config_loc=1/1 yyyymm=201811
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('aw_register_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

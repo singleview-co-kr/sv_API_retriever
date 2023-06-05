@@ -155,7 +155,7 @@ class GaItem:
             s_plugin_name = 'client_serve'
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
             lst_command = [s_plugin_name, 'mode=clear_ga_itemperf_sql', 'config_loc='+str(n_sv_acct_id) + '/' + str(n_brand_id)]
-            with o_job_plugin.svJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
+            with o_job_plugin.SvJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
                 o_job.set_my_name(s_plugin_name)
                 o_job.parse_command(lst_command)
                 o_job.do_task(None)

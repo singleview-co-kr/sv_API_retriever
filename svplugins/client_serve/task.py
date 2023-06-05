@@ -63,7 +63,7 @@ else: # for platform running
     from svplugins.client_serve import sv_adr
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     #__g_nRecordsToSend = 11000
     __g_nMaxBytesToSend = 19000000
     __g_oConfig = configparser.ConfigParser()
@@ -421,11 +421,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return sz
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # python task.py config_loc=1/1 target_host_url=http://localhost/devel/modules/svestudio/b2c.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('client_serve')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

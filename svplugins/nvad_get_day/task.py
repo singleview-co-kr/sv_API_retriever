@@ -53,7 +53,7 @@ else:
     from svcommon.powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNaveradApiBaseUrl = 'https://api.searchad.naver.com'
     __g_nRptWaitingSec = 60
 
@@ -537,10 +537,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k = n_length))    
         
 
-if __name__ == '__main__': # for console debugging and execution
+if __name__ == '__main__':  # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('nvad_get_day')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

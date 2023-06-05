@@ -128,7 +128,7 @@ class PluginConsole(WebsocketConsumer):
                     return
         try:
             oJobPlugin = importlib.import_module('svplugins.' + s_plugin_name + '.task')
-            with oJobPlugin.svJobPlugin() as oJob: # to enforce each plugin follow strict guideline or remove from scheduler
+            with oJobPlugin.SvJobPlugin() as oJob:  # to enforce each plugin follow strict guideline or remove from scheduler
                 self.print_msg_socket(s_plugin_name + ' has been initiated')  # oJob.__class__.__name__ + '
                 oJob.set_websocket_output(self.print_msg_socket)
                 oJob.set_my_name(s_plugin_name)

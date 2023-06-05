@@ -45,7 +45,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -262,12 +262,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 print('')
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1
     # collect_twitter
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('collect_twitter')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

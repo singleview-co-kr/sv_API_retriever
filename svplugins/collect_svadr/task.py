@@ -50,7 +50,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sFirstDateOfTheUniv = '20000101'
     __g_lstAllowedCollectionBase = ['date', 'document_srl']
 
@@ -362,13 +362,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return dict_rst
 
 
-
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1 target_host_url=https://testserver.co.kr/modules/svestudio/adr.php
     # collect_svadr target_host_url=https://testserver.co.kr/modules/svestudio/adr.php
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('collect_svadr')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

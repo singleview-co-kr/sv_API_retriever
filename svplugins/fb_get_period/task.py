@@ -68,7 +68,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sFbApiVersion = 'v13.0'
 
     def __init__(self):
@@ -412,11 +412,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
 
 
-if __name__ == '__main__': # for console debugging and execution
+if __name__ == '__main__':  # for console debugging and execution
     # dictPluginParams = {'config_loc':'2/1', 'earliest_date':'20180223', 'latest_date':'20180424'}
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('fb_get_period')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

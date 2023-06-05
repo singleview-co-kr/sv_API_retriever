@@ -52,7 +52,7 @@ else: # for platform running
     from svload.pandas_plugins import budget
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -124,7 +124,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         for s_job_to_do in lst_jobs_to_cron:
             o_job_plugin = importlib.import_module('svplugins.' + s_job_to_do + '.task')
             self._print_debug('sub task: ' + s_job_to_do + ' has been launched')
-            with o_job_plugin.svJobPlugin() as o_job:
+            with o_job_plugin.SvJobPlugin() as o_job:
                 o_job.set_websocket_output(self._print_debug)
                 o_job.set_my_name(s_job_to_do)
                 o_job.parse_command([])
@@ -136,10 +136,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('daily_cron')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

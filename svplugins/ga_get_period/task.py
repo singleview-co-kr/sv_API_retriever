@@ -62,7 +62,7 @@ else:
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -379,16 +379,16 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     #     return service
 
 
-if __name__ == '__main__': # for console debugging and execution
+if __name__ == '__main__':  # for console debugging and execution
     nCliParams = len(sys.argv)
     if nCliParams > 2:
         # if sys.argv[1] == '--noauth_local_webserver':
         #     print('noauth')
-        #     with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        #     with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
         #     	oJob.getConsoleAuth( sys.argv )
         # else:
         # dictPluginParams = {'config_loc':'2/1', 'earliest_date':'20200229', 'latest_date':'20210229'}
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('ga_get_day')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

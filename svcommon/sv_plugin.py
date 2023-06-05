@@ -50,7 +50,7 @@ else:
 class ISvPlugin(ABC):
     _g_sAbsRootPath = None
     _g_oLogger = None
-    _g_oThread = None  # AttributeError: 'svJobPlugin' object has no attribute '_g_oThread' if move to __init__
+    _g_oThread = None  # AttributeError: 'SvJobPlugin' object has no attribute '_g_oThread' if move to __init__
     _g_dictParam = {'config_loc': None}  # can't recognize attr if move to __init__
     _g_dictSvAcctInfo = {'n_acct_id': None, 'n_brand_id': None}  # can't recognize attr if move to __init__
     """ to raise an exeception on the daemonocle running env """
@@ -172,13 +172,13 @@ class SvPluginDaemonJob():
         lst_command = [x for x in lst_command if x]  # remove empty entity after replace "\r\n" to " "
         try:
             o_job_plugin = importlib.import_module('svplugins.' + s_plugin_title + '.task')
-            with o_job_plugin.svJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
+            with o_job_plugin.SvJobPlugin() as o_job:  # to enforce each plugin follow strict guideline or remove from scheduler
                 self.__print_debug(o_job.__class__.__name__ + ' has been initiated')
                 o_job.set_my_name(s_plugin_title)
                 o_job.toggle_daemon_env()
                 o_job.parse_command(lst_command)
                 o_job.do_task(None)
-        except AttributeError: # if task module does not have svJobPlugin
+        except AttributeError: # if task module does not have SvJobPlugin
             self.__print_debug('plugin does not have correct method -> remove job')
             raise SvErrorHandler('remove')
         except ModuleNotFoundError:

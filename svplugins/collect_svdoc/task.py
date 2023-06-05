@@ -45,7 +45,7 @@ else: # for platform running
     from svplugins.collect_svdoc import morpheme_retriever
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_dictSource = {
         'singleview_estudio': 1,
         'twitter': 2,
@@ -154,7 +154,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_oConfig.read(sKeyConfigPath)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1
     # collect_svdoc mode=retrieve
     # collect_svdoc mode=analyze_new
@@ -163,7 +163,7 @@ if __name__ == '__main__': # for console debugging
     # collect_svdoc mode=get_period start_yyyymmdd=20220101 end_yyyymmdd=20220102 module_srl=1234
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('collect_svdoc')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

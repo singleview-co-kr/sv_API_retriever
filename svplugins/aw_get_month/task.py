@@ -64,7 +64,7 @@ else:  # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sGoogleAdsApiVersion = 'v12'
 
     def __init__(self):
@@ -319,7 +319,7 @@ if __name__ == '__main__':  # for console debugging and execution
     # python task.py config_loc=1/1 yyyymm=202109
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob:  # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('aw_get_month')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

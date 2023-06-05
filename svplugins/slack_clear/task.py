@@ -44,7 +44,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -117,12 +117,12 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         self.__g_oConfig.read(s_config_path)
 
 
-if __name__ == '__main__': # for console debugging and execution
+if __name__ == '__main__':  # for console debugging and execution
     # python task.py config_loc=1/1 slack_ch_ttl=dbs_bot
     # slack_clear slack_ch_ttl=yuhen_web
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('slack_clear')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

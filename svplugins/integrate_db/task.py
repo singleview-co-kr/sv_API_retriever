@@ -62,7 +62,7 @@ else:  # for platform running
 SEPARATOR = '|@|'
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
     # __g_nPnsTouchingDate = 20190126  # to separate the old & non-systematic & complicated situation for PNS cost process
     __g_dictSourceTitleTag = None
@@ -1344,7 +1344,7 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 if __name__ == '__main__':  # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob:  # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('integrate_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

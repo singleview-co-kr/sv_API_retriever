@@ -53,7 +53,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oHtmlRemover = re.compile(r"<[^<]+?>")
 
     def __init__(self):
@@ -275,13 +275,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         shutil.move(s_source_filepath, s_archive_filepath)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1 mode=collect_api
     # CLI example -> python3.7 task.py config_loc=1/1 mode=register_db
     # collect_ytsearch
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('collect_ytsearch')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

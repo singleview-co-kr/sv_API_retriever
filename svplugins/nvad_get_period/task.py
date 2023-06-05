@@ -55,7 +55,7 @@ else:
     from svcommon.powernad.Object.StatReport.RequestObject.CreateStatReportObject import CreateStatReportObject
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_sNaveradApiBaseUrl = 'https://api.searchad.naver.com'
     __g_nRptWaitingSec = 60
 
@@ -384,19 +384,19 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     os.remove(s_download_path_abs)
                     return False
 
-    def __generate_random_str(self, n_length = 10):
+    def __generate_random_str(self, n_length=10):
         """
         n_length:  # number of characters in the string.  
         """
         # call random.choices() string module to find the string in Uppercase + numeric data.  
-        return ''.join(random.choices(string.ascii_uppercase + string.digits, k = n_length))    
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=n_length))
 
 
-if __name__ == '__main__': # for console debugging and execution
+if __name__ == '__main__':  # for console debugging and execution
     # dict_plugin_params = {'config_loc':'1/1','data_first_date':'20210930', 'data_last_date':'20211124'}
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('nvad_get_period')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

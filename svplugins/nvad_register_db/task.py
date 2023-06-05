@@ -56,7 +56,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_lstTblTruncate = ['nvad_assembled_daily_log', 'nvad_master_ad', 'nvad_master_ad_extension',
                           'nvad_master_ad_grp', 'nvad_master_ad_grp_budget', 'nvad_master_bizch',
                           'nvad_master_campaign', 'nvad_master_campaign_budget', 'nvad_master_keyword',
@@ -1326,10 +1326,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         shutil.move(sSourceFilePath, sArchiveDataFilePath)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('nvad_register_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

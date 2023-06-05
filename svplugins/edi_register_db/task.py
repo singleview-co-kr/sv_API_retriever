@@ -59,7 +59,7 @@ else:
     from svplugins.edi_register_db import edi_transform
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -268,14 +268,14 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._print_debug(s_mart_id_sku_code_sku_name)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # python task.py config_loc=1/1 sv_file_id=3 mode=lookup
     # python task.py config_loc=1/1 sv_file_id=3 mode=register_sku new_sku_id=8806006500375,8806006500399
     # edi_register_db sv_file_id=# mode=register_sku new_sku_id=  means register all detected SKU with deny flag
     # python task.py config_loc=1/1 sv_file_id=3 mode=register_db
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob: # to enforce to call plugin destructor
             oJob.set_my_name('edi_register_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

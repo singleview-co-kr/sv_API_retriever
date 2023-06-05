@@ -60,7 +60,7 @@ else: # for platform running
     from svplugins.ga_register_db import item_performance
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oSvCampaignParser = sv_campaign_parser.SvCampaignParser()
     __g_sSvNull = '#$'
 
@@ -563,7 +563,8 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug(lstRow)
             raise Exception('stop')
         # monitor weird source name - begin
-        return {'source':sSource,'rst_type':sRstType,'medium':sMedium,'brd':bBrd,'campaign1st':sCampaign1st,'campaign2nd':sCampaign2nd,'campaign3rd':sCampaign3rd}
+        return {'source': sSource, 'rst_type': sRstType, 'medium': sMedium, 'brd': bBrd,
+                'campaign1st': sCampaign1st, 'campaign2nd': sCampaign2nd,' campaign3rd': sCampaign3rd}
 
     def __archive_ga_data_file(self, s_data_path, s_cur_filename):
         if not os.path.exists(s_data_path):
@@ -577,10 +578,10 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         shutil.move(s_source_filepath, sArchiveDataFilePath)
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     nCliParams = len(sys.argv)
     if nCliParams > 1:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('ga_register_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

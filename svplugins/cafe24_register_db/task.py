@@ -59,7 +59,7 @@ else:
     from svstorage import sv_storage
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
@@ -172,11 +172,11 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # python task.py config_loc=1/1 sv_file_id=1
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('cafe24_register_db')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)

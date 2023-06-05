@@ -65,7 +65,7 @@ else: # for platform running
     from django.conf import settings
 
 
-class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     __g_oHtmlRemover = re.compile(r"<[^<]+?>")
     __g_nDelaySec = 2
 
@@ -503,13 +503,13 @@ class svJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return s_link
 
 
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     # CLI example -> python3.7 task.py config_loc=1/1 mode=collect_api
     # CLI example -> python3.7 task.py config_loc=1/1 mode=register_db
     # collect_nvsearch
     nCliParams = len(sys.argv)
     if nCliParams > 2:
-        with svJobPlugin() as oJob: # to enforce to call plugin destructor
+        with SvJobPlugin() as oJob:  # to enforce to call plugin destructor
             oJob.set_my_name('collect_nvsearch')
             oJob.parse_command(sys.argv)
             oJob.do_task(None)
