@@ -123,62 +123,58 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         
     def __get_insite_raw(self, s_sv_acct_id, s_acct_title, s_ga4_property_id):
         s_data_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'google_analytics', s_ga4_property_id, 'data')
-        if os.path.isdir(s_data_path) == False :
+        if os.path.isdir(s_data_path) is False:
             os.makedirs(s_data_path)
         s_conf_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title, 'google_analytics', s_ga4_property_id, 'conf')
-        if os.path.isdir(s_conf_path) == False :
+        if os.path.isdir(s_conf_path) is False:
             os.makedirs(s_conf_path)        
 
-        # https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart-client-libraries
+        # https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart-client-libraries  * most important page: contains available met dim list
         # https://github.com/googleapis/python-analytics-data
         # https://googleapis.dev/python/analyticsdata/latest/data_v1beta/beta_analytics_data.html
 
         lst_to_query = []
         if 'homepage' in self.__g_lstAccessLevel:
             lst_to_query.append({'met': ['sessions'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            # lst_to_query.append({'met': ['bounceRate'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            # lst_to_query.append({'met': ['screenPageViewsPerSession'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            # lst_to_query.append({'met': ['averageSessionDuration'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            # deprecated in GA4
-            # lst_to_query.append({'met': ['_percentNewSessions'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            pass
+            lst_to_query.append({'met': ['bounceRate'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
+            # UA 100이 최대치 GA4는 1이 최대치
+            lst_to_query.append({'met': ['newUsers'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
+            # tsv 파일명이 다르고 UA는 % GA4는 절대값
+            lst_to_query.append({'met': ['screenPageViewsPerSession'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium'], 'filename':'pageviewsPerSession'})
+            lst_to_query.append({'met': ['averageSessionDuration'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium'], 'filename':'avgSessionDuration'})
         if 'internal_search' in self.__g_lstAccessLevel:
-            # lst_to_query.append({'met': ['sessions'], 'dim': ['searchTerm']}) #, 'filter': 'searchTerm'})  # simulate ua searchUniques and searchKeyword
-            pass
+            lst_to_query.append({'met': ['sessions'], 'dim': ['searchTerm'], 'filter': ['searchTerm'], 'filename':'searchUniques'})  # simulate ua searchUniques and searchKeyword
         if 'catalog' in self.__g_lstAccessLevel:  # 'dim': 'ga:productSku' <- sku id  vs 'dim': 'ga:productName' <- sku title
-            # lst_to_query.append({'met': ['itemsViewedInList'], 'dim': ['itemName'], 'filter': ['itemName']})
-            # lst_to_query.append({'met': ['itemsClickedInList'], 'dim': ['itemName'], 'filter': ['itemName']})
-            # lst_to_query.append({'met': ['itemsViewed'], 'dim': ['itemName'], 'filter': ['itemName']})
-            pass
+            lst_to_query.append({'met': ['itemsViewedInList'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productListViews'})
+            lst_to_query.append({'met': ['itemsClickedInList'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productListClicks'})
+            lst_to_query.append({'met': ['itemsViewed'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productDetailViews'})
         if 'payment' in self.__g_lstAccessLevel:
-            # lst_to_query.append({'met': ['itemsAddedToCart'], 'dim': ['itemName'], 'filter': ['itemName']})  # Number of product units added to the shopping cart; was quantityAddedToCart for UA
-            # lst_to_query.append({'met': ['purchaseRevenue'], 'dim': ['itemName'], 'filter': ['itemName']})  # quota burden query; was productRevenuePerPurchase for UA
-            # lst_to_query.append({'met': ['itemsPurchased'], 'dim': ['itemName'], 'filter': ['itemName']})  # Total number of items purchased. For example, if users purchase 2 frisbees and 5 tennis balls, this will be 7. was itemQuantity for UA
-            # lst_to_query.append({'met': ['itemsCheckedOut'], 'dim': ['itemName'], 'filter': ['itemName']})  # Number of times the product was included in the check-out process (Enhanced Ecommerce). was productCheckouts for UA
-            # lst_to_query.append({'met': ['transactions'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
-            # # --lst_to_query.append({'met': 'transactions', 'dim': 'ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium'})
-            # lst_to_query.append({'met': ['transactions'], 'dim': ['transactionId', 'firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium'], 'filename':'transactionRevenueByTrId'})
-            # --lst_to_query.append({'met': 'transactionRevenue', 'dim': 'ga:transactionId, ga:sourceMedium, ga:campaign, ga:keyword', 'sort':'ga:sourceMedium', 'filename':'transactionRevenueByTrId'})
-            # deprecated in GA4
-            # lst_to_query.append({'met': 'productAddsToCart', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of times the product was added to the shopping cart
-            # lst_to_query.append({'met': 'productRemovesFromCart', 'dim': 'ga:productName', 'sort':'ga:productName'})
-            # lst_to_query.append({'met': 'quantityCheckedOut', 'dim': 'ga:productName', 'sort':'ga:productName'})  # Number of product units included in check out (Enhanced Ecommerce).
-            pass
+            lst_to_query.append({'met': ['purchaseToViewRate'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'buyToDetailRate'})  # Unique purchases divided by views of product detail pages (Enhanced Ecommerce)
+            lst_to_query.append({'met': ['cartToViewRate'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'cartToDetailRate'})  # Product adds divided by views of product details (Enhanced Ecommerce).
+            lst_to_query.append({'met': ['itemsAddedToCart'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productAddsToCart'})  # Number of product units added to the shopping cart; was quantityAddedToCart for UA
+            # --deprecated in GA4?- lst_to_query.append({'met': 'quantityAddedToCart', 'dim': 'ga:productName', 'sort':'ga:productName', 'filename':'quantityAddedToCart'})  # Number of product units added to the shopping cart
+            # --deprecated in GA4?- lst_to_query.append({'met': 'productRemovesFromCart', 'dim': 'ga:productName', 'sort':'ga:productName', 'filename':'productRemovesFromCart'})
+            lst_to_query.append({'met': ['itemRevenue'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productRevenuePerPurchase'})  # quota burden query; was productRevenuePerPurchase for UA
+            lst_to_query.append({'met': ['itemsPurchased'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'itemQuantity'})  # Total number of items purchased. For example, if users purchase 2 frisbees and 5 tennis balls, this will be 7. was itemQuantity for UA
+            lst_to_query.append({'met': ['itemsCheckedOut'], 'dim': ['itemName'], 'filter': ['itemName'], 'filename':'productCheckouts'})  # Number of times the product was included in the check-out process (Enhanced Ecommerce). was productCheckouts for UA
+            # --deprecated in GA4?- lst_to_query.append({'met': 'quantityCheckedOut', 'dim': 'ga:productName', 'sort':'ga:productName', 'filename':'quantityCheckedOut'})  # Number of product units included in check out (Enhanced Ecommerce).
+            lst_to_query.append({'met': ['transactions'], 'dim': ['firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium']})
+            lst_to_query.append({'met': ['purchaseRevenue'], 'dim': ['transactionId', 'firstUserSourceMedium', 'firstUserCampaignName', 'firstUserManualTerm'], 'filter': ['firstUserSourceMedium'], 'filename':'transactionRevenueByTrId'})
         
         dict_ua_filter = {'PC': FilterExpression(
+                                filter=Filter(
+                                    field_name="deviceCategory",
+                                    string_filter=Filter.StringFilter(value="Desktop"),
+                                )
+                            ), 
+                        'MOB': FilterExpression(
+                                not_expression=FilterExpression(
                                     filter=Filter(
                                         field_name="deviceCategory",
                                         string_filter=Filter.StringFilter(value="Desktop"),
                                     )
-                                ), 
-                        'MOB': FilterExpression(
-                                    not_expression=FilterExpression(
-                                        filter=Filter(
-                                            field_name="deviceCategory",
-                                            string_filter=Filter.StringFilter(value="Desktop"),
-                                        )
-                                    )
                                 )
+                            )
                         }
         s_private_key_json = os.path.join(self._g_sAbsRootPath, 'conf', 'private_key_google_analytics.json')
         o_client = BetaAnalyticsDataClient.from_service_account_file(s_private_key_json)
@@ -209,16 +205,16 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     dict_date[dt_element] = 0
                 if len(dict_date) == 0:
                     continue
-
+                
                 lst_metrics = []
+                lst_dimensions = []
+                lst_filters = []
                 lst_single_met = dict_setting['met']
                 for s_single_met in lst_single_met:
                     lst_metrics.append(Metric(name=s_single_met))
-                lst_dimensions = []
                 lst_single_dim = dict_setting['dim']
                 for s_single_dim in lst_single_dim:
                     lst_dimensions.append(Dimension(name=s_single_dim))
-                lst_filters = []
                 if 'filter' in dict_setting:
                     lst_single_filter = dict_setting['filter']
                     for s_single_filter in lst_single_filter:
@@ -226,7 +222,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
                 while self._continue_iteration(): # loop for each report date
                     try:
-                        dt_retrieval = list(dict_date.keys())[list(dict_date.values()).index(0)] # find unhandled report task
+                        dt_retrieval = list(dict_date.keys())[list(dict_date.values()).index(0)]  # find unhandled report task
                     except ValueError:
                         break
                     
@@ -244,9 +240,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         order_bys = lst_filters,
                         date_ranges=[DateRange(start_date=s_data_date, end_date=s_data_date)],
                     )
-                    del lst_dimensions
-                    del lst_metrics
-                    del lst_filters
+                    
                     # try:
                     o_response = o_client.run_report(o_request)
                     del o_request
@@ -312,6 +306,11 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         break
                     dict_date[dt_retrieval] = 1
                     time.sleep(2)
+
+                del lst_dimensions
+                del lst_metrics
+                del lst_filters
+        del lst_to_query
         return
         # https://developers.google.com/analytics/devguides/reporting/core/dimsmets
         # https://ga-dev-tools.appspot.com/query-explorer/
