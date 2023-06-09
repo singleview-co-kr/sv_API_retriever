@@ -427,6 +427,7 @@ class SvHypermartGeoInfo():
         {'id': 329, 'hypermart_name': 'Emart', 'branch_code': '8544', 'name': 'EM김포2몰가상점', 'branch_type': 'Online', 'do_name': '온라인', 'si_name': '온라인', 'gu_gun': '온라인', 'dong_myun_ri': '온라인', 'latitude': None, 'longitude': None},
         {'id': 330, 'hypermart_name': 'Emart', 'branch_code': '8010', 'name': '몰리스온라인스토어', 'branch_type': 'Online', 'do_name': '온라인', 'si_name': '온라인', 'gu_gun': '온라인', 'dong_myun_ri': '온라인', 'latitude': None, 'longitude': None},
         {'id': 331, 'hypermart_name': 'Emart', 'branch_code': '5601', 'name': '베이비서클STF하남점', 'branch_type': 'Offline', 'do_name': '경기도', 'si_name': '하남시', 'gu_gun': None, 'dong_myun_ri': '신장동', 'latitude': '37.5454092', 'longitude': '127.223737'},
+        {'id': 332, 'hypermart_name': 'Emart', 'branch_code': '8565', 'name': 'EM동탄몰가상점', 'branch_type': 'Online', 'do_name': '온라인', 'si_name': '온라인', 'gu_gun': '온라인', 'dong_myun_ri': '온라인', 'latitude': None, 'longitude': None},
     ]
 
     def __init__(self):
