@@ -8,10 +8,10 @@
 # form for use in connection with the web services and APIs provided by
 # singleview.co.kr.
 
-# As with any software that integrates with the singleview.co.kr platform, 
-# your use of this software is subject to the Facebook Developer Principles 
-# and Policies [http://singleview.co.kr/api_policy/]. This copyright 
-# notice shall be included in all copies or substantial portions of the 
+# As with any software that integrates with the singleview.co.kr platform,
+# your use of this software is subject to the Facebook Developer Principles
+# and Policies [http://singleview.co.kr/api_policy/]. This copyright
+# notice shall be included in all copies or substantial portions of the
 # software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -26,7 +26,7 @@
 # you firstly need to install by cmd "pip3.6 install --upgrade google-api-python-client"
 # refer to https://developers.google.com/analytics/devguides/config/mgmt/v3/quickstart/installed-py
 # to create desinated credential refer to https://console.developers.google.com/apis/credentials
-# to get console credential you firstly need to run with the option --noauth_local_webserver 
+# to get console credential you firstly need to run with the option --noauth_local_webserver
 # to monitor API traffic refer to https://console.developers.google.com/apis/api/analytics.googleapis.com/quotas?project=svgastudio
 
 # standard library
@@ -40,7 +40,7 @@ import re
 import codecs
 
 # singleview library
-if __name__ == '__main__': # for console debugging
+if __name__ == '__main__':  # for console debugging
     sys.path.append('../../svcommon')
     sys.path.append('../../svdjango')
     import sv_mysql
@@ -50,7 +50,7 @@ if __name__ == '__main__': # for console debugging
     import settings
     import internal_search
     import item_performance
-else: # for platform running
+else:  # for platform running
     from svcommon import sv_mysql
     from svcommon import sv_campaign_parser
     from svcommon import sv_object
@@ -67,38 +67,38 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230610)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
-        # It is only created once at first, 
-        # whenever you create new objects it will reuse this same dict. 
+        # It is only created once at first,
+        # whenever you create new objects it will reuse this same dict.
         # To create instance variables, you declare them with self in __init__.
         self.__g_sBrandedTruncPath = None
         self.__g_sTblPrefix = None
-        self.__g_lstErrornousMedia = []
+        self.__g_lstErroneousMedia = []
         self.__g_dictGaRaw = None  # prevent duplication on a web console
-        self.__g_dictSourceMediaNameAliasInfo = {}
-        self.__g_dictGoogleAdsCampaignNameAlias = {}
-        self.__g_dictNaverPowerlinkCampaignNameAlias = {}
+        self.__g_dictSourceMediaAliasInfo = {}
+        self.__g_dictGoogleAdsCampaignAlias = {}
+        self.__g_dictNvrPowerlinkCampaignAlias = {}
 
     def __del__(self):
-        """ never place self._task_post_proc() here 
+        """ never place self._task_post_proc() here
             __del__() is not executed if try except occurred """
         self.__g_sBrandedTruncPath = None
         self.__g_oSvCampaignParser = None
         self.__g_sTblPrefix = None
-        self.__g_lstErrornousMedia = []
+        self.__g_lstErroneousMedia = []
         self.__g_dictGaRaw = None  # prevent duplication on a web console
-        self.__g_dictSourceMediaNameAliasInfo = {}
-        self.__g_dictGoogleAdsCampaignNameAlias = {}
-        self.__g_dictNaverPowerlinkCampaignNameAlias = {}
+        self.__g_dictSourceMediaAliasInfo = {}
+        self.__g_dictGoogleAdsCampaignAlias = {}
+        self.__g_dictNvrPowerlinkCampaignAlias = {}
 
     def do_task(self, o_callback):
         self._g_oCallback = o_callback
         self.__g_dictGaRaw = {}  # prevent duplication on a web console
-        
+
         dict_acct_info = self._task_pre_proc(o_callback)
         if 'sv_account_id' not in dict_acct_info and 'brand_id' not in dict_acct_info and \
-          'google_analytics' not in dict_acct_info:
+                'google_analytics' not in dict_acct_info:
             self._print_debug('stop -> invalid config_loc')
             self._task_post_proc(self._g_oCallback)
             if self._g_bDaemonEnv:  # for running on dbs.py only
@@ -110,15 +110,16 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_version = dict_acct_info['google_analytics']['s_version']
         s_property_or_view_id = dict_acct_info['google_analytics']['s_property_or_view_id']
         self.__g_sTblPrefix = dict_acct_info['tbl_prefix']
-        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_brand_id, 'branded_term.conf')
+        self.__g_sBrandedTruncPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
+                                                  s_brand_id, 'branded_term.conf')
         with sv_mysql.SvMySql() as o_sv_mysql:
             o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
             o_sv_mysql.set_app_name('svplugins.ga_register_db')
             o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-        
+
         self._print_debug('-> register ga raw data')
         if s_version == 'ua':  # universal analytics
-            self.__parseGaDataFile(s_sv_acct_id, s_brand_id, s_property_or_view_id)
+            self.__parse_ga_data_file(s_sv_acct_id, s_brand_id, s_property_or_view_id)
         elif s_version == 'ga4':
             self._print_debug('plugin is developing')
             if self._g_bDaemonEnv:  # for running on dbs.py only
@@ -127,16 +128,17 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 return
 
         self._task_post_proc(self._g_oCallback)
-        
-    def __parseGaDataFile(self, sSvAcctId, sAcctTitle, sGaViewId):
-        self._print_debug('-> '+ sGaViewId +' is registering GA data files')
-        sDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'data')
-        sConfPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'google_analytics', sGaViewId, 'conf')
 
+    def __parse_ga_data_file(self, s_sv_acct_id, s_acct_title, s_ua_view_id):
+        self._print_debug('-> ' + s_ua_view_id + ' is registering GA data files')
+        s_data_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title,
+                                   'google_analytics', s_ua_view_id, 'data')
+        s_conf_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id, s_acct_title,
+                                   'google_analytics', s_ua_view_id, 'conf')
         # try internal search log
         self._print_debug('UA internal search log has been started\n')
-        o_internal_search = internal_search.svInternalSearch()
-        o_internal_search.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser,
+        o_internal_search = internal_search.SvInternalSearch()
+        o_internal_search.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, s_data_path, self.__g_oSvCampaignParser,
                                    self._print_debug, self._print_progress_bar, self._continue_iteration)
         o_internal_search.proc_internal_search_log()
         del o_internal_search
@@ -144,51 +146,45 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
         # try item performance log
         self._print_debug('UA item performance log has been started\n')
-        o_item_perf = item_performance.svItemPerformance()
-        o_item_perf.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, sDataPath, self.__g_oSvCampaignParser,
+        o_item_perf = item_performance.SvItemPerformance()
+        o_item_perf.init_var(self._g_dictSvAcctInfo, self.__g_sTblPrefix, s_data_path, self.__g_oSvCampaignParser,
                              self._print_debug, self._print_progress_bar, self._continue_iteration)
         o_item_perf.proc_item_perf_log()
         del o_item_perf
         self._print_debug('UA item performance log has been finished\n')
-
         # try transaction referral log
-        self.__proc_transaction_log(sDataPath)
-
-        self.__getSourceMediaNameAlias(sConfPath)
-        
+        self.__proc_transaction_log(s_data_path)
+        self.__get_source_meedium_alias(s_conf_path)
         # retrieve google ads campaign name alias info
-        sGoogeAdsDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'adwords')
-        self.__g_dictGoogleAdsCampaignNameAlias = self.__getCampaignNameAlias(sGoogeAdsDataPath)
-
+        s_googeads_data_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT,
+                                            s_sv_acct_id, s_acct_title, 'adwords')
+        self.__g_dictGoogleAdsCampaignAlias = self.__get_campaign_alias(s_googeads_data_path)
         # retrieve naver powerlink campaign name alias info
-        sNaverPowerlinkDataPath = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, sSvAcctId, sAcctTitle, 'naver_ad')
-        self.__g_dictNaverPowerlinkCampaignNameAlias = self.__getCampaignNameAlias(sNaverPowerlinkDataPath)
-        self.__proc_media_perf_log(sDataPath)
-        
-        # stop if errornous source medium list not empty
-        if len(self.__g_lstErrornousMedia) > 0:
-            self.__g_lstErrornousMedia = sorted(set(self.__g_lstErrornousMedia))
-            self._print_debug('errornous media names has been detected!')
-            for sMedia in self.__g_lstErrornousMedia:
+        s_nvr_powerlink_data_path = os.path.join(self._g_sAbsRootPath, settings.SV_STORAGE_ROOT, s_sv_acct_id,
+                                                 s_acct_title, 'naver_ad')
+        self.__g_dictNvrPowerlinkCampaignAlias = self.__get_campaign_alias(s_nvr_powerlink_data_path)
+        self.__proc_media_perf_log(s_data_path)
+        # stop if erroneous source medium list not empty
+        if len(self.__g_lstErroneousMedia) > 0:
+            self.__g_lstErroneousMedia = sorted(set(self.__g_lstErroneousMedia))
+            self._print_debug('erroneous media names has been detected!')
+            for sMedia in self.__g_lstErroneousMedia:
                 self._print_debug(sMedia)
-        
-        self.__registerSourceMediumTerm()
+        self.__register_source_medium_term()
 
-    def __getSourceMediaNameAlias(self, sParentDataPath):
-        s_alias_filepath = os.path.join(sParentDataPath, 'alias_info_source_media.tsv')
+    def __get_source_meedium_alias(self, s_parent_data_path):
+        s_alias_filepath = os.path.join(s_parent_data_path, 'alias_info_source_media.tsv')
         if os.path.isfile(s_alias_filepath):
-            with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
+            with codecs.open(s_alias_filepath, 'r', encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
+                n_row_cnt = 0
                 for row in reader:
-                    if nRowCnt > 0:
-                        self.__g_dictSourceMediaNameAliasInfo[row[0]] = {'alias':row[1]}
-
-                    nRowCnt = nRowCnt + 1
+                    if n_row_cnt > 0:
+                        self.__g_dictSourceMediaAliasInfo[row[0]] = {'alias': row[1]}
+                    n_row_cnt += 1
         return
 
     def __proc_transaction_log(self, s_data_path):
-        # print('proc_transaction_log')
         self._print_debug('UA Transaction log has been started\n')
         # traverse directory and categorize data files
         lst_transaction_log = []
@@ -197,7 +193,6 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         n_idx = 0
         n_sentinel = len(lst_data_file)
         dict_query = {'transactionRevenueByTrId.tsv': 'rev'}
-        
         try:
             for s_filename in lst_data_file:
                 s_data_file_fullname = os.path.join(s_data_path, s_filename)
@@ -207,11 +202,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 s_data_date = lst_file_info[0]
                 s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file_info[1])
                 s_specifier = lst_file_info[2]
-                if s_specifier in dict_query:  #lst_analyzing_filename:
-                    s_attr_name = dict_query[s_specifier]
-                else:
+                if s_specifier not in dict_query:
                     continue
-                
                 if os.path.isfile(s_data_file_fullname):
                     with open(s_data_file_fullname, 'r') as tsvfile:
                         reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
@@ -219,184 +211,173 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             if not self._continue_iteration():
                                 break
                             lst_tmp_row = row[1:]  # remove transaction ID
-                            dictRst = self.__parseGaRow(lst_tmp_row, s_data_file_fullname)
+                            dict_rst = self.__parse_ga_row(lst_tmp_row, s_data_file_fullname)
                             del lst_tmp_row
-                            lst_transaction_log.append([row[0], s_ua_type, dictRst['source'], dictRst['rst_type'], 
-                                dictRst['medium'], str(dictRst['brd']), dictRst['campaign1st'], dictRst['campaign2nd'], 
-                                dictRst['campaign3rd'], row[2], str(row[4]), s_data_date])
+                            lst_transaction_log.append([row[0], s_ua_type, dict_rst['source'], dict_rst['rst_type'],
+                                                        dict_rst['medium'], str(dict_rst['brd']),
+                                                        dict_rst['campaign1st'], dict_rst['campaign2nd'],
+                                                        dict_rst['campaign3rd'], row[2], str(row[4]), s_data_date])
+                            del dict_rst
                 else:
                     self._print_debug('pass ' + s_data_file_fullname + ' does not exist')
-
-                self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Arrange data file:', suffix='Complete', length=50)
+                self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Arrange data file:', suffix='Complete',
+                                         length=50)
                 n_idx += 1
-            
             n_idx = 0
             n_sentinel = len(lst_transaction_log)
-            with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-                oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
-                oSvMysql.set_app_name('svplugins.ga_register_db')
-                oSvMysql.initialize(self._g_dictSvAcctInfo)
+            with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
+                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
+                o_sv_mysql.set_app_name('svplugins.ga_register_db')
+                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
                 for lst_single_row in lst_transaction_log:
                     if not self._continue_iteration():
                         break
                     # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                    oSvMysql.execute_query('insertGaTransactionDailyLog',
-                                           lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3],
-                                           lst_single_row[4], lst_single_row[5], lst_single_row[6], lst_single_row[7],
-                                           lst_single_row[8], lst_single_row[9], str(lst_single_row[10]),
-                                           lst_single_row[11])
+                    o_sv_mysql.execute_query('insertGaTransactionDailyLog',
+                                             lst_single_row[0], lst_single_row[1], lst_single_row[2], lst_single_row[3],
+                                             lst_single_row[4], lst_single_row[5], lst_single_row[6], lst_single_row[7],
+                                             lst_single_row[8], lst_single_row[9], str(lst_single_row[10]),
+                                             lst_single_row[11])
                     self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Register DB:', suffix='Complete', length=50)
                     n_idx += 1
             del lst_transaction_log
         except Exception as err:
             self._print_debug(err)
-            
         self._print_debug('UA Transaction log has been finished\n')
 
-    def __proc_media_perf_log(self, sDataPath):
+    def __proc_media_perf_log(self, s_data_path):
         """ process homepage level data """
         self._print_debug('UA media performance log arranging has been started\n')
         # traverse directory and categorize data files
-        lstDataFiles = os.listdir(sDataPath)
-        lstDataFiles.sort()
-        
-        nIdx = 0
-        nSentinel = len(lstDataFiles)
-        dictQuery = {'avgSessionDuration.tsv':'dur_sec', 'bounceRate.tsv':'b_per', 'pageviewsPerSession.tsv':'pvs', 
-            'percentNewSessions.tsv':'new_per', 'sessions.tsv':'sess', 
-            # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
-            'transactions.tsv':'trs', 'transactionRevenueByTrId.tsv':'rev'}
-
-        for sFilename in lstDataFiles:
-            sDataFileFullname = os.path.join(sDataPath, sFilename)
-            if sFilename == 'archive':
+        lst_data_files = os.listdir(s_data_path)
+        lst_data_files.sort()
+        n_idx = 0
+        n_sentinel = len(lst_data_files)
+        dict_query = {'avgSessionDuration.tsv': 'dur_sec', 'bounceRate.tsv': 'b_per', 'pageviewsPerSession.tsv': 'pvs',
+                      'percentNewSessions.tsv': 'new_per', 'sessions.tsv': 'sess',
+                      # transactions.tsv is for old version; transactionRevenueByTrId.tsv is for a log after 2021-Nov
+                      'transactions.tsv': 'trs', 'transactionRevenueByTrId.tsv': 'rev'}
+        for s_filename in lst_data_files:
+            s_data_file_fullname = os.path.join(s_data_path, s_filename)
+            if s_filename == 'archive':
                 continue
-            
-            aFile = sFilename.split('_')
-            sDataDate = aFile[0]
-            sUaType = self.__g_oSvCampaignParser.get_ua(aFile[1])
-            sSpecifier = aFile[2]
-            if sSpecifier in dictQuery:  #lst_analyzing_filename:
-                sIdxName = dictQuery[sSpecifier]
+            lst_file = s_filename.split('_')
+            s_data_date = lst_file[0]
+            s_ua_type = self.__g_oSvCampaignParser.get_ua(lst_file[1])
+            s_specifier = lst_file[2]
+            if s_specifier in dict_query:  # lst_analyzing_filename:
+                s_idx_name = dict_query[s_specifier]
             else:
                 continue
-            
-            if os.path.isfile(sDataFileFullname):
-                with open(sDataFileFullname, 'r') as tsvfile:
+
+            if os.path.isfile(s_data_file_fullname):
+                with open(s_data_file_fullname, 'r') as tsvfile:
                     reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
                     for row in reader:
                         if not self._continue_iteration():
                             break
-                        if sSpecifier == 'transactionRevenueByTrId.tsv':
+                        if s_specifier == 'transactionRevenueByTrId.tsv':
                             row = row[1:]  # remove transaction ID
-                        
+
                         try:
-                            dictRst = self.__parseGaRow(row, sDataFileFullname)
+                            dict_rst = self.__parse_ga_row(row, s_data_file_fullname)
                         except Exception as err:
                             self._print_debug('2222')
                             self._print_debug(err)
-                            self._print_debug(dictRst['source'])
-                            self._print_debug(dictRst['rst_type'])
-                            self._print_debug(dictRst['medium'])
-                            self._print_debug(dictRst['brd'])
-                            self._print_debug(dictRst['campaign1st'])
-                            self._print_debug(dictRst['campaign2nd'])
-                            self._print_debug(dictRst['campaign3rd'])
-                            self._print_debug(sDataFileFullname)
-
-                        sTerm = row[2]
-                        
-                        sReportId = sDataDate+'|@|'+sUaType+'|@|'+dictRst['source']+'|@|'+dictRst['rst_type']+'|@|'+ \
-                            dictRst['medium']+'|@|'+str(dictRst['brd'])+'|@|'+dictRst['campaign1st']+'|@|'+dictRst['campaign2nd']+'|@|'+\
-                            dictRst['campaign3rd']+'|@|'+sTerm
-                            
-                        if self.__g_dictGaRaw.get(sReportId, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
-                            self.__g_dictGaRaw[sReportId] = {
-                                'sess':0,'new_per':0,'b_per':0,'dur_sec':0,'pvs':0,'trs':0, 'rev':0  # , 'ua':sUaType
+                            self._print_debug(dict_rst['source'])
+                            self._print_debug(dict_rst['rst_type'])
+                            self._print_debug(dict_rst['medium'])
+                            self._print_debug(dict_rst['brd'])
+                            self._print_debug(dict_rst['campaign1st'])
+                            self._print_debug(dict_rst['campaign2nd'])
+                            self._print_debug(dict_rst['campaign3rd'])
+                            self._print_debug(s_data_file_fullname)
+                        s_term = row[2]
+                        s_rpt_id = s_data_date + '|@|' + s_ua_type + '|@|' + dict_rst['source'] + '|@|' + \
+                                   dict_rst['rst_type'] + '|@|' + dict_rst['medium'] + '|@|' + \
+                                   str(dict_rst['brd']) + '|@|' + dict_rst['campaign1st'] + '|@|' + \
+                                   dict_rst['campaign2nd'] + '|@|' + dict_rst['campaign3rd'] + '|@|' + s_term
+                        if self.__g_dictGaRaw.get(s_rpt_id, self.__g_sSvNull) == self.__g_sSvNull:  # if not exists
+                            self.__g_dictGaRaw[s_rpt_id] = {
+                                'sess': 0, 'new_per': 0, 'b_per': 0, 'dur_sec': 0, 'pvs': 0, 'trs': 0, 'rev': 0
                             }
-                        self.__g_dictGaRaw[sReportId][sIdxName] = float(row[3])
-                        
-                self.__archive_ga_data_file(sDataPath, sFilename)
+                        self.__g_dictGaRaw[s_rpt_id][s_idx_name] = float(row[3])
+                self.__archive_ga_data_file(s_data_path, s_filename)
             else:
-                self._print_debug('pass ' + sDataFileFullname + ' does not exist')
-
-            self._print_progress_bar(nIdx + 1, nSentinel, prefix='Arrange data file:', suffix='Complete', length=50)
-            nIdx += 1
-
+                self._print_debug('pass ' + s_data_file_fullname + ' does not exist')
+            self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Arrange data file:', suffix='Complete', length=50)
+            n_idx += 1
         self._print_debug('UA media performance log arranging has been finished\n')
-        
-    def __getCampaignNameAlias(self, sParentDataPath):
-        dictCampaignNameAliasInfo = {}
-        s_alias_filepath = os.path.join(sParentDataPath, 'alias_info_campaign.tsv')
+
+    def __get_campaign_alias(self, s_parent_data_path):
+        dict_campaign_alias = {}
+        s_alias_filepath = os.path.join(s_parent_data_path, 'alias_info_campaign.tsv')
         if os.path.isfile(s_alias_filepath):
-            with codecs.open(s_alias_filepath, 'r',encoding='utf8') as tsvfile:
+            with codecs.open(s_alias_filepath, 'r', encoding='utf8') as tsvfile:
                 reader = csv.reader(tsvfile, delimiter='\t')
-                nRowCnt = 0
+                n_row_cnt = 0
                 for row in reader:
-                    if nRowCnt > 0:
-                        dictCampaignNameAliasInfo[row[0]] = {'source':row[1], 'rst_type':row[2], 
-                            'medium':row[3], 'camp1st':row[4], 'camp2nd':row[5], 'camp3rd':row[6] }
+                    if n_row_cnt > 0:
+                        dict_campaign_alias[row[0]] = {'source': row[1], 'rst_type': row[2], 'medium': row[3],
+                                                       'camp1st': row[4], 'camp2nd': row[5], 'camp3rd': row[6]}
+                    n_row_cnt += 1
+        return dict_campaign_alias
 
-                    nRowCnt = nRowCnt + 1
-        return dictCampaignNameAliasInfo
-
-    def __registerSourceMediumTerm(self):
-        self._print_debug('UA media performance log registation has been started\n')
-        nIdx = 0
-        nSentinel = len(self.__g_dictGaRaw)
-        with sv_mysql.SvMySql() as oSvMysql: # to enforce follow strict mysql connection mgmt
-            oSvMysql.set_tbl_prefix(self.__g_sTblPrefix)
-            oSvMysql.set_app_name('svplugins.ga_register_db')
-            oSvMysql.initialize(self._g_dictSvAcctInfo)
+    def __register_source_medium_term(self):
+        self._print_debug('UA media performance log registration has been started\n')
+        n_idx = 0
+        n_sentinel = len(self.__g_dictGaRaw)
+        with sv_mysql.SvMySql() as o_sv_mysql:  # to enforce follow strict mysql connection mgmt
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.ga_register_db')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
             for sReportId, dict_single_raw in self.__g_dictGaRaw.items():
                 if not self._continue_iteration():
                     break
-                
-                aReportType = sReportId.split('|@|')
-                sDataDate = datetime.strptime(aReportType[0], "%Y%m%d")
-                sUaType = aReportType[1]
-                sSource = aReportType[2]
-                sRstType = aReportType[3]
-                sMedium = aReportType[4]
-                bBrd = aReportType[5]
-                sCampaign1st = aReportType[6]
-                sCampaign2nd = aReportType[7]
-                sCampaign3rd = aReportType[8]
-                sTerm = aReportType[9]
+                lst_rpt_type = sReportId.split('|@|')
+                s_data_date = datetime.strptime(lst_rpt_type[0], "%Y%m%d")
+                s_ua_type = lst_rpt_type[1]
+                s_source = lst_rpt_type[2]
+                s_rst_type = lst_rpt_type[3]
+                s_medium = lst_rpt_type[4]
+                b_brd = lst_rpt_type[5]
+                s_campaign1st = lst_rpt_type[6]
+                s_campaign2nd = lst_rpt_type[7]
+                s_campaign3rd = lst_rpt_type[8]
+                s_term = lst_rpt_type[9]
                 # should check if there is duplicated date + SM log
                 # strict str() formatting prevents that pymysql automatically rounding up tiny decimal
-                oSvMysql.execute_query('insertGaCompiledDailyLog', sUaType, sSource, sRstType, sMedium,
-                                       bBrd, sCampaign1st, sCampaign2nd, sCampaign3rd, sTerm,
-                                       dict_single_raw['sess'], str(dict_single_raw['new_per']),
-                                       str(dict_single_raw['b_per']), str(dict_single_raw['dur_sec']),
-                                       str(dict_single_raw['pvs']), dict_single_raw['trs'], dict_single_raw['rev'], 0,
-                                       sDataDate)
+                o_sv_mysql.execute_query('insertGaCompiledDailyLog', s_ua_type, s_source, s_rst_type, s_medium,
+                                         b_brd, s_campaign1st, s_campaign2nd, s_campaign3rd, s_term,
+                                         dict_single_raw['sess'], str(dict_single_raw['new_per']),
+                                         str(dict_single_raw['b_per']), str(dict_single_raw['dur_sec']),
+                                         str(dict_single_raw['pvs']), dict_single_raw['trs'], dict_single_raw['rev'], 0,
+                                         s_data_date)
+                self._print_progress_bar(n_idx + 1, n_sentinel, prefix='Register DB:', suffix='Complete', length=50)
+                n_idx += 1
+        self._print_debug('UA media performance log registration has been finished\n')
 
-                self._print_progress_bar(nIdx + 1, nSentinel, prefix='Register DB:', suffix='Complete', length=50)
-                nIdx += 1
-        self._print_debug('UA media performance log registation has been finished\n')
-
-    def __parseGaRow(self, lstRow, sDataFileFullname):
+    def __parse_ga_row(self, lst_row, s_datafile_fullname):
         try:
-            if self.__g_dictSourceMediaNameAliasInfo.get(lstRow[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                sSourceMediumAlias = str(self.__g_dictSourceMediaNameAliasInfo[lstRow[0]]['alias'])
-                aSourceMedium = sSourceMediumAlias.split(' / ')
+            if self.__g_dictSourceMediaAliasInfo.get(lst_row[0], self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                s_source_medium_alias = str(self.__g_dictSourceMediaAliasInfo[lst_row[0]]['alias'])
+                lst_source_medium = s_source_medium_alias.split(' / ')
             else:
-                aSourceMedium = lstRow[0].split(' / ')
+                lst_source_medium = lst_row[0].split(' / ')
         except Exception as err:
             self._print_debug('3333')
-        
+
         try:
-            sSource = aSourceMedium[0]
-            sMedium = aSourceMedium[1]
-            sCampaignCode = lstRow[1]
+            sSource = lst_source_medium[0]
+            sMedium = lst_source_medium[1]
+            sCampaignCode = lst_row[1]
         except Exception as err:
             self._print_debug('4444')
         sRstType = ''
         sCampaign1st = ''
         sCampaign2nd = ''
         sCampaign3rd = ''
-        sTerm = lstRow[2]
+        sTerm = lst_row[2]
         # "skin-skin14--shop3.ratestw.cafe24.com" like source string occurs confusion
         try:
             m = re.search(r"[-\w.]+", sSource)
@@ -404,10 +385,10 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except Exception as err:
             self._print_debug('5555')
         if nHttpPos > -1:
-            if len(sSource) > 30: # remedy erronous UTM parameter
+            if len(sSource) > 30:  # remedy erronous UTM parameter
                 m = re.search(r"https?://(\w*:\w*@)?[-\w.]+(:\d+)?(/([\w/_.]*(\?\S+)?)?)?", sSource)
                 try:
-                    if len( m.group(0) ):
+                    if len(m.group(0)):
                         nPos = sSource.find('utm_source')
                         if nPos > -1:
                             sRightPart = sSource[nPos:]
@@ -416,13 +397,14 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         else:
                             m1 = re.search(r"[^https?://](\w*:\w*@)?[-\w.]+(:\d+)?", sSource)
                             sSource = m1.group(0)
-                except AttributeError: # retry to handle very weird source tagging
+                except AttributeError:  # retry to handle very weird source tagging
                     # this block handles '＆' which is not & that naver shopping foolishly occurs
-                    self._print_debug('weird source found on ' + sDataFileFullname + ' -> unicode ampersand which is not &')
+                    self._print_debug(
+                        'weird source found on ' + s_datafile_fullname + ' -> unicode ampersand which is not &')
                     # same source code needs to be method - begin
                     sEncodedSource = sSource.encode('UTF-8')
                     sEncodedSource = str(sEncodedSource)
-                    aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86") # utf-8 encoded unicode ampersand ��
+                    aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86")  # utf-8 encoded unicode ampersand ��
                     for sQueryElement in aWeirdSource:
                         aQuery = sQueryElement.split('=')
                         if aQuery[0] == 'utm_campaign':
@@ -439,11 +421,12 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sTerm = aQuery[1]
                     # same source code needs to be method - end
                 except Exception as inst:
-                    self._print_debug(sDataFileFullname)
-                    self._print_debug(lstRow)
-                    #self._print_debug(inst.args)     # arguments stored in .args
-                    self._print_debug(inst)			# __str__ allows args to be printed directly, but may be overridden in exception subclasses
-        else: # ex) naver��utm_medium=cpc��utm_campaign=NV_PS_CPC_NVSHOP_00_00��utm_term=NVSHOP_4741��n_media=33421��n_query=��ɼ��漮��n_rank=1��n_ad_group=grp-a001-02-000000002830061��n_ad=nad-a001-02-000000011190197��n_campaign_type=2��n_
+                    self._print_debug(s_datafile_fullname)
+                    self._print_debug(lst_row)
+                    # self._print_debug(inst.args)     # arguments stored in .args
+                    self._print_debug(
+                        inst)  # __str__ allows args to be printed directly, but may be overridden in exception subclasses
+        else:  # ex) naver��utm_medium=cpc��utm_campaign=NV_PS_CPC_NVSHOP_00_00��utm_term=NVSHOP_4741��n_media=33421��n_query=��ɼ��漮��n_rank=1��n_ad_group=grp-a001-02-000000002830061��n_ad=nad-a001-02-000000011190197��n_campaign_type=2��n_
             # same source code needs to be method - begin
             try:
                 sEncodedSource = sSource.encode('UTF-8')
@@ -453,7 +436,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._print_debug('6666')
             if nUnicodeAmpersandPos > -1:
                 try:
-                    aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86") # utf-8 encoded unicode ampersand ��
+                    aWeirdSource = sEncodedSource.split("\\xef\\xbc\\x86")  # utf-8 encoded unicode ampersand ��
                     for sQueryElement in aWeirdSource:
                         aQuery = sQueryElement.split('=')
                         if aQuery[0] == 'utm_campaign':
@@ -466,7 +449,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             sCampaign2nd = dictSmRst['campaign2nd']
                             sCampaign3rd = dictSmRst['campaign3rd']
                         if aQuery[0] == 'utm_term':
-                                sTerm = aQuery[1]
+                            sTerm = aQuery[1]
                 except Exception as err:
                     self._print_debug('7777')
             # same source code needs to be method - end
@@ -475,7 +458,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             try:
                 sMedium = dictValidMedium['medium']
                 if dictValidMedium['found_pos'] > -1:
-                    nPos = dictValidMedium['found_pos'] + len( dictValidMedium['medium'])
+                    nPos = dictValidMedium['found_pos'] + len(dictValidMedium['medium'])
                     sRightPart = sMedium[nPos:]
                     aRightPart = sRightPart.split('=')
                     if aRightPart[0] == 'utm_campaign':
@@ -484,45 +467,46 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 self._print_debug('8888')
         else:
             try:
-                self.__g_lstErrornousMedia.append(sDataFileFullname + ' -> ' + sSource+' / ' + sMedium)
+                self.__g_lstErroneousMedia.append(s_datafile_fullname + ' -> ' + sSource + ' / ' + sMedium)
             except Exception as err:
                 self._print_debug('9999')
 
         if sSource == 'google' and sMedium == 'cpc':
-            try:
-                # lookup alias db, if non sv standard code
-                if self.__g_dictGoogleAdsCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                    if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] == 'YT':
+            try:  # lookup alias db, if non sv standard code
+                if self.__g_dictGoogleAdsCampaignAlias.get(sCampaignCode,
+                                                           self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                    if self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['source'] == 'YT':
                         sSource = 'youtube'
-                    if self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] == 'DISP':
+                    if self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['medium'] == 'DISP':
                         sMedium = 'display'
-                    sCampaignCode = self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['source'] + '_' + \
-                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
-                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
-                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
-                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
-                                    self.__g_dictGoogleAdsCampaignNameAlias[sCampaignCode]['camp3rd']
+                    sCampaignCode = self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['source'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['rst_type'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['medium'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['camp1st'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['camp2nd'] + '_' + \
+                                    self.__g_dictGoogleAdsCampaignAlias[sCampaignCode]['camp3rd']
             except Exception as err:
                 self._print_debug('aaaa')
         elif sSource == 'naver' and sMedium == 'cpc':
             try:
                 # lookup alias db, if non sv standard code
-                if self.__g_dictNaverPowerlinkCampaignNameAlias.get(sCampaignCode, self.__g_sSvNull) != self.__g_sSvNull:  # if exists
-                    sCampaignCode = self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['source'] + '_' + \
-                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['rst_type'] + '_' + \
-                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['medium'] + '_' + \
-                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp1st'] + '_' + \
-                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp2nd'] + '_' + \
-                                    self.__g_dictNaverPowerlinkCampaignNameAlias[sCampaignCode]['camp3rd']
+                if self.__g_dictNvrPowerlinkCampaignAlias.get(sCampaignCode,
+                                                              self.__g_sSvNull) != self.__g_sSvNull:  # if exists
+                    sCampaignCode = self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['source'] + '_' + \
+                                    self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['rst_type'] + '_' + \
+                                    self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['medium'] + '_' + \
+                                    self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['camp1st'] + '_' + \
+                                    self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['camp2nd'] + '_' + \
+                                    self.__g_dictNvrPowerlinkCampaignAlias[sCampaignCode]['camp3rd']
             except Exception as err:
                 self._print_debug('bbbb')
-        try:    
+        try:
             dictCampaignRst = self.__g_oSvCampaignParser.parse_campaign_code(s_sv_campaign_code=sCampaignCode)
         except Exception as err:
             self._print_debug('cccc')
             self._print_debug(err)
         try:
-            if dictCampaignRst['source'] == 'unknown': # handle no sv campaign code data
+            if dictCampaignRst['source'] == 'unknown':  # handle no sv campaign code data
                 if sMedium == 'cpc' or sMedium == 'display':
                     dictCampaignRst['rst_type'] = 'PS'
                 else:
@@ -530,11 +514,11 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except Exception as err:
             self._print_debug('dddd')
             self._print_debug(err)
-        
+
         try:
             bBrd = dictCampaignRst['brd']
             sRstType = dictCampaignRst['rst_type']
-            if len(dictCampaignRst['medium']) > 0: # sv campaign criteria first, GA auto categorize later
+            if len(dictCampaignRst['medium']) > 0:  # sv campaign criteria first, GA auto categorize later
                 sMedium = dictCampaignRst['medium']
             sCampaign1st = dictCampaignRst['campaign1st']
             sCampaign2nd = dictCampaignRst['campaign2nd']
@@ -556,11 +540,11 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         except Exception as err:
             self._print_debug('gggg')
             self._print_debug(err)
-        
+
         # monitor weird source name - begin
-        if len(sSource) > 50: 
-            self._print_debug(sDataFileFullname)
-            self._print_debug(lstRow)
+        if len(sSource) > 50:
+            self._print_debug(s_datafile_fullname)
+            self._print_debug(lst_row)
             raise Exception('stop')
         # monitor weird source name - begin
         return {'source': sSource, 'rst_type': sRstType, 'medium': sMedium, 'brd': bBrd,
@@ -568,14 +552,14 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
     def __archive_ga_data_file(self, s_data_path, s_cur_filename):
         if not os.path.exists(s_data_path):
-            self._print_debug('error: google analytics source directory does not exist!' )
+            self._print_debug('error: google analytics source directory does not exist!')
             return
         s_data_archive_path = os.path.join(s_data_path, 'archive')
         if not os.path.exists(s_data_archive_path):
             os.makedirs(s_data_archive_path)
         s_source_filepath = os.path.join(s_data_path, s_cur_filename)
-        sArchiveDataFilePath = os.path.join(s_data_archive_path, s_cur_filename)
-        shutil.move(s_source_filepath, sArchiveDataFilePath)
+        s_archive_data_file_path = os.path.join(s_data_archive_path, s_cur_filename)
+        shutil.move(s_source_filepath, s_archive_data_file_path)
 
 
 if __name__ == '__main__':  # for console debugging

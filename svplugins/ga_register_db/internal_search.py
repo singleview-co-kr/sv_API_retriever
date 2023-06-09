@@ -39,7 +39,7 @@ else: # for platform running
     from svcommon import sv_mysql
 
 
-class svInternalSearch():
+class SvInternalSearch():
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """

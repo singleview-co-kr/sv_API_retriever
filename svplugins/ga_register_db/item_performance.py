@@ -38,7 +38,7 @@ else: # for platform running
     from svcommon import sv_mysql
 
 
-class svItemPerformance():
+class SvItemPerformance():
     __g_sSvNull = '$%'
     
     def __init__(self):
