@@ -82,7 +82,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230610)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230612)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first,
         # whenever you create new objects it will reuse this same dict.
@@ -300,6 +300,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             if os.path.isfile(s_data_file_fullname):
                 with open(s_data_file_fullname, 'r') as tsvfile:
                     o_reader = csv.reader(tsvfile, delimiter='\t', skipinitialspace=True)
+                    lst_row = None
                     for lst_row in o_reader:
                         if not self._continue_iteration():
                             break
@@ -317,7 +318,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             }
                         del dict_rst
                         self.__g_dictGaRaw[s_rpt_id][s_idx_name] = float(lst_row[3])
-                    del lst_row
+                    if lst_row:
+                        del lst_row
                 self.__archive_ga_data_file(s_data_path, s_filename)
             else:
                 self._print_debug('pass ' + s_data_file_fullname + ' does not exist')
