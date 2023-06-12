@@ -72,7 +72,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230612)')
         
         self._g_dictParam.update({'yyyymm': None, 'mode': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -407,12 +407,12 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         return {
             's_uniq_log_id': s_uniq_log_id,
             'n_session': n_session,
-            'n_trs': int(lst_ga_log['transactions']),
-            'n_rev': int(lst_ga_log['revenue']),
-            'n_reg': int(lst_ga_log['registrations']),
-            'f_gross_new': n_session * float(lst_ga_log['new_per']) / 100,  # f_new_per
-            'f_gross_b': n_session * float(lst_ga_log['bounce_per']) / 100,  # f_b_per
-            'f_gross_dur_sec': n_session * float(lst_ga_log['duration_sec']),  # f_dur_sec
+            # 'n_trs': int(lst_ga_log['transactions']),
+            # 'n_rev': int(lst_ga_log['revenue']),
+            # 'n_reg': int(lst_ga_log['registrations']),
+            'n_gross_new': int(lst_ga_log['new']),
+            'n_gross_b': int(lst_ga_log['bounce']),
+            'f_gross_dur_sec': n_session * float(lst_ga_log['duration_sec']),
             'f_gross_pvs': n_session * float(lst_ga_log['pvs'])  # f_pvs
         }
 
@@ -433,23 +433,23 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictFbMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             self.__g_dictFbMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst['f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictFbMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictFbMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg']  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg']
             }
 
     def __cleanup_googleads_log(self, lst_ga_log):
@@ -467,23 +467,23 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictAdwMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst['f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictAdwMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictAdwMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg'],  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg'],
             }
 
     def __cleanup_yt_log(self, lst_ga_log):
@@ -493,23 +493,23 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictYtMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             self.__g_dictYtMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst['f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictYtMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictYtMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg'],  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg'],
             }
 
     def __cleanup_kko_log(self, lst_ga_log):
@@ -518,23 +518,23 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictKkoMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst['f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictKkoMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictKkoMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg'],  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg'],
             }
 
     def __cleanup_nvad_log(self, lst_ga_log):
@@ -555,24 +555,24 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictNvadMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:  # if sRowId exists
             self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst[
                 'f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictNvadMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictNvadMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg'],  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg'],
             }
         del dict_rst
 
@@ -582,24 +582,24 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_uniq_log_id = dict_rst['s_uniq_log_id']
         if self.__g_dictOtherMergedDailyLog.get(s_uniq_log_id, self.__g_sSvNull) != self.__g_sSvNull:
             self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['session'] += dict_rst['n_session']  # n_session
-            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['f_gross_new']  # f_gross_new
-            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['f_gross_b']  # f_gross_b
+            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_new_session'] += dict_rst['n_gross_new']
+            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_bounce'] += dict_rst['n_gross_new']
             self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_duration_sec'] += dict_rst[
                 'f_gross_dur_sec']  # f_gross_dur_sec
             self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_pvs'] += dict_rst['f_gross_pvs']  # f_gross_pvs
-            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']  # n_trs
-            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']  # n_rev
-            self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']  # n_reg
+            # self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_transactions'] += dict_rst['n_trs']
+            # self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_revenue'] += dict_rst['n_rev']
+            # self.__g_dictOtherMergedDailyLog[s_uniq_log_id]['tot_registrations'] += dict_rst['n_reg']
         else:  # if new log requested
             self.__g_dictOtherMergedDailyLog[s_uniq_log_id] = {
                 'session': dict_rst['n_session'],  # n_session,
-                'tot_new_session': dict_rst['f_gross_new'],  # f_gross_new,
-                'tot_bounce': dict_rst['f_gross_b'],  # f_gross_b,
+                'tot_new_session': dict_rst['n_gross_new'],
+                'tot_bounce': dict_rst['n_gross_new'],
                 'tot_duration_sec': dict_rst['f_gross_dur_sec'],  # f_gross_dur_sec,
                 'tot_pvs': dict_rst['f_gross_pvs'],  # f_gross_pvs,
-                'tot_transactions': dict_rst['n_trs'],  # n_trs,
-                'tot_revenue': dict_rst['n_rev'],  # n_rev,
-                'tot_registrations': dict_rst['n_reg'],  # n_reg
+                # 'tot_transactions': dict_rst['n_trs'],
+                # 'tot_revenue': dict_rst['n_rev'],
+                # 'tot_registrations': dict_rst['n_reg'],
             }
         del dict_rst
 
@@ -646,8 +646,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     0, 0, 0, 0, 0, 0, 0,
                                                     dict_row['session'], dict_row['tot_new_session'],
                                                     dict_row['tot_bounce'], dict_row['tot_duration_sec'],
-                                                    dict_row['tot_pvs'], dict_row['tot_transactions'],
-                                                    dict_row['tot_revenue'], dict_row['tot_registrations'],
+                                                    dict_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_row['tot_transactions'],
+                                                    # dict_row['tot_revenue'], dict_row['tot_registrations'],
                                                     self.__g_sDate)
                 elif n_rec_cnt_cpc == 1:
                     n_fb_merged_log_srl = lst_fb_log_daily_cpc[0]['log_srl']
@@ -681,8 +682,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     lst_fb_log_daily_cpc[0]['conv_amnt'],
                                                     dict_row['session'], dict_row['tot_new_session'],
                                                     dict_row['tot_bounce'], dict_row['tot_duration_sec'],
-                                                    dict_row['tot_pvs'], dict_row['tot_transactions'],
-                                                    dict_row['tot_revenue'], dict_row['tot_registrations'],
+                                                    dict_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
                                                     self.__g_sDate)
             elif n_rec_cnt == 1:
                 n_fb_merged_log_srl = lst_fb_log_daily_source[0]['log_srl']
@@ -716,8 +717,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 lst_fb_log_daily_source[0]['conv_amnt'],
                                                 dict_row['session'], dict_row['tot_new_session'],
                                                 dict_row['tot_bounce'], dict_row['tot_duration_sec'],
-                                                dict_row['tot_pvs'], dict_row['tot_transactions'],
-                                                dict_row['tot_revenue'], dict_row['tot_registrations'],
+                                                dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
                                                 self.__g_sDate)
             else:
                 self._print_debug('fb record with multiple media data on ' + self.__g_sDate)
@@ -809,9 +810,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                 0, 0, 0, 0, 0, 0, 0,
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                                dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             elif n_rec_cnt == 1:  # add new media bounded log, if able to find related ADW raw log
                 if 'log_srl' in lst_googleads_log_daily[0]:
                     dict_gads_log_daily.pop(lst_googleads_log_daily[0]['log_srl'])
@@ -832,9 +833,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 lst_googleads_log_daily[0]['conv_cnt'],
                                                 lst_googleads_log_daily[0]['conv_amnt'],
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                                dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             else:
                 self._print_debug('adw record with multiple media data on ' + self.__g_sDate)
                 self._print_debug(dict_id_rst)
@@ -935,9 +936,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                 0, 0, 0, 0, 0, 0, 0,
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                                dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             elif n_rec_cnt == 1:
                 # if lst_yt_log_daily[0]['log_srl'] in dict_yt_daily_log:
                 if 'log_srl' in lst_yt_log_daily[0]:
@@ -963,9 +964,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 lst_yt_log_daily[0]['imp'], lst_yt_log_daily[0]['click'],
                                                 lst_yt_log_daily[0]['conv_cnt'], lst_yt_log_daily[0]['conv_amnt'],
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'],
-                                                dict_row['tot_revenue'], dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             else:
                 self._print_debug('youtube record with multiple media data on ' + self.__g_sDate)
                 self._print_debug(dict_id_rst)
@@ -1064,8 +1065,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 0, 0, 0, 0, 0, 0, 0,
                                                 dict_single_row['session'], dict_single_row['tot_new_session'],
                                                 dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
-                                                dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
-                                                dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
+                                                dict_single_row['tot_pvs'], 0, 0, 0,
+                                                # dict_single_row['tot_transactions'], dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
                                                 self.__g_sDate)
             else:  # GA log exists with KKO PS data
                 if s_uniq_log_id in dict_kko_daily_log:  # if designated log already created
@@ -1087,8 +1088,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     dict_kko_daily_log[s_uniq_log_id]['conv_amnt_direct'],
                                                     dict_single_row['session'], dict_single_row['tot_new_session'],
                                                     dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
-                                                    dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
-                                                    dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
+                                                    dict_single_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_single_row['tot_transactions'], dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
                                                     self.__g_sDate)
                     dict_kko_daily_log.pop(s_uniq_log_id)  # removed registered log
                 else:  # if new log requested
@@ -1099,8 +1100,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     dict_id_rst['s_camp_3rd'], 0, 0, 0, 0, 0, 0, 0,
                                                     dict_single_row['session'], dict_single_row['tot_new_session'],
                                                     dict_single_row['tot_bounce'], dict_single_row['tot_duration_sec'],
-                                                    dict_single_row['tot_pvs'], dict_single_row['tot_transactions'],
-                                                    dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
+                                                    dict_single_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_single_row['tot_transactions'], dict_single_row['tot_revenue'], dict_single_row['tot_registrations'],
                                                     self.__g_sDate)
         # proc residual minor kakao moment log
         # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
@@ -1184,9 +1185,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 dict_id_rst['s_camp_2nd'], dict_id_rst['s_camp_3rd'],
                                                 0, 0, 0, 0, 0, 0, 0,
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                                dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             elif n_rec_cnt == 1:
                 if lst_nvad_log_daily[0]['log_srl'] in dict_nvad_daily_log:
                     dict_nvad_daily_log.pop(lst_nvad_log_daily[0]['log_srl'])
@@ -1213,9 +1214,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                 lst_nvad_log_daily[0]['imp'], lst_nvad_log_daily[0]['click'],
                                                 lst_nvad_log_daily[0]['conv_cnt'], lst_nvad_log_daily[0]['conv_amnt'],
                                                 dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                dict_row['tot_transactions'],
-                                                dict_row['tot_revenue'], dict_row['tot_registrations'], self.__g_sDate)
+                                                dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                self.__g_sDate)
             else:
                 # if 3rd campaign code of the NVR BRS ad group name is changed in busy hour,
                 # there would be two log with same term and different 3rd campaign code
@@ -1242,8 +1243,8 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     dict_brs_log['conv_cnt'], dict_brs_log['conv_amnt'],
                                                     dict_row['session'], dict_row['tot_new_session'],
                                                     dict_row['tot_bounce'], dict_row['tot_duration_sec'],
-                                                    dict_row['tot_pvs'], dict_row['tot_transactions'],
-                                                    dict_row['tot_revenue'], dict_row['tot_registrations'],
+                                                    dict_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'],
                                                     self.__g_sDate)
                 else:
                     # aggregate each log into a single GA detected NVAD log,
@@ -1278,9 +1279,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                                     dict_cost_rst['cost'], dict_cost_rst['agency_fee'], dict_cost_rst['vat'],
                                                     n_imp, n_click, n_conv_cnt, n_conv_amnt, dict_row['session'],
                                                     dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                                    dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                                    dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                                    dict_row['tot_registrations'], self.__g_sDate)
+                                                    dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                                    # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                                    self.__g_sDate)
         # means mob_brded':0, 'mob_nonbrded':0, 'pc_brded':0, 'pc_nonbrded
         dict_imp = {'M_1': 0, 'M_0': 0, 'P_1': 0, 'P_0': 0}
         for n_log_srl in dict_nvad_daily_log:  # register residual; means NVAD data without GA log
@@ -1336,9 +1337,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                             dict_id_rst['s_camp_3rd'], n_media_raw_cost,
                                             n_media_agency_cost, n_media_cost_vat, 0, 0, 0, 0,
                                             dict_row['session'], dict_row['tot_new_session'], dict_row['tot_bounce'],
-                                            dict_row['tot_duration_sec'], dict_row['tot_pvs'],
-                                            dict_row['tot_transactions'], dict_row['tot_revenue'],
-                                            dict_row['tot_registrations'], self.__g_sDate)
+                                            dict_row['tot_duration_sec'], dict_row['tot_pvs'], 0, 0, 0,
+                                            # dict_row['tot_transactions'], dict_row['tot_revenue'], dict_row['tot_registrations'], 
+                                            self.__g_sDate)
 
 
 if __name__ == '__main__':  # for console debugging
