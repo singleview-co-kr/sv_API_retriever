@@ -78,7 +78,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230609)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230617)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -358,6 +358,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                             o_single_row.metric_values[0].value.replace('"', '').replace("'", ''))
                                     out.write('\n')
                                 del lst_dims
+                                del o_single_row
 
                     if o_response.property_quota:
                         self._print_debug('Tokens per day quota consumed: ' + 
@@ -389,7 +390,6 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         #         else:
                         #             raise Exception('remove')
                         return
-                    del o_single_row
                     del o_response
                     try:
                         f = open(s_latest_filepath, 'w')
