@@ -392,15 +392,18 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 lst_source_medium = s_source_medium_alias.split(' / ')
             else:
                 lst_source_medium = lst_row[0].split(' / ')
+                if len(lst_source_medium) != 2:  # regarding (not set) is tagged for the source/medium column; this happened by GA4 only?
+                    lst_source_medium = ['(direct)', '(none)']
         except Exception as err:
             self._print_debug('3333')
 
         try:
             sSource = lst_source_medium[0]
             sMedium = lst_source_medium[1]
-            sCampaignCode = lst_row[1]
         except Exception as err:
             self._print_debug('4444')
+
+        sCampaignCode = lst_row[1]
         sRstType = ''
         sCampaign1st = ''
         sCampaign2nd = ''
