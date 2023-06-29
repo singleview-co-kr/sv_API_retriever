@@ -78,7 +78,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230617)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230629)')
         
         self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -339,15 +339,26 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 try:
                     o_response = o_client.run_report(o_request)
                 except Exception as e:
-                    s_msg = 'GA api has reported weird error while processing sv account id: ' + s_ga4_property_id
-                    if self._g_bDaemonEnv:  # for running on dbs.py only
-                        logging.info(e)
-                        logging.info(s_msg)
-                        raise Exception('remove' )
+                    # if error.resp.reason in ['internalServerError', 'backendError']:
+                    if str(e).contains('504 deadline exceeded'):
+                        if n_backoff_cnt < 5:
+                            self._print_debug('start retrying with exponential back-off that GA recommends.')
+                            self._print_debug(error.resp)
+                            time.sleep((2 ** n_backoff_cnt) + random.random())
+                            n_backoff_cnt += 1
+                        else:
+                            raise Exception('remove')
+                            return
                     else:
-                        self._print_debug(e)
-                        self._print_debug(s_msg)
-                        return
+                        s_msg = 'GA api has reported weird error while processing sv account id: ' + s_ga4_property_id
+                        if self._g_bDaemonEnv:  # for running on dbs.py only
+                            logging.info(e)
+                            logging.info(s_msg)
+                            raise Exception('remove' )
+                        else:
+                            self._print_debug(e)
+                            self._print_debug(s_msg)
+                            return
                 del o_request
 
                 n_total_rst = o_response.row_count
@@ -391,21 +402,6 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                       str(o_response.property_quota.potentially_thresholded_requests_per_hour.remaining))
                     self._print_debug('remove')
                     return
-                    # except HttpError as error:
-                    #     # https://developers.google.com/analytics/devguides/reporting/core/v4/errors
-                    #     if error.resp.reason in ['userRateLimitExceeded','internalServerError', 'backendError']:
-                    #         if n_retry_backoff_cnt < 5:
-                    #             s_msg = 'start retrying with exponential back-off that GA recommends.'
-                    #             if self._g_bDaemonEnv:  # for running on dbs.py only
-                    #                 logging.info(s_msg)
-                    #                 logging.info(error.resp)
-                    #             else:
-                    #                 self._print_debug(s_msg)
-                    #                 self._print_debug(error.resp)
-                    #             time.sleep((2 ** n_retry_backoff_cnt) + random.random())
-                    #             n_retry_backoff_cnt += 1
-                    #         else:
-                    #             raise Exception('remove')
                 del o_response
                 
                 try:

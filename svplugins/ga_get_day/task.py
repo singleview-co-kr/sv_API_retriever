@@ -78,7 +78,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230617)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230629)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first, 
         # whenever you create new objects it will reuse this same dict. 
@@ -265,7 +265,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         }
         s_private_key_json = os.path.join(self._g_sAbsRootPath, 'conf', 'private_key_google_analytics.json')
         o_client = BetaAnalyticsDataClient.from_service_account_file(s_private_key_json)
-        n_retry_backoff_cnt = 0
+        n_backoff_cnt = 0
         for s_ua, o_dim_filter in dict_ua_filter.items():
             for dict_setting in lst_to_query:
                 if 'filename' in dict_setting:  # set designated download filename if requested, or follow metric name
@@ -330,15 +330,26 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         o_response = o_client.run_report(o_request)
                     
                     except Exception as e:
-                        s_msg = 'GA api has reported weird error while processing sv account id: ' + s_ga4_property_id
-                        if self._g_bDaemonEnv:  # for running on dbs.py only
-                            logging.info(e)
-                            logging.info(s_msg)
-                            raise Exception('remove' )
+                        # if error.resp.reason in ['internalServerError', 'backendError']:
+                        if str(e).contains('504 deadline exceeded'):
+                            if n_backoff_cnt < 5:
+                                self._print_debug('start retrying with exponential back-off that GA recommends.')
+                                self._print_debug(error.resp)
+                                time.sleep((2 ** n_backoff_cnt) + random.random())
+                                n_backoff_cnt += 1
+                            else:
+                                raise Exception('remove')
+                                return
                         else:
-                            self._print_debug(e)
-                            self._print_debug(s_msg)
-                            return
+                            s_msg = 'GA api has reported weird error while processing sv account id: ' + s_ga4_property_id
+                            if self._g_bDaemonEnv:  # for running on dbs.py only
+                                logging.info(e)
+                                logging.info(s_msg)
+                                raise Exception('remove' )
+                            else:
+                                self._print_debug(e)
+                                self._print_debug(s_msg)
+                                return
                     del o_request
 
                     n_total_rst = o_response.row_count
@@ -379,16 +390,6 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                         self._print_debug('remaining ' + 
                                           str(o_response.property_quota.potentially_thresholded_requests_per_hour.remaining))
                         self._print_debug('remove')
-                        # except HttpError as error:
-                        #     # https://developers.google.com/analytics/devguides/reporting/core/v4/errors
-                        #     if error.resp.reason in ['internalServerError', 'backendError']:
-                        #         if nRetryBackoffCnt < 5:
-                        #             self._print_debug('start retrying with exponential back-off that GA recommends.')
-                        #             self._print_debug(error.resp)
-                        #             time.sleep((2 ** nRetryBackoffCnt) + random.random())
-                        #             nRetryBackoffCnt = nRetryBackoffCnt + 1
-                        #         else:
-                        #             raise Exception('remove')
                         return
                     del o_response
                     try:
