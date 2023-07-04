@@ -69,7 +69,7 @@ class SvCampaignParser(sv_object.ISvObject):
         (9, 'mobon', 'MBO'),
         (10, 'smr', 'SMR'),
         (10, 'signal_play', 'SGP'),
-        (15, 'twitter', 'TWT'),
+        (15, 'twitter', 'TWT')
     ]
     __g_dictSourceIdTitle = None  # {1:'naver'}
     __g_dictSourceTagTitle = None  # {'NV': 'naver'}
@@ -155,7 +155,7 @@ class SvCampaignParser(sv_object.ISvObject):
         75: {'title': 'SMR_DISP', 'media_rst_type': 'PS', 'media_source': 'smr',
              'media_media': 'display', 'desc': '포탈에 개시되는 동영상 광고, 항상 DISP', 'camp_prefix': 'SMR_PS_DISP_'},
         76: {'title': 'SGP_DISP', 'media_rst_type': 'PS', 'media_source': 'signal_play',
-             'media_media': 'display', 'desc': '시그널 플레이 항상 DISP', 'camp_prefix': 'SGP_PS_DISP_'},
+             'media_media': 'display', 'desc': '시그널 플레이 항상 DISP', 'camp_prefix': 'SGP_PS_DISP_'}
         # 100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
         #       'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
     }
@@ -480,9 +480,11 @@ class SvCampaignParser(sv_object.ISvObject):
         s_sv_campaign_code = s_sv_campaign_code.upper()
         b_latest_sv_campaign_found = False
         try:
-            for sCampaignPrefix in self.__g_lstLatestSvCampaignPrefix:
-                self._g_oLogger.info(sCampaignPrefix)
-                if s_sv_campaign_code.find(sCampaignPrefix) > -1:
+            for s_campaign_prefix in self.__g_lstLatestSvCampaignPrefix:
+                self._g_oLogger.info(s_campaign_prefix)
+                if s_campaign_prefix is None:  # somtimes None added onto __g_lstLatestSvCampaignPrefix
+                    contiue
+                if s_sv_campaign_code.find(s_campaign_prefix) > -1:
                     b_latest_sv_campaign_found = True
                     break
         except Exception as err:
@@ -490,18 +492,10 @@ class SvCampaignParser(sv_object.ISvObject):
             self._g_oLogger.error(err)
             self._g_oLogger.error(self.__g_lstLatestSvCampaignPrefix)
             self._g_oLogger.error(s_sv_campaign_code)
-            self._g_oLogger.error(sCampaignPrefix)
+            self._g_oLogger.error(s_campaign_prefix)
 
         if b_latest_sv_campaign_found:  # latest version of SV campaign code
-            try:
-                dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
-            except Exception as err:
-                self._g_oLogger.error('3-parse_campaign_code')
-                self._g_oLogger.error(err)
-                self._g_oLogger.error(s_sv_campaign_code)
-                self._g_oLogger.error(dict_tmp_rst)
-                self._g_oLogger.error(dddd)
-
+            dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
             dict_rst['brd'] = dict_tmp_rst['brd']
             list_campaign_code = dict_tmp_rst['sv_code']
             del dict_tmp_rst
