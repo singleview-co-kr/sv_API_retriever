@@ -155,7 +155,7 @@ class SvCampaignParser(sv_object.ISvObject):
         75: {'title': 'SMR_DISP', 'media_rst_type': 'PS', 'media_source': 'smr',
              'media_media': 'display', 'desc': '포탈에 개시되는 동영상 광고, 항상 DISP', 'camp_prefix': 'SMR_PS_DISP_'},
         76: {'title': 'SGP_DISP', 'media_rst_type': 'PS', 'media_source': 'signal_play',
-             'media_media': 'display', 'desc': '시그널 플레이 항상 DISP', 'camp_prefix': 'SGP_PS_DISP_'}
+             'media_media': 'display', 'desc': '시그널 플레이 항상 DISP', 'camp_prefix': 'SGP_PS_DISP_'},
         # 100: {'title': 'ETC', 'media_rst_type': None, 'media_source': None,
         #       'media_media': None, 'desc': '기타 비용', 'camp_prefix': None}
     }
@@ -253,7 +253,6 @@ class SvCampaignParser(sv_object.ISvObject):
 
         self.__g_dictPnsContractType = {tup_single[0]: tup_single[1] for tup_single in self.__g_lstPnsContractInfo}
         self.__g_dictPnsContractTypeNamed = {tup_single[1]: tup_single[2] for tup_single in self.__g_lstPnsContractInfo}
-
         self.__g_lstLatestSvCampaignPrefix = [dict_source_medium['camp_prefix'] for _, dict_source_medium in
                                               self.__g_dictSourceMediumType.items()]
 
@@ -479,20 +478,12 @@ class SvCampaignParser(sv_object.ISvObject):
         
         s_sv_campaign_code = s_sv_campaign_code.upper()
         b_latest_sv_campaign_found = False
-        try:
-            for s_campaign_prefix in self.__g_lstLatestSvCampaignPrefix:
-                self._g_oLogger.info(s_campaign_prefix)
-                if s_campaign_prefix is None:  # somtimes None added onto __g_lstLatestSvCampaignPrefix
-                    contiue
-                if s_sv_campaign_code.find(s_campaign_prefix) > -1:
-                    b_latest_sv_campaign_found = True
-                    break
-        except Exception as err:
-            self._g_oLogger.error('2-parse_campaign_code err?')
-            self._g_oLogger.error(err)
-            self._g_oLogger.error(self.__g_lstLatestSvCampaignPrefix)
-            self._g_oLogger.error(s_sv_campaign_code)
-            self._g_oLogger.error(s_campaign_prefix)
+        for s_campaign_prefix in self.__g_lstLatestSvCampaignPrefix:
+            if s_campaign_prefix is None:  # None is added onto __g_lstLatestSvCampaignPrefix while running by chance if construct list dynamically
+                continue
+            if s_sv_campaign_code.find(s_campaign_prefix) > -1:
+                b_latest_sv_campaign_found = True
+                break
 
         if b_latest_sv_campaign_found:  # latest version of SV campaign code
             dict_tmp_rst = self.__analyze_sv_campaign_code(s_sv_campaign_code)
