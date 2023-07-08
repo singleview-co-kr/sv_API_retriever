@@ -72,7 +72,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230708)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -126,28 +126,37 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         # end - set important folder
         
         if self.__g_sMode == 'collect_api':
-            self._print_debug('-> communication begin')
-            with sv_mysql.SvMySql() as o_sv_mysql:
-                o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
-                o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
-                o_sv_mysql.initialize(self._g_dictSvAcctInfo)
-                lst_morpheme = o_sv_mysql.execute_query('getMorphemeActivated')
-            
-            for dict_single_morpheme in lst_morpheme:
-                n_morpheme_srl=dict_single_morpheme['morpheme_srl']
-                s_morpheme = dict_single_morpheme['morpheme']
-                n_total_effective_cnt = self.__get_keyword_from_nvsearch(n_morpheme_srl, s_morpheme)
-                self._print_debug(str(n_total_effective_cnt) + ' times retrieved')
-                # return  #### limit to first morpheme ##################
-            self._print_debug('-> communication finish')
+            self.__collect_api()
         elif self.__g_sMode == 'register_db':
             self.__register_raw_xml_file()
         elif self.__g_sMode == 'update_kin_date':
             self.__update_kin_date(dict_acct_info)
         else:
-            self._print_debug('mode is not specified.')
+            self._print_debug('start collect api')
+            self.__collect_api()
+            self._print_debug('finish collect api')
+            self._print_debug('start register db')
+            self.__register_raw_xml_file()
+            self._print_debug('finish register db')
 
         self._task_post_proc(self._g_oCallback)
+
+    def __collect_api(self):
+        self._print_debug('-> communication begin')
+        with sv_mysql.SvMySql() as o_sv_mysql:
+            o_sv_mysql.set_tbl_prefix(self.__g_sTblPrefix)
+            o_sv_mysql.set_app_name('svplugins.collect_nvsearch')
+            o_sv_mysql.initialize(self._g_dictSvAcctInfo)
+            lst_morpheme = o_sv_mysql.execute_query('getMorphemeActivated')
+        
+        for dict_single_morpheme in lst_morpheme:
+            n_morpheme_srl=dict_single_morpheme['morpheme_srl']
+            s_morpheme = dict_single_morpheme['morpheme']
+            n_total_effective_cnt = self.__get_keyword_from_nvsearch(n_morpheme_srl, s_morpheme)
+            del dict_single_morpheme
+            self._print_debug(str(n_total_effective_cnt) + ' times retrieved')
+            # return  #### limit to first morpheme ##################
+        self._print_debug('-> communication finish')
 
     def __update_kin_date(self, dict_acct_info):
         s_sv_acct_id = dict_acct_info['sv_account_id']
