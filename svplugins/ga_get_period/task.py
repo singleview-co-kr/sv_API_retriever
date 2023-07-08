@@ -38,6 +38,9 @@ import os
 import sys
 import random
 
+# 3rd party library
+from decouple import config  # https://pypi.org/project/python-decouple/
+
 # for GA4 only
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
@@ -74,11 +77,24 @@ else:
 
 
 class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
+    __g_sAbsRootPath = config('ABSOLUTE_PATH_BOT')
     
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230629)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230704)')
+        self._g_oLogger.setLevel(logging.ERROR)
+
+        # log format
+        formatter = logging.Formatter('%(name)s [%(levelname)s] %(message)s @ %(asctime)s')
+        # log output format
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        self._g_oLogger.addHandler(stream_handler)
+        # log output to file stream
+        file_handler = logging.FileHandler(self.__g_sAbsRootPath + '/log/sv_campaign_parser.' + str(datetime.today().strftime('%Y%m%d')) + '.log')
+        file_handler.setFormatter(formatter)
+        self._g_oLogger.addHandler(file_handler)
         
         self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -340,10 +356,13 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     o_response = o_client.run_report(o_request)
                 except Exception as e:
                     # if error.resp.reason in ['internalServerError', 'backendError']:
+                    self._g_oLogger.error('504 deadline exceeded?')
+                    self._g_oLogger.error(e)
+                    self._print_debug(e)
                     if str(e).contains('504 deadline exceeded'):
                         if n_backoff_cnt < 5:
                             self._print_debug('start retrying with exponential back-off that GA recommends.')
-                            self._print_debug(error.resp)
+                            self._print_debug(e.resp)
                             time.sleep((2 ** n_backoff_cnt) + random.random())
                             n_backoff_cnt += 1
                         else:
