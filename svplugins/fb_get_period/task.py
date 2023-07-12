@@ -69,7 +69,7 @@ else: # for platform running
 
 
 class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
-    __g_sFbApiVersion = 'v13.0'
+    __g_sFbApiVersion = 'v16.0'
 
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
