@@ -18,6 +18,7 @@ class Budget:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     __g_dictBudgetType = {}
+    __g_lstCampaignLevelChk = ['YT_PS_DISP_', 'FB_PS_CPC_', 'GG_PS_CPC_']
     
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
@@ -407,10 +408,9 @@ class Budget:
         return dict_rst
 
     def __get_gross_cost_inc_vat(self, dict_acct_info, dict_budget):
-        lst_campaign_level_chk = ['YT_PS_DISP_', 'FB_PS_CPC_']
         b_campaign_lvl = False
-        if dict_acct_info['camp_prefix'] in lst_campaign_level_chk:
-            for s_prefix in lst_campaign_level_chk:
+        if dict_acct_info['camp_prefix'] in self.__g_lstCampaignLevelChk:
+            for s_prefix in self.__g_lstCampaignLevelChk:
                 if dict_budget['memo'].startswith(s_prefix):
                     b_campaign_lvl = True
                     break
