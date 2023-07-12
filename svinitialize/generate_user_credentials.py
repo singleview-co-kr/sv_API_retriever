@@ -37,6 +37,7 @@ import re
 import socket
 import sys
 from urllib.parse import unquote
+import yaml
 
 # If using Web flow, the redirect URL must match exactly what’s configured in GCP for
 # the OAuth client.  If using Desktop flow, the redirect must be a localhost URL and
@@ -70,11 +71,17 @@ def sv_read_template_file():
 
 def sv_user_input():
     # enquire configuration info
-    s_developer_token = str(input("Google API developer token from https://console.developers.google.com: "))
-    s_client_id = str(input("client id from client_secret.json: "))
-    s_client_secret = str(input("client secret from client_secret.json: "))
-    s_login_customer_id = str(input("customer ID of the authenticated manager account. (no dashes): ")).replace('-', '')
-    return s_developer_token, s_client_id, s_client_secret, s_login_customer_id
+    with open(_sGoogleAdsYamlFileName, 'r') as o_stream:
+        try:
+            dict_parsed_yaml = yaml.safe_load(o_stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    # s_developer_token = str(input("Google API developer token from https://console.developers.google.com: "))
+    # s_client_id = str(input("client id from client_secret.json: "))
+    # s_client_secret = str(input("client secret from client_secret.json: "))
+    # s_login_customer_id = str(input("customer ID of the authenticated manager account. (no dashes): ")).replace('-', '')
+    return dict_parsed_yaml['developer_token'], dict_parsed_yaml['client_id'], \
+            dict_parsed_yaml['client_secret'], dict_parsed_yaml['login_customer_id'] 
 # end - singleview appending
 
 
@@ -125,23 +132,22 @@ def main(client_secrets_path, scopes):
 
     # Pass the code back into the OAuth module to get a refresh token.
     flow.fetch_token(code=code)
-    refresh_token = flow.credentials.refresh_token
+    s_refresh_token = flow.credentials.refresh_token
 
-    print(f"\nYour refresh token is: {refresh_token}\n")
-    print(
-        "Add your refresh token to your client library configuration as "
-        "described here: "
-        "https://developers.google.com/google-ads/api/docs/client-libs/python/configuration"
-    )
+    print(f"\nYour refresh token is: {s_refresh_token}\n")
     # begin - singleview appending
-    s_refresh_token = str(input("refresh token above: "))
+    # s_refresh_token = str(input("refresh token above: "))
     # write google-ads.yaml file.
     s_template = sv_read_template_file()
-    s_google_ads_yaml_path = os.path.join(_sRootPath, 'conf', _sGoogleAdsYamlFileName)
-    with open(s_google_ads_yaml_path, 'w', encoding='utf-8') as out:
+    with open(_sGoogleAdsYamlFileName, 'w', encoding='utf-8') as out:
         out.write(s_template.format(tup_user_input[0], tup_user_input[1], tup_user_input[2],
                                     s_refresh_token, tup_user_input[3]))
-    sys.stdout.write(_sGoogleAdsYamlFileName + ' has been created successfully\n')
+    # sys.stdout.write(_sGoogleAdsYamlFileName + ' has been created successfully\n')
+    print(
+        f"your new refresh token has been added in {_sGoogleAdsYamlFileName} successfully\n" 
+        "Or add your refresh token to your client library configuration as described here: \n"
+        "https://developers.google.com/google-ads/api/docs/client-libs/python/configuration"
+    )
     # end - singleview appending
 
 
