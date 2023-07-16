@@ -72,7 +72,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230708)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230716)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -138,6 +138,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             self._print_debug('start register db')
             self.__register_raw_xml_file()
             self._print_debug('finish register db')
+            self._print_debug('start update kin date')
+            self.__update_kin_date(dict_acct_info)
+            self._print_debug('finish update kin date')
 
         self._task_post_proc(self._g_oCallback)
 
