@@ -82,7 +82,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230612)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230618)')
         # Declaring a dict outside __init__ is declaring a class-level variable.
         # It is only created once at first,
         # whenever you create new objects it will reuse this same dict.
@@ -536,10 +536,13 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             bBrd = 1
 
         # monitor weird source name - begin
-        if len(sSource) > 50:
+        if len(sSource) > 50:  # eg., 5f9a56d24942b156db0fadadb7f3c537.safeframe.googlesyndication.com
+            self._print_debug('very long source name has been detected on')
             self._print_debug(s_datafile_fullname)
-            self._print_debug(lst_row)
-            raise Exception('stop')
+            self._print_debug(sSource + ' has been shortened to')
+            sSource = sSource[-50:]
+            self._print_debug(sSource)
+
         # monitor weird source name - begin
         return {'source': sSource, 'rst_type': sRstType, 'medium': sMedium, 'brd': bBrd,
                 'campaign1st': sCampaign1st, 'campaign2nd': sCampaign2nd, 'campaign3rd': sCampaign3rd}
