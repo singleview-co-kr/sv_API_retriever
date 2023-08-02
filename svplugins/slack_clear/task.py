@@ -49,7 +49,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230802)')
 
         self._g_dictParam.update({'slack_ch_ttl': None})
         self.__g_oConfig = configparser.ConfigParser()
@@ -89,7 +89,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 return
 
-        o_sv_slack = sv_slack.SvSlack(sCallingBot='dbs')
+        o_sv_slack = sv_slack.SvSlack(s_calling_bot='dbs')
         self._print_debug('Prepare to clear slack channel - ' + s_slack_ch_title)
         o_slack_cleaner = o_sv_slack.get_slack_cleaner(s_slack_ch_title)
         # delete all messages in general channels
@@ -119,6 +119,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
 
 if __name__ == '__main__':  # for console debugging and execution
     # python task.py config_loc=1/1 slack_ch_ttl=dbs_bot
+    # python task.py config_loc=1/1 # if defined in slack.config.ini
     # slack_clear slack_ch_ttl=yuhen_web
     nCliParams = len(sys.argv)
     if nCliParams > 1:
