@@ -74,7 +74,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230808)')
         
         self._g_dictParam.update({'target_host_url': None, 'mode': None, 'yyyymm': None, 'top_n_cnt': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -140,6 +140,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     return
 
         self._print_debug('-> communication begin')
+        if self.__g_sMode is None:
+            self.__g_sMode = 'add_ga_media_sql'
+
         if self.__g_sMode in ['add_ga_media_sql', 'update_ga_media_sql']:
             self._print_debug('-> transfer ga media log to BI DB via SQL')
             o_ga_media_log = ga_media_log.SvGaMediaLog()
