@@ -82,7 +82,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230704)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230812)')
         self._g_oLogger.setLevel(logging.ERROR)
 
         # log format
@@ -381,10 +381,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                             for o_single_row in o_response.rows:
                                 lst_dims = []
                                 for lst_single_dim_val in o_single_row.dimension_values:
-                                    if len(lst_single_dim_val.value):  # ignore no dimension value
-                                        lst_dims.append(lst_single_dim_val.value.replace('"', '').replace("'", ''))
-
-                                if len(lst_dims):
+                                    # if len(lst_single_dim_val.value):  # ignore no dimension value
+                                    lst_dims.append(lst_single_dim_val.value.replace('"', '').replace("'", ''))
+                                if len(lst_dims[0]):  # log only if first field is not null
                                     out.write('\t'.join(lst_dims) + '\t' + \
                                             o_single_row.metric_values[0].value.replace('"', '').replace("'", ''))
                                     out.write('\n')
