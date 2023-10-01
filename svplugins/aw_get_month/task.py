@@ -70,7 +70,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230914)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20231001)')
 
         self._g_dictParam.update({'yyyymm': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -152,7 +152,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         s_end_date_retrieval = self.__g_sRetrieveMonth + str(lst_month_range[1])
         with sv_mysql.SvMySql() as oSvMysql:
             oSvMysql.set_tbl_prefix(s_tbl_prefix)
-            oSvMysql.set_app_name('svplugins.daily_cron')
+            oSvMysql.set_app_name('svplugins.aw_get_month')
             oSvMysql.initialize(self._g_dictSvAcctInfo)
             lst_rst = oSvMysql.execute_query('getBudgetPeriodByPeriod', s_start_date_retrieval, s_end_date_retrieval)
         # end - get budget list for designated month
