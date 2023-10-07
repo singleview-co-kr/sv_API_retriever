@@ -57,7 +57,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230605)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20231007)')
 
         # self._g_dictParam.update({'yyyymm': None, 'mode': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -98,7 +98,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         o_budget = budget.Budget(None)
         dict_budget_type = o_budget.get_budget_type_dict()
         del o_budget
-        dict_source_toggle = {'naver': False, 'google': False, 'youtube': False, 'facebook': False}
+        dict_source_toggle = {'naver': False, 'google': False, 'youtube': False, 'facebook': False, 'instagram': False}
         for dict_row in lst_rst:
             n_acct_id = dict_row['acct_id']
             if n_acct_id in dict_budget_type:
@@ -115,7 +115,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
         if dict_source_toggle['google'] or dict_source_toggle['youtube'] :
             lst_jobs_to_cron.append('aw_get_day')
             lst_jobs_to_cron.append('aw_register_db')
-        if dict_source_toggle['facebook']:
+        if dict_source_toggle['facebook'] or dict_source_toggle['instagram']:
             lst_jobs_to_cron.append('fb_get_day')
             lst_jobs_to_cron.append('fb_register_db')
         del dict_source_toggle

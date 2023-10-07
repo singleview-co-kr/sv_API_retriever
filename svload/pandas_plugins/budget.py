@@ -18,7 +18,7 @@ class Budget:
     # __g_bPeriodDebugMode = False
     __g_oSvDb = None
     __g_dictBudgetType = {}
-    __g_lstCampaignLevelChk = ['YT_PS_DISP_', 'FB_PS_CPC_', 'GG_PS_CPC_']
+    __g_lstCampaignLevelChk = ['YT_PS_DISP_', 'FB_PS_CPC_', 'IG_PS_CPC_', 'GG_PS_CPC_']
     
     def __init__(self, o_sv_db):
         # print(__file__ + ':' + sys._getframe().f_code.co_name)
