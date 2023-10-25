@@ -65,7 +65,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name + '(20230914)')
+        self._g_oLogger = logging.getLogger(s_plugin_name + '(20231025)')
 
         self._g_dictParam.update({'earliest_date': None, 'latest_date': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -205,7 +205,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                                       'Clicks': 0, 'Cost': 0,
                                       'Device': None, 'Conversions': 0, 'ConversionValue': 0, 'Date': None}
                 lst_campaign_code = o_disp_campaign_row.campaign.name.split('_')
-                if lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
+                if lst_campaign_code[1] == 'PS' and lst_campaign_code[2] == 'CPC' and lst_campaign_code[3] != 'GDN':  # search term campaign
                     s_text_campaign_query = """
                         SELECT
                             campaign.name,
