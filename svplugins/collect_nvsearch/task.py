@@ -72,7 +72,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20230716)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20240101)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -199,9 +199,9 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                     time.sleep(2)
                     continue
                 proxies = {"http": s_proxy_server, 'https': s_proxy_server}
-
             if dict_log is None:
                 dict_log = lst_nvsearch_log.pop(0)
+                n_trial_cnt_for_single_kin = 0
             o_resp = None
             try:
                 o_resp = requests.get(dict_log['link'], headers=headers, proxies=proxies, timeout=5)
@@ -235,9 +235,17 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_log = None
                 self._print_progress_bar(n_idx + 1, n_sentinel, prefix='retrieve NVR kin post date:', suffix='Complete', length=50)
                 n_idx += 1
-                time.sleep(self.__g_nDelaySec)
-                if len(lst_nvsearch_log) == 0:
-                    break
+            else:
+                n_trial_cnt_for_single_kin += 1
+                if n_trial_cnt_for_single_kin == 4:
+                    lst_proxy.remove(s_proxy_server)
+                    s_proxy_server = None
+                    n_trial_cnt_for_single_kin = 0
+                    self._print_debug('change proxy server and try again the kin post ' + dict_log['log_srl'])
+            if len(lst_nvsearch_log) == 0:
+                break
+            time.sleep(self.__g_nDelaySec)
+
         del o_sv_mysql
         s_brand_name = dict_acct_info['brand_name'] if dict_acct_info['brand_name'] else 'unknown brand'
         o_slack = sv_slack.SvSlack('dbs')
