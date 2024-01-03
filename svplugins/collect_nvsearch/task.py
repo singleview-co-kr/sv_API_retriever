@@ -72,7 +72,7 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
     def __init__(self):
         """ validate dictParams and allocate params to private global attribute """
         s_plugin_name = os.path.abspath(__file__).split(os.path.sep)[-2]
-        self._g_oLogger = logging.getLogger(s_plugin_name+'(20240102)')
+        self._g_oLogger = logging.getLogger(s_plugin_name+'(20240103)')
         
         self._g_dictParam.update({'mode': None, 'morpheme': None})
         # Declaring a dict outside __init__ is declaring a class-level variable.
@@ -203,11 +203,11 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
                 dict_log = lst_nvsearch_log.pop(0)
                 n_trial_cnt_for_single_kin = 0
             o_resp = None
+            b_invalid_proxy = False
             try:
                 o_resp = requests.get(dict_log['link'], headers=headers, proxies=proxies, timeout=5)
             except (ProxyError, SSLError, ConnectTimeout, ChunkedEncodingError, ReadTimeout, ConnectionError) as e:
-                lst_proxy.remove(s_proxy_server)
-                s_proxy_server = None
+                b_invalid_proxy = True
             if o_resp:
                 o_soup = BeautifulSoup(o_resp.text, 'html.parser')
                 o_dom = etree.HTML(str(o_soup))  # 15567 끌올
@@ -238,12 +238,15 @@ class SvJobPlugin(sv_object.ISvObject, sv_plugin.ISvPlugin):
             else:
                 n_trial_cnt_for_single_kin += 1
                 if n_trial_cnt_for_single_kin == 4:
-                    lst_proxy.remove(s_proxy_server)
-                    s_proxy_server = None
+                    b_invalid_proxy = True
                     n_trial_cnt_for_single_kin = 0
                     self._print_debug('change proxy server and try again the kin post ' + str(dict_log['log_srl']))
             if len(lst_nvsearch_log) == 0:
                 break
+            if b_invalid_proxy:
+                lst_proxy.remove(s_proxy_server)
+                s_proxy_server = None
+                
             time.sleep(self.__g_nDelaySec)
 
         del o_sv_mysql
