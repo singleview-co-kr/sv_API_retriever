@@ -317,7 +317,6 @@ class SvMorphRetriever():
         else:
             s_period_mode = 'partial_period'
 
-        print(s_period_mode)
         if n_module_srl is None:
             s_module_mode = 'all'
         elif n_module_srl > 0:
@@ -345,16 +344,22 @@ class SvMorphRetriever():
             del lst_counting_words_rst
             
             if s_period_mode == 'full_period' and s_module_mode == 'all':
-                lst_rst = o_sv_mysql.execute_query('getWordCnt')
+                lst_morpheme_rst = o_sv_mysql.execute_query('getWordCnt')
             elif s_period_mode == 'partial_period' and s_module_mode == 'all':
-                lst_rst = o_sv_mysql.execute_query('getWordCntByPeriodAllModule', dict_period['dt_start'], dict_period['dt_end'])
+                lst_morpheme_rst = o_sv_mysql.execute_query('getWordCntByPeriodAllModule', dict_period['dt_start'], dict_period['dt_end'])
             elif s_period_mode == 'full_period' and s_module_mode == 'specific':
-                lst_rst = o_sv_mysql.execute_query('getWordCntByModuleSrl', n_module_srl)
+                lst_morpheme_rst = o_sv_mysql.execute_query('getWordCntByModuleSrl', n_module_srl)
             elif s_period_mode == 'partial_period' and s_module_mode == 'specific':
-                lst_rst = o_sv_mysql.execute_query('getWordCntByPeriodModuleSrl', dict_period['dt_start'], dict_period['dt_end'], n_module_srl)
+                lst_morpheme_rst = o_sv_mysql.execute_query('getWordCntByPeriodModuleSrl', n_module_srl, dict_period['dt_start'], dict_period['dt_end'])
             
-            self.__print_debug(str(len(lst_rst)) + ' documents')
-            for dict_row in lst_rst:
+            lst_doc_retrieved = []
+            for dict_row in lst_morpheme_rst: 
+                lst_doc_retrieved.append(dict_row['document_srl'])
+            s_doc_count = str(len(set(lst_doc_retrieved)))
+            del lst_doc_retrieved
+
+            self.__print_debug(str(len(lst_morpheme_rst)) + ' morphemes from ' + s_doc_count + ' documents' )
+            for dict_row in lst_morpheme_rst:
                 n_word_srl = dict_row['word_srl']
                 if n_word_srl in self.__g_dictCountingNouns:
                     s_translate_word = self.__g_dictCountingNouns[n_word_srl]
@@ -367,7 +372,7 @@ class SvMorphRetriever():
                         n_iter_cnt = n_iter_cnt + 1
                         
                         self.__g_lstCountingNounsSrl.append(s_translate_word)
-               
+            del lst_morpheme_rst
         counter_noun_count = Counter(self.__g_lstCountingNounsSrl)  # sum freq by noun and sort
         lst_noun = counter_noun_count.most_common(100)
         return lst_noun
